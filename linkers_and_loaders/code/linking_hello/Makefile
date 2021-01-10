@@ -10,7 +10,7 @@ main:
 	gcc -c $< -o $@ -m32
 
 clean:
-	@rm -rf *.o main
+	@rm -rf *.o *.s main
 
 dump_m: m.o
 	objdump -x m.o
