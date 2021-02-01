@@ -58,8 +58,19 @@
 我们有各种锁实现同步机制，各种机制都有各自的特点。
 * 二元信号量(Binary Semaphore)
    * 二元信号量有两种状态，且状态变化时原子的。因此不同线程可以通过检查/修改此二元信号量，达到同步
+   * 例子，[sem_process](./code/sem_process)
 * 互斥量(Mutex)
    * 类似与二元信号量，互斥量的变化也是原子的，且也是二元的
    * 不同于二元信号量，互斥量的获取与释放必须是同一个线程
+   * 例子：
+      * [mutex_process](./code/mutex_process)。这个例子利用mutex和shared memory实现了进程间的同步
+      * [mutex_process_fail](./code/mutex_process_fail)。这个例子只用了mutex，无法实现进程间的同步。单用linux的mutex只能实现线程同步，可参见例子：[mutex_thread](./code/mutex_thread)。
 * 临界区(Critical Section)
    * 临界区和互斥量与信号量的区别在于，互斥量和信号量在系统的任何进程里都是可见的，另一个进程试图去获取该锁是合法的。然而，临界区的作用范围仅限于本进程。
+* 读写锁(Read-Write Lock)
+   * 读锁是共享的(shared)，而写锁是独占的(unique)
+   * C++中的shared_lock和unique_lock，就是读写锁
+   * 例子，[rwlock](./code/rwlock)
+* 条件变量(Condition Variable)
+   * 使用条件变量可以让许多线程一起等待某个事件的发生，当事件发生时，所有的线程可以一起恢复执行，而mutex却不行。
+   * C++的`std::condition_variable`需要配合`unique_lock`使用，在`wait`的时候会释放`unique_lock`并阻塞，当条件满足后，阻塞解除，重新获取锁。例子，[cond_var](./code/cond_var)
