@@ -35,3 +35,4 @@ main
 *.s
 core
 !core/
+*.i
