@@ -153,3 +153,170 @@
 * 地址和空间分配(Address and Storage Allocation)
 * 符号决议(Symbol Resolution)
 * 重定位(Relocation)
+
+
+# 第3章 目标文件里有什么
+## 目标文件的格式
+ELF文件分为4类(通过file命令可查看)：
+* 可重定位文件(Relocatable File), 如：.o文件
+* 可执行文件(Executable File), 如：/bin/bash文件
+* 共享目标文件(Shared Object File), 如：.so文件
+* 核心转储文件(Core Dump File), 如：core dump
+## 目标文件是什么样的
+![section](./pictures/section.png)
+* 文件头 FileHeader
+   * 文件类型
+   * 入口地址(如果是可执行文件)
+   * 目标硬件
+   * 目标操作系统
+   * 段表(Section Table), 描述文件中各个段在文件中的偏移位置以及段的属性等
+* .text段
+   * 机器代码
+* .data段
+   * 已初始化的全局变量和局部静态变量
+* .bss段
+   * 未初始化的全局变量和局部静态变量
+   * 上述变量的默认值都为零，没有必要存在.data段
+   * 只是为未初始化的全局变量和局部静态变量预留位置，并没有内容，所以它在文件中也不占据空间
+
+### 为什么要将代码和数据分开存储
+* 保护代码只读，不被篡改
+* 共享只读数据
+
+## 挖掘SimpleSection.o
+### 分析`objdump -h`的打印内容
+```bash
+SimpleSection.o:     file format elf32-i386
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .group        00000008  00000000  00000000  00000034  2**2
+                  CONTENTS, READONLY, GROUP, LINK_ONCE_DISCARD
+  1 .text         00000087  00000000  00000000  0000003c  2**0
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
+  2 .data         00000008  00000000  00000000  000000c4  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  3 .bss          00000004  00000000  00000000  000000cc  2**2
+                  ALLOC
+  4 .rodata       00000004  00000000  00000000  000000cc  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  5 .text.__x86.get_pc_thunk.ax 00000004  00000000  00000000  000000d0  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  6 .comment      0000002b  00000000  00000000  000000d4  2**0
+                  CONTENTS, READONLY
+  7 .note.GNU-stack 00000000  00000000  00000000  000000ff  2**0
+                  CONTENTS, READONLY
+  8 .note.gnu.property 0000001c  00000000  00000000  00000100  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  9 .eh_frame     0000007c  00000000  00000000  0000011c  2**2
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+```
+* "CONTENTS"表示该段在文件中存在
+   * BSS段没有"CONTENTS", 表示它实际上在ELF文件中不存在内容
+   * .note.GNU-stack段虽然有"CONTENTS", 但是它的长度为0
+
+### 代码段
+* `objdump -s`
+   * 以十六进制打印各段内容，其长度和文件头中定义的段长度是一致的
+* `objdump -d`
+   * 打印各段反汇编内容，中间列的十六进制数字和`-s`打印出来的内容一致，代表机器码
+
+### 数据段和只读数据段
+```bash
+Idx Name          Size      VMA       LMA       File off  Algn
+  2 .data         00000008  00000000  00000000  000000c4  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  4 .rodata       00000004  00000000  00000000  000000cc  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+
+Contents of section .data:
+ 0000 54000000 55000000                    T...U...        
+Contents of section .rodata:
+ 0000 25640a00                             %d..            
+```
+* .data段
+   * 保存的是那些已经初始化了的全局静态变量和局部静态变量，此处分别是`global_init_var`与`static_var`，因此长度是8字节(32位系统int是4字节)。
+   * 内容也是小端模式(低位存低位)存储的84(0x54)和85(0x55)
+* .rodata段
+   * 存储只读数据，这里存放的是代码中`printf`用到的字符串常量"%d\n"。ASCII码中，`%`对应0x25，`d`对应的是0x64，`\n`对应的是0x0a，最后是`\0`结尾
+
+### BSS段
+```bash
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  3 .bss          00000004  00000000  00000000  000000cc  2**2
+                  ALLOC
+
+SYMBOL TABLE:
+00000000 l     O .bss   00000004 static_var2.1513
+00000004       O *COM*  00000004 global_uninit_var
+```
+* 在`SYMBOL_TABLE`中显示，只有`static_var2`在.bss段中，`global_uninit_var`只是一个未定义的"COMMON"符号。这其实和不同的语言与不同的编译器实现有关。有些编译器会将全局的未初始化变量存放在目标文件.bss段，而有些只是预留一个未定义的全局变量符号，等到最终链接成可执行文件的时候再在.bss段分配空间。
+
+### 其他段
+![sections](./pictures/sections.png)
+
+### 自定义段
+```c
+__attribute__((section("FOO"))) int global = 42;
+__attribute__((section("BAR"))) void foo()
+{
+}
+```
+我们在全局变量或函数之前加上`__attribute__((section("name")))`属性就可以把相应的变量或函数放到以"name"作为段名的段中。
+
+## ELF文件结构描述
+![ELF](./pictures/ELF_struct.png)
+### 文件头
+```
+readelf -h SimpleSection.o
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              REL (Relocatable file)
+  Machine:                           Intel 80386
+  Version:                           0x1
+  Entry point address:               0x0
+  Start of program headers:          0 (bytes into file)
+  Start of section headers:          1140 (bytes into file)
+  Flags:                             0x0
+  Size of this header:               52 (bytes)
+  Size of program headers:           0 (bytes)
+  Number of program headers:         0
+  Size of section headers:           40 (bytes)
+  Number of section headers:         16
+  Section header string table index: 15
+```
+### 段表 Section Header Table
+```
+readelf -S SimpleSection.o
+There are 16 section headers, starting at offset 0x474:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .group            GROUP           00000000 000034 000008 04     13  17  4
+  [ 2] .text             PROGBITS        00000000 00003c 000087 00  AX  0   0  1
+  [ 3] .rel.text         REL             00000000 00037c 000048 08   I 13   2  4
+  [ 4] .data             PROGBITS        00000000 0000c4 000008 00  WA  0   0  4
+  [ 5] .bss              NOBITS          00000000 0000cc 000004 00  WA  0   0  4
+  [ 6] .rodata           PROGBITS        00000000 0000cc 000004 00   A  0   0  1
+  [ 7] .text.__x86.get_p PROGBITS        00000000 0000d0 000004 00 AXG  0   0  1
+  [ 8] .comment          PROGBITS        00000000 0000d4 00002b 01  MS  0   0  1
+  [ 9] .note.GNU-stack   PROGBITS        00000000 0000ff 000000 00      0   0  1
+  [10] .note.gnu.propert NOTE            00000000 000100 00001c 00   A  0   0  4
+  [11] .eh_frame         PROGBITS        00000000 00011c 00007c 00   A  0   0  4
+  [12] .rel.eh_frame     REL             00000000 0003c4 000018 08   I 13  11  4
+  [13] .symtab           SYMTAB          00000000 000198 000150 10     14  14  4
+  [14] .strtab           STRTAB          00000000 0002e8 000092 00      0   0  1
+  [15] .shstrtab         STRTAB          00000000 0003dc 000095 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+  L (link order), O (extra OS processing required), G (group), T (TLS),
+  C (compressed), x (unknown), o (OS specific), E (exclude),
+  p (processor specific)
+```
