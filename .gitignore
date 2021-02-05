@@ -36,3 +36,4 @@ main
 core
 !core/
 *.i
+main_debug
