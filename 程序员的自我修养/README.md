@@ -423,3 +423,41 @@ Symbol table '.symtab' contains 21 entries:
 0000000000000000 D _ZN6myname3varE        # C++ namespace里的变量
 0000000000000004 D _ZN6myname4var2E
 ```
+
+### 弱符号与强符号
+* 强符号Strong Symbol
+   * 多处定义会链接出错
+   * 编译器默认函数和初始化了的全局变量为强符号
+* 弱符号Weak Symbol
+   * 相对于弱符号
+   * 未初始化的全局变量为弱符号
+   * 也可通过`__attribute__((weak))`来定义任何一个强符号为弱符号
+* [例子](./code/weak_strong_symbol)
+```bash
+> nm symbols.o
+
+0000000000000000 T main
+0000000000000000 D strong
+0000000000000004 C weak    # C means the symbol is common. Common symbols are uninitialized data.
+0000000000000004 V weak2   # V means the symbol is weak object. When a weak defined symbol is linked with a normal defined symbol, the normal defined symbol is used with no error. When a weak undefined symbol is linked and the symbol is not defined, the value of the weak symbol becomes zero with no error.
+```
+针对强弱符号的概念，链接器就会按如下规则处理于选择被多次定义的全局符号：
+* 规则1：不允许强符号被多次定义
+* 规则2：如果一个符号在某个目标文件中是强符号，在其他文件中都是弱符号，那么选择强符号
+* 规则3：如果一个符号在所有目标文件中都是弱符号，那么选择其中占用空间最大的一个。
+#### 强引用与弱引用
+* 强引用
+   * 对外部目标文件的符号引用，如果没有找到该符号，链接器就会报符号未定义
+* 弱引用
+   * 没有发现引用符号，也不会报错
+   * `__attribute__((weakref))`这个关键字可声明对一个外部函数的引用未弱引用
+   * 下面这段代码可成功编译为可执行文件，但是运行时会报错
+   ```c
+   __attribute__((weakref)) void foo();
+   int main()
+   {
+      foo();
+   }
+   ```
+
+弱符号和弱引用对于库来说十分有用，比如库中定义的弱符号可以被用户定义的强符号所覆盖，从而使得程序可以使用自定义版本的库函数。或者程序可以扩展功能模块的引用定义为弱引用，当我们将扩展模块与程序链接在一起时，功能模块就可以正常使用。可参考例子[pthread](./code/pthread)。
