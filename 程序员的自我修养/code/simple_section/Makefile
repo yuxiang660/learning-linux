@@ -23,3 +23,7 @@ head: target
 
 section: target
 	readelf -S SimpleSection.o
+
+symbol: target
+	nm SimpleSection.o
+	readelf -s SimpleSection.o

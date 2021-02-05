@@ -291,6 +291,7 @@ ELF Header:
   Number of section headers:         16
   Section header string table index: 15
 ```
+
 ### 段表 Section Header Table
 ```
 readelf -S SimpleSection.o
@@ -320,3 +321,82 @@ Key to Flags:
   C (compressed), x (unknown), o (OS specific), E (exclude),
   p (processor specific)
 ```
+
+### 重定位表 (Relocation Table)
+对于每个需要重定位的代码段或数据段，都会有一个想定的重定位表`.rel.xxx`
+
+### 字符串表 (String Table)
+常见的字符串表：
+   * 字符串表`.strtab`
+      * 用来保存普通的字符串，比如符号的名字
+   * 段表字符串表`.shstrtab`
+      * 用来保存段表中用到的字符串，最常见的就是段名(sh_name)
+
+## 链接的接口--符号
+### 常见的符号类型
+```bash
+> nm SimpleSection.o
+
+00000000 T func1                    # T means the symbol is in the text section
+00000000 D global_init_var          # D means the symbol is in the initialized data section
+         U _GLOBAL_OFFSET_TABLE_    # U means the symbol is undefined
+00000004 C global_uninit_var        # C means the symbol is common
+00000032 T main
+         U printf
+00000004 d static_var.1512
+00000000 b static_var2.1513         # b means the symbol is in the BSS data section
+00000000 T __x86.get_pc_thunk.ax
+
+> readelf -s SimpleSection.o
+
+Symbol table '.symtab' contains 21 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00000000     0 FILE    LOCAL  DEFAULT  ABS SimpleSection.c
+     2: 00000000     0 SECTION LOCAL  DEFAULT    2 
+     3: 00000000     0 SECTION LOCAL  DEFAULT    4 
+     4: 00000000     0 SECTION LOCAL  DEFAULT    5 
+     5: 00000000     0 SECTION LOCAL  DEFAULT    6 
+     6: 00000004     4 OBJECT  LOCAL  DEFAULT    4 static_var.1512
+     7: 00000000     4 OBJECT  LOCAL  DEFAULT    5 static_var2.1513
+     8: 00000000     0 SECTION LOCAL  DEFAULT    7 
+     9: 00000000     0 SECTION LOCAL  DEFAULT    9 
+    10: 00000000     0 SECTION LOCAL  DEFAULT   10 
+    11: 00000000     0 SECTION LOCAL  DEFAULT   11 
+    12: 00000000     0 SECTION LOCAL  DEFAULT    8 
+    13: 00000000     0 SECTION LOCAL  DEFAULT    1 
+    14: 00000000     4 OBJECT  GLOBAL DEFAULT    4 global_init_var
+    15: 00000004     4 OBJECT  GLOBAL DEFAULT  COM global_uninit_var
+    16: 00000000    50 FUNC    GLOBAL DEFAULT    2 func1
+    17: 00000000     0 FUNC    GLOBAL HIDDEN     7 __x86.get_pc_thunk.ax
+    18: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND _GLOBAL_OFFSET_TABLE_
+    19: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND printf
+    20: 00000032    85 FUNC    GLOBAL DEFAULT    2 main
+```
+* 定义在本目标文件的全局符号，可以被其他目标文件引用
+   * 比如SimpleSection.o里面的`func1`, `main`等
+* 外部符号(External Symbol)
+   * 在本目标文件中引用的全局符号，却没有定义在本目标文件
+   * 比如SimpleSection.o里面的`printf`
+* 段名
+   * 由编译器产生，值就是该段的起始地址
+   * 比如SimpleSection.o里面的`.text`, `.data`等
+* 局部符号
+   * 这里符号只有在编译单元内部可见
+   * 比如SimpleSection.o里面的`static_var`和`static_var2`
+   * 调试器可以使用这些符号来分析程序或崩溃时的的核心转储文件，这些局部符号对链接过程没有作用，链接器往往也忽略他们。
+* 行号信息
+   * 目标文件指令与源代码中代码行的对应关系
+
+### 特殊符号
+当我们使用`ld`作为链接器来链接生产可执行文件时，它会为我们定义很多特殊的符号，我们可以直接声明并引用它。
+* `__executable_start`
+   * 程序起始地址，注意，不是入口地址，是程序的最开始的地址
+* `_etext`
+   * 代码结束地址
+* `_edata`
+   * 数据段结束地址
+* `_end`
+   * 程序结束地址
+可参考例子: [special_symbol](./code/special_symbol)
+
