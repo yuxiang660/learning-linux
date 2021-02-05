@@ -409,4 +409,17 @@ Symbol table '.symtab' contains 21 entries:
    * E后面跟参数类型
 
 ### extern "C"
+* [例子](./code/extern_c)
+```bash
+> nm main.o
 
+0000000000000000 T func                   # extern C 函数
+                 U _GLOBAL_OFFSET_TABLE_
+0000000000000025 T main
+                 U printf
+0000000000000008 D var3
+000000000000000c D var4                   # C++ 全局变量
+0000000000000012 T _Z4funcf               # C++ 函数
+0000000000000000 D _ZN6myname3varE        # C++ namespace里的变量
+0000000000000004 D _ZN6myname4var2E
+```
