@@ -400,3 +400,13 @@ Symbol table '.symtab' contains 21 entries:
    * 程序结束地址
 可参考例子: [special_symbol](./code/special_symbol)
 
+### 符号修饰与函数签名
+为了防止符号名冲突，UNIX下的C语言源代码文件中的所有全局变量和函数前会加上下划线`_`。C++为了防止可能的冲突，还增加了命名空间Namespace来解决多模块的符号冲突问题。
+* 符号修饰(Name Decoration)和符号改编(Name Mangling)
+   * _Z开头
+   * N代表namespace
+   * E代表End
+   * E后面跟参数类型
+
+### extern "C"
+
