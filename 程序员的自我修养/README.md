@@ -517,5 +517,88 @@ OFFSET           TYPE              VALUE
 ### 为什么编译器不直接把未初始化的全局变量也当作未初始化的局部静态变量一样处理，为它在bss段分配空间，而是将其标记为一个COMMON类型的变量？
 如果编译单元包含了弱符号，那么该符号最终所占空间的大小在此时是未知的。但是链接器在链接过程中可以确定弱符号的大小，因为当链接器读取所有输入目标文件后，任何一个弱符号的最终大小都可以确定了，所以它可以在最终输出文件的BSS段为其分配空间。所以从总体来看，未初始化全局变量最终还是被放在BSS段的。
 
+## ABI
+ABI(ABI Application Binary Interface)，概念类似与API，但是要求更加严格，是二进制层面的接口一致性要求，如两个目标文件能否链接成一个可执行文件。影响ABI的因素非常多：
+* 内置类型的大小和存放方式
+* 组合类型的存储方式
+* 外部符号与用户定义符号的命名方式和解析方式
+* 函数调用方式
+* 堆栈的分布方式
+* 寄存器的使用约定
 
+## 静态库链接
+```bash
+> ar -t /usr/lib/x86_64-linux-gnu/libc.a
 
+init-first.o
+libc-start.o
+sysdep.o
+version.o
+check_fds.o
+libc-tls.o
+elf-init.o
+dso_handle.o
+errno.o
+errno-loc.o
+```
+
+## 链接过程控制
+### 不依赖glibc的HelloWorld程序
+* [tiny_hello_world](./code/raw_hello)
+* 用汇编代码直接触发`0x80`系统调用中断，调用内核API`write`函数，完成print的动作
+* `objdump -h main`
+   * .text段保存程序指令
+   * .rodata保存的是字符串"Hello World!\n"
+   * .data保存的是str全局变量
+      ```bash
+      readelf -S main
+      There are 11 section headers, starting at offset 0x3238:
+
+      Section Headers:
+      [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+      [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+      [ 1] .note.gnu.propert NOTE            08048114 000114 00001c 00   A  0   0  4
+      [ 2] .text             PROGBITS        08049000 001000 000071 00  AX  0   0  1
+      [ 3] .rodata           PROGBITS        0804a000 002000 00000e 00   A  0   0  1
+      [ 4] .eh_frame         PROGBITS        0804a010 002010 000090 00   A  0   0  4
+      [ 5] .got.plt          PROGBITS        0804c000 003000 00000c 04  WA  0   0  4
+      [ 6] .data             PROGBITS        0804c00c 00300c 000004 00  WA  0   0  4
+      [ 7] .comment          PROGBITS        00000000 003010 00002a 01  MS  0   0  1
+      [ 8] .symtab           SYMTAB          00000000 00303c 000130 10      9  11  4
+      [ 9] .strtab           STRTAB          00000000 00316c 00006c 00      0   0  1
+      [10] .shstrtab         STRTAB          00000000 0031d8 00005e 00      0   0  1
+      ```
+* 使用链接脚本[TinyHelloWorld](./code/raw_hello/TinyHelloWorld.lds)将.text, .data和.rodata段合并成tinytext段，并去除.comment段。
+```bash
+readelf -S main_tiny
+There are 10 section headers, starting at offset 0x3cc:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] tinytext          PROGBITS        008480d4 0000d4 00007b 00 WAX  0   0  1
+  [ 2] .text.__x86.get_p PROGBITS        0084814f 00014f 000004 00  AX  0   0  1
+  [ 3] .eh_frame         PROGBITS        00848154 000154 000090 00   A  0   0  4
+  [ 4] .note.gnu.propert NOTE            008481e4 0001e4 00001c 00   A  0   0  4
+  [ 5] .data.rel.local   PROGBITS        00848200 000200 000004 00  WA  0   0  4
+  [ 6] .got.plt          PROGBITS        00848204 000204 00000c 04  WA  0   0  4
+  [ 7] .symtab           SYMTAB          00000000 000210 0000f0 10      8  10  4
+  [ 8] .strtab           STRTAB          00000000 000300 000054 00      0   0  1
+  [ 9] .shstrtab         STRTAB          00000000 000354 000076 00      0   0  1
+```
+* 使用strip去除.symtab和.strtab段
+```bash
+readelf -S main_strip
+There are 8 section headers, starting at offset 0x278:
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] tinytext          PROGBITS        008480d4 0000d4 00007b 00 WAX  0   0  1
+  [ 2] .text.__x86.get_p PROGBITS        0084814f 00014f 000004 00  AX  0   0  1
+  [ 3] .eh_frame         PROGBITS        00848154 000154 000090 00   A  0   0  4
+  [ 4] .note.gnu.propert NOTE            008481e4 0001e4 00001c 00   A  0   0  4
+  [ 5] .data.rel.local   PROGBITS        00848200 000200 000004 00  WA  0   0  4
+  [ 6] .got.plt          PROGBITS        00848204 000204 00000c 04  WA  0   0  4
+  [ 7] .shstrtab         STRTAB          00000000 000210 000066 00      0   0  1`
+```

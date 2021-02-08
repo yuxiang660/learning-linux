@@ -37,3 +37,5 @@ core
 !core/
 *.i
 main_debug
+main_tiny
+main_strip
