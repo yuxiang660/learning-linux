@@ -820,4 +820,6 @@ Dynamic section at offset 0x2e20 contains 24 entries:
 * AT_PHNUM：可执行文件头中程序头表中入口的数量
 * AT_ENTRY：可执行文件入口地址，即启动地址
 
+可参见例子[print_stack](./code/stack/print_stack.c)
+
 
