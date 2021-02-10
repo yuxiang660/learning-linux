@@ -874,3 +874,41 @@ Dynamic section at offset 0x2e20 contains 24 entries:
    * 运行ldconfig
 ## 共享库构造和析构函数
 * [例子](./code/so_init)
+
+# 第10章 内存
+## 程序的内存布局
+![process_memory](./pictures/process_memory.png)
+
+## 栈与调用惯例
+栈保存了一个函数调用所需要的维护信息，称作堆栈帧(Stack Frame)或活动记录(Activate Record)。
+![stack_frame](./pictures/stack_frame.png)
+堆栈帧一般包括：
+* 函数的返回地址和参数，和caller相关
+* 保存的上下文：包括函数调用前后需要保持不变的寄存器，以及函数的非静态局部变量和编译器自动生成的其他临时变量
+
+在i386中，一个函数的活动记录用ebp和esp连个寄存器划定。esp始终指向栈顶，ebp在函数执行的过程中固定不变：
+* (ebp-4)指向了这个函数的返回地址
+* (ebp-8), (ebp-12)...等指向了这个函数的传入参数
+* ebp指向的是调用这个函数之前ebp的值，用于恢复
+
+函数的调用方和被调用方要遵循同样的约定，函数才能被正确调用，这样的约定称为调用惯例。常见的调用惯例有：
+![calling_convention](./pictures/calling_convention.png)
+下面是cdecl调用惯例，以如下代码为例子：
+```c
+void f(int x, int y)
+{
+   ...
+   return;
+}
+int main()
+{
+   f(1, 3);
+   return 0;
+}
+```
+![calling_stack](./pictures/calling_stack.png)
+
+结合ebp和esp，堆栈格局如下：
+![calling_stack2](./pictures/calling_stack2.png)
+
+
