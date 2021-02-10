@@ -1,0 +1,6 @@
+VERS_1.3 {
+   global:
+      bar;
+   local:
+      *;
+};
