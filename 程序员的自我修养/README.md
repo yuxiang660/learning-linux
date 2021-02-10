@@ -911,4 +911,40 @@ int main()
 结合ebp和esp，堆栈格局如下：
 ![calling_stack2](./pictures/calling_stack2.png)
 
-
+## 函数返回值传递
+采用了隐藏参数的方式，完成了大尺寸返回值。
+例如以下代码：
+```c
+typedef struct big_thing
+{
+   char buf[128];
+}big_thing;
+big_thing return_test()
+{
+   big_thing b;
+   b.buf[0] = 0;
+   return b;
+}
+int main()
+{
+   big_thing n = return_test();
+}
+```
+其实会被转换成：
+```c
+void return_test(void *temp)
+{
+   big_thing b;
+   b.buf[0] = 0;
+   memcpy(temp, &b, sizeof(big_thing));
+   eax = temp;
+}
+int main()
+{
+   big_thing temp;
+   big_thing n;
+   return_test(&temp);
+   memcpy(&n, eax, sizeof(big_thing));
+}
+```
+![big_size_return](./pictures/big_size_return.png)
