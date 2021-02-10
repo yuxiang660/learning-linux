@@ -862,4 +862,15 @@ Dynamic section at offset 0x2e20 contains 24 entries:
    * 由环境变量LD_LIBRARY_PATH指定的路径
    * 由路径缓存文件/etc/ld.so.cache指定的路径，ldconfig工具会将共享目录下所有SO-NAME收集起来，存放到/etc/ld.so.cache文件中，以加快查找速度
    * 默认共享目录，/lib, /usr/lib, /usr/local/lib, /etc/ld.so.conf
-
+## 共享库的创建
+* 生成共享库： `gcc -shared -fPIC -Wl,-soname,my_soname -o library_name source_files`
+   * 如果我们不使用-soname来指定共享库的SO-NAME，那么该共享库默认就没有SO-NAME，即使使用ldconfig更新SO-NAME的软链接时，对该共享库也没有效果
+* 链接共享库： `gcc -Wl,-rpath=/home/mylib -o program.out program.o -lsomelib`
+   * 这样产生的可执行文件program.out在被动态链接器装载时，动态链接器会首先在“/home/mylib”查找共享库
+* 清除符号信息：`strip libfoo.so`
+   * strip工具可清除掉共享库或可执行文件的所有符号和调试信息
+* 安装共享库
+   * 复制到某个标准共享库目录
+   * 运行ldconfig
+## 共享库构造和析构函数
+* [例子](./code/so_init)
