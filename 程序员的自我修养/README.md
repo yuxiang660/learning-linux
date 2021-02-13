@@ -2,6 +2,7 @@
 ## 系统软件
 * 平台性软件, 如：操作系统内核，驱动程序，运行库等
 * 程序开发软件，如：编译器，汇编器，链接器等
+
 ![computer_arch](./pictures/computer_arch.png)
 
 ## 为什么要使用虚拟地址
@@ -1052,6 +1053,7 @@ Linux使用0x80号中断作为系统调用的入口，各个通用寄存器用�
 ![system_call](./pictures/system_call.png)
 ![fork](./pictures/fork.png)
 
-
+# 第13章 运行库实现
+* [例子](./code/miniCRT)
 
 
