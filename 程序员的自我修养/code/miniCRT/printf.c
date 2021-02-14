@@ -64,6 +64,7 @@ static int vfprintf(int stream, const char* format, va_list arglist)
             if (fputc('s', stream) < 0) return EOF;
             ++ret;
          }
+         break;
       default:
          if (translating) translating = 0;
          if (fputc(*p, stream) < 0) return EOF;

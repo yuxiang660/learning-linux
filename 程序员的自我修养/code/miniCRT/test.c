@@ -10,10 +10,10 @@ int main(int argc, char* argv[])
       strcpy(v[i], argv[i]);
    }
 
-   char format[30] = "Number:%d, String:%s\n";
-   char str[10] = "hello";
-   printf(format, 1, str);
+   printf("Line number %d: %s\n", 13, "hello world");
 
+   // const string space is limited, so stack space to store const string.
+   // fopen function uses lots of const string space.
    char log[30] = "test.txt";
    char write_mode[2] = "w";
    char read_mode[2] = "r";
@@ -27,6 +27,7 @@ int main(int argc, char* argv[])
    fclose(fd);
 
    fd = fopen(log, read_mode);
+   char format[30] = "Number:%d, String:%s\n";
    for (i = 0; i < argc; ++i) {
       int len;
       char* buf;
