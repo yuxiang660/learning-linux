@@ -14,7 +14,7 @@ typedef struct _heap_header
 #define ADDR_ADD(a,o) (((char*)(a)) + o)
 #define HEADER_SIZE (sizeof(heap_header))
 
-static heap_header* list_head = NULL;
+heap_header* list_head;
 
 void free(void* ptr)
 {
@@ -107,5 +107,6 @@ int mini_crt_heap_init()
    header->prev = NULL;
 
    list_head = header;
+
    return 1;
 }

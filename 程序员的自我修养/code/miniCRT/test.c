@@ -10,7 +10,15 @@ int main(int argc, char* argv[])
       strcpy(v[i], argv[i]);
    }
 
-   fd = fopen("test.txt", "w");
+   char format[30] = "Number:%d, String:%s\n";
+   char str[10] = "hello";
+   printf(format, 1, str);
+
+   char log[30] = "test.txt";
+   char write_mode[2] = "w";
+   char read_mode[2] = "r";
+
+   fd = fopen(log, write_mode);
    for (i = 0; i < argc; ++i) {
       int len = strlen(v[i]);
       fwrite(&len, 1, sizeof(int), fd);
@@ -18,7 +26,7 @@ int main(int argc, char* argv[])
    }
    fclose(fd);
 
-   fd = fopen("test.txt", "r");
+   fd = fopen(log, read_mode);
    for (i = 0; i < argc; ++i) {
       int len;
       char* buf;
@@ -26,7 +34,7 @@ int main(int argc, char* argv[])
       buf = malloc(len+1);
       fread(buf, 1, len, fd);
       buf[len] = '\0';
-      printf("%d %s\n", len, buf);
+      printf(format, len, buf);
       free(buf);
       free(v[i]);
    }
