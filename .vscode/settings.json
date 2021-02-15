@@ -22,5 +22,6 @@
       "functional": "c",
       "tuple": "c",
       "type_traits": "c"
-   }
+   },
+   "python.pythonPath": "/usr/bin/python"
 }
