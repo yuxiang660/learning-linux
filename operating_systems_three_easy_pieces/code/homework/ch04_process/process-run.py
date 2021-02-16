@@ -28,25 +28,50 @@ PROC_STATE = 'proc_state_'
 DO_COMPUTE = 'cpu'
 DO_IO = 'io'
 
-class ProcessInfo:
+class ProcManager:
     def __init__(self, seed, process_list):
         random.seed(seed)
 
         self._proc_info = {}
         # example process description (10:100,10:100)
         for p in process_list.split(','):
-            self._parse_process(p)
+            self._parse_proc(p)
 
-    @property
-    def processes(self):
-        return self._proc_info
+    def move_to_ready(self, pid, curr_state):
+        assert(self._proc_info[pid][PROC_STATE] == curr_state)
+        self._proc_info[pid][PROC_STATE] = STATE_READY
 
-    def solve(self, process_switch_behavior, io_done_behavior):
+    def move_to_wait(self, pid, curr_state):
+        assert(self._proc_info[pid][PROC_STATE] == curr_state)
+        self._proc_info[pid][PROC_STATE] = STATE_WAIT
+
+    def move_to_running(self, pid, curr_state):
+        assert(self._proc_info[pid][PROC_STATE] == curr_state)
+        self._proc_info[pid][PROC_STATE] = STATE_RUNNING
+
+    def move_to_done(self, pid, curr_state):
+        assert(self._proc_info[pid][PROC_STATE] == curr_state)
+        self._proc_info[pid][PROC_STATE] = STATE_DONE
+
+    def get_proc_state(self, pid):
+        return self._proc_info[pid][PROC_STATE]
+
+    def get_all_pids(self):
+        return list(self._proc_info.keys())
+
+    def get_num_instructions(self, pid):
+        return len(self._proc_info[pid][PROC_CODE])
+
+    def pop_next_instruction(self, pid):
+        if len(self._proc_info[pid][PROC_CODE]) == 0: return ""
+        return self._proc_info[pid][PROC_CODE].pop(0)
+
+    def print_behavior(self, process_switch_behavior, io_done_behavior):
         print('Produce a trace of what would happen when you run these processes:')
-        for pid in range(self.get_num_processes()):
+        for pid in self.get_all_pids():
             print('Process %d' % pid)
             for inst in range(self.get_num_instructions(pid)):
-                print('  %s' % self.get_instruction(pid, inst))
+                print('  %s' % self._proc_info[pid][PROC_CODE][inst])
             print('')
         print('Important behaviors:')
         print('  System will switch when', end=" ")
@@ -61,16 +86,7 @@ class ProcessInfo:
             print('run LATER (when it is its turn)')
         print('')
 
-    def get_num_processes(self):
-        return len(self._proc_info)
-
-    def get_num_instructions(self, pid):
-        return len(self._proc_info[pid][PROC_CODE])
-
-    def get_instruction(self, pid, index):
-        return self._proc_info[pid][PROC_CODE][index]
-
-    def _parse_process(self, process):
+    def _parse_proc(self, process):
         proc_id = self._new_process()
         tmp = process.split(':')
         if len(tmp) != 2:
@@ -97,169 +113,131 @@ class ProcessInfo:
 
 
 class Scheduler:
-    def __init__(self, proc_info, process_switch_behavior, io_done_behavior, io_length):
-        self.proc_info = proc_info
-        self.process_switch_behavior = process_switch_behavior
-        self.io_done_behavior = io_done_behavior
-        self.io_length = io_length
+    def __init__(self, proc_manager):
+        self._proc_manager = proc_manager
+        self._clean()
 
-    def run(self):
-        if len(self.proc_info) == 0: return
-
-        clock_tick = 0
-        # track outstanding IOs, per process
+    def _clean(self):
+        self.curr_proc = 0
         self.io_finish_times = {}
-        for pid in range(len(self.proc_info)):
+        for pid in self._proc_manager.get_all_pids():
             self.io_finish_times[pid] = []
 
-        # make first one active
-        self.curr_proc = 0
-        self.move_to_running(STATE_READY)
+    def run(self, process_switch_behavior, io_done_behavior, io_length):
+        self._clean()
+        clock_tick = 0
+        io_busy = 0
+        cpu_busy = 0
+        if len(self._proc_manager.get_all_pids()) == 0: return (cpu_busy, io_busy, clock_tick)
 
-        # OUTPUT: headers for each column
+        self._print_header()
+
+        self._proc_manager.move_to_running(self.curr_proc, STATE_READY)
+        while self._has_active_proc():
+            clock_tick += 1
+
+            io_done = self._handle_io_done_proc(clock_tick, io_done_behavior)
+
+            next_instruction = ""
+            if self._proc_manager.get_proc_state(self.curr_proc) == STATE_RUNNING:
+                next_instruction = self._proc_manager.pop_next_instruction(self.curr_proc)
+                cpu_busy += 1
+            if self._get_ios_in_flight(clock_tick) > 0: io_busy += 1
+
+            self._print_instruction(clock_tick, io_done, next_instruction)
+
+            if next_instruction == DO_IO:
+                self._proc_manager.move_to_wait(self.curr_proc, STATE_RUNNING)
+                self.io_finish_times[self.curr_proc].append(clock_tick + io_length)
+                if process_switch_behavior == SCHED_SWITCH_ON_IO: self._next_proc()
+
+            self._finish_proc_if_done()
+
+        return (cpu_busy, io_busy, clock_tick)
+
+
+    def _handle_io_done_proc(self, clock_tick, io_done_behavior):
+        io_done = False
+        for pid in self._proc_manager.get_all_pids():
+            if clock_tick in self.io_finish_times[pid]:
+                io_done = True
+                self._proc_manager.move_to_ready(pid, STATE_WAIT)
+                if io_done_behavior == IO_RUN_IMMEDIATE:
+                    if self.curr_proc != pid:
+                        if self._proc_manager.get_proc_state(self.curr_proc) == STATE_RUNNING:
+                            self._proc_manager.move_to_ready(self.curr_proc, STATE_RUNNING)
+                    self.curr_proc = pid
+                    self._proc_manager.move_to_running(self.curr_proc, STATE_READY)
+                else:
+                    assert(io_done_behavior == IO_RUN_LATER)
+                    if self._get_num_runnable() == 1:
+                        # only switch to io done process when there is no other runnable prcess
+                        self.curr_proc = pid
+                        self._proc_manager.move_to_running(self.curr_proc, STATE_READY)
+                self._finish_proc_if_done()
+        return io_done
+
+    def _print_header(self):
         print('%s' % 'Time', end=" ")
-        for pid in range(len(self.proc_info)):
+        for pid in self._proc_manager.get_all_pids():
             print('%10s' % ('PID:%2d' % (pid)), end=" ")
         print('%10s' % 'CPU', end=" ")
         print('%10s' % 'IOs', end=" ")
         print('')
 
-        # init statistics
-        io_busy = 0
-        cpu_busy = 0
-
-        while self.get_num_active() > 0:
-            clock_tick += 1
-
-            # check for io finish
-            io_done = False
-            for pid in range(len(self.proc_info)):
-                if clock_tick in self.io_finish_times[pid]:
-                    io_done = True
-                    self.move_to_ready(STATE_WAIT, pid)
-                    if self.io_done_behavior == IO_RUN_IMMEDIATE:
-                        # IO_RUN_IMMEDIATE
-                        if self.curr_proc != pid:
-                            if self.proc_info[self.curr_proc][PROC_STATE] == STATE_RUNNING:
-                                self.move_to_ready(STATE_RUNNING)
-                        self.next_proc(pid)
-                    else:
-                        # IO_RUN_LATER
-                        if self.process_switch_behavior == SCHED_SWITCH_ON_END and self.get_num_runnable() > 1:
-                            # this means the process that issued the io should be run
-                            self.next_proc(pid)
-                        if self.get_num_runnable() == 1:
-                            # this is the only thing to run: so run it
-                            self.next_proc(pid)
-                    self.check_if_done()
-
-            # if current proc is RUNNING and has an instruction, execute it
-            instruction_to_execute = ''
-            if self.proc_info[self.curr_proc][PROC_STATE] == STATE_RUNNING and \
-                    len(self.proc_info[self.curr_proc][PROC_CODE]) > 0:
-                instruction_to_execute = self.proc_info[self.curr_proc][PROC_CODE].pop(
-                    0)
-                cpu_busy += 1
-
-            # OUTPUT: print what everyone is up to
-            if io_done:
-                print('%3d*' % clock_tick, end=" ")
+    def _print_instruction(self, clock_tick, io_done, next_instruction):
+        if io_done:
+            print('%3d*' % clock_tick, end=" ")
+        else:
+            print('%3d ' % clock_tick, end=" ")
+        for pid in self._proc_manager.get_all_pids():
+            if pid == self.curr_proc and next_instruction != '':
+                print('%10s' % ('RUN:'+next_instruction), end=" ")
             else:
-                print('%3d ' % clock_tick, end=" ")
-            for pid in range(len(self.proc_info)):
-                if pid == self.curr_proc and instruction_to_execute != '':
-                    print('%10s' % ('RUN:'+instruction_to_execute), end=" ")
-                else:
-                    print('%10s' % (self.proc_info[pid][PROC_STATE]), end=" ")
-            if instruction_to_execute == '':
-                print('%10s' % ' ', end=" ")
-            else:
-                print('%10s' % 1, end=" ")
-            num_outstanding = self.get_ios_in_flight(clock_tick)
-            if num_outstanding > 0:
-                print('%10s' % str(num_outstanding), end=" ")
-                io_busy += 1
-            else:
-                print('%10s' % ' ', end=" ")
-            print('')
+                print('%10s' % (self._proc_manager.get_proc_state(pid)), end=" ")
+        if next_instruction == '':
+            print('%10s' % ' ', end=" ")
+        else:
+            print('%10s' % 1, end=" ")
+        num_outstanding = self._get_ios_in_flight(clock_tick)
+        if num_outstanding > 0:
+            print('%10s' % str(num_outstanding), end=" ")
+        else:
+            print('%10s' % ' ', end=" ")
+        print('')
 
-            # if this is an IO instruction, switch to waiting state
-            # and add an io completion in the future
-            if instruction_to_execute == DO_IO:
-                self.move_to_wait(STATE_RUNNING)
-                self.io_finish_times[self.curr_proc].append(
-                    clock_tick + self.io_length)
-                if self.process_switch_behavior == SCHED_SWITCH_ON_IO:
-                    self.next_proc()
-
-            # ENDCASE: check if currently running thing is out of instructions
-            self.check_if_done()
-        return (cpu_busy, io_busy, clock_tick)
-
-    def move_to_ready(self, expected, pid=-1):
-        if pid == -1:
-            pid = self.curr_proc
-        assert(self.proc_info[pid][PROC_STATE] == expected)
-        self.proc_info[pid][PROC_STATE] = STATE_READY
-        return
-
-    def move_to_wait(self, expected):
-        assert(self.proc_info[self.curr_proc][PROC_STATE] == expected)
-        self.proc_info[self.curr_proc][PROC_STATE] = STATE_WAIT
-        return
-
-    def move_to_running(self, expected):
-        assert(self.proc_info[self.curr_proc][PROC_STATE] == expected)
-        self.proc_info[self.curr_proc][PROC_STATE] = STATE_RUNNING
-        return
-
-    def move_to_done(self, expected):
-        assert(self.proc_info[self.curr_proc][PROC_STATE] == expected)
-        self.proc_info[self.curr_proc][PROC_STATE] = STATE_DONE
-        return
-
-    def next_proc(self, pid=-1):
-        if pid != -1:
-            self.curr_proc = pid
-            self.move_to_running(STATE_READY)
-            return
-        for pid in range(self.curr_proc + 1, len(self.proc_info)):
-            if self.proc_info[pid][PROC_STATE] == STATE_READY:
+    def _next_proc(self):
+        pid_list = self._proc_manager.get_all_pids()
+        curr_index = pid_list.index(self.curr_proc)
+        next_pid_list = pid_list[curr_index+1:] + pid_list[0:curr_index]
+        for pid in next_pid_list:
+            if self._proc_manager.get_proc_state(pid) == STATE_READY:
                 self.curr_proc = pid
-                self.move_to_running(STATE_READY)
-                return
-        for pid in range(0, self.curr_proc + 1):
-            if self.proc_info[pid][PROC_STATE] == STATE_READY:
-                self.curr_proc = pid
-                self.move_to_running(STATE_READY)
-                return
-        return
+                self._proc_manager.move_to_running(self.curr_proc, STATE_READY)
 
-    def check_if_done(self):
-        if len(self.proc_info[self.curr_proc][PROC_CODE]) == 0:
-            if self.proc_info[self.curr_proc][PROC_STATE] == STATE_RUNNING:
-                self.move_to_done(STATE_RUNNING)
-                self.next_proc()
-        return
+    def _finish_proc_if_done(self):
+        if self._proc_manager.get_num_instructions(self.curr_proc) == 0 and self._proc_manager.get_proc_state(self.curr_proc) == STATE_RUNNING:
+            self._proc_manager.move_to_done(self.curr_proc, STATE_RUNNING)
+            self._next_proc()
 
-    def get_num_active(self):
+    def _has_active_proc(self):
         num_active = 0
-        for pid in range(len(self.proc_info)):
-            if self.proc_info[pid][PROC_STATE] != STATE_DONE:
+        for pid in self._proc_manager.get_all_pids():
+            if self._proc_manager.get_proc_state(pid) != STATE_DONE:
+                num_active += 1
+        return num_active > 0
+
+    def _get_num_runnable(self):
+        num_active = 0
+        for pid in self._proc_manager.get_all_pids():
+            state = self._proc_manager.get_proc_state(pid)
+            if state == STATE_READY or state == STATE_RUNNING:
                 num_active += 1
         return num_active
 
-    def get_num_runnable(self):
-        num_active = 0
-        for pid in range(len(self.proc_info)):
-            if self.proc_info[pid][PROC_STATE] == STATE_READY or \
-                    self.proc_info[pid][PROC_STATE] == STATE_RUNNING:
-                num_active += 1
-        return num_active
-
-    def get_ios_in_flight(self, current_time):
+    def _get_ios_in_flight(self, current_time):
         num_in_flight = 0
-        for pid in range(len(self.proc_info)):
+        for pid in self._proc_manager.get_all_pids():
             for t in self.io_finish_times[pid]:
                 if t > current_time:
                     num_in_flight += 1
@@ -267,7 +245,7 @@ class Scheduler:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run Process')
+    parser = argparse.ArgumentParser(description='Schedule Processes')
 
     parser.add_argument('-s', '--seed', dest='seed', type=int, default=0, help='the random seed')
     parser.add_argument('-l', '--processlist', dest='process_list',
@@ -277,23 +255,17 @@ if __name__ == "__main__":
                         help='when to switch between processes: SWITCH_ON_IO, SWITCH_ON_END')
     parser.add_argument('-I', '--iodone', dest='io_done_behavior', default='IO_RUN_LATER', choices=['IO_RUN_LATER', 'IO_RUN_IMMEDIATE'],
                         help='type of behavior when IO ends: IO_RUN_LATER, IO_RUN_IMMEDIATE')
-    parser.add_argument('-c', dest='solve', action='store_true', help='compute answers for me')
-    parser.add_argument('-p', '--printstats', dest='print_stats', action='store_true',
-                        help='print statistics at end; only useful with -c flag (otherwise stats are not printed)')
 
     options = parser.parse_args()
 
-    process_info = ProcessInfo(options.seed, options.process_list)
-    if options.solve == False:
-        process_info.solve(options.process_switch_behavior, options.io_done_behavior)
-        exit(0)
+    proc_manager = ProcManager(options.seed, options.process_list)
+    proc_manager.print_behavior(options.process_switch_behavior, options.io_done_behavior)
 
-    scheduler = Scheduler(process_info.processes, options.process_switch_behavior, options.io_done_behavior, options.io_length)
-    (cpu_busy, io_busy, clock_tick) = scheduler.run()
+    scheduler = Scheduler(proc_manager)
+    (cpu_busy, io_busy, clock_tick) = scheduler.run(options.process_switch_behavior, options.io_done_behavior, options.io_length)
 
-    if options.print_stats:
-        print('')
-        print('Stats: Total Time %d' % clock_tick)
-        print('Stats: CPU Busy %d (%.2f%%)' % (cpu_busy, 100.0 * float(cpu_busy)/clock_tick))
-        print('Stats: IO Busy  %d (%.2f%%)' % (io_busy, 100.0 * float(io_busy)/clock_tick))
-        print('')
+    print('')
+    print('Stats: Total Time %d' % clock_tick)
+    print('Stats: CPU Busy %d (%.2f%%)' % (cpu_busy, 100.0 * float(cpu_busy)/clock_tick))
+    print('Stats: IO Busy  %d (%.2f%%)' % (io_busy, 100.0 * float(io_busy)/clock_tick))
+    print('')
