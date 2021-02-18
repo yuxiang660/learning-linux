@@ -164,3 +164,11 @@ struct proc
    struct trapframe *tf;       // Trap frame for the current interrupt
 };
 ```
+
+# 第5章 插叙：进程API
+## 关键问题
+* 为什么设计`fork`和`exec`这种奇怪的接口来完成简单的、创建新进程的任务？
+   * 分离`fork`和`exec`的做法在构建UNIX shell的时候非常有用，因为这给了shell在fork之后exec之前运行代码的机会，这些代码可以在运行新程序前改变环境，从而让一系列有趣的功能很容易实现。比如，`wc p3.c > newfile.txt` 重定向很容易实现，shell在调用`exec`之前先关闭标准输出，打开文件newfile.txt即可。
+   * 参考例子[redirect](./code/redirect)
+
+
