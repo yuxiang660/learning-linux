@@ -756,3 +756,105 @@ for (i = 0; i < 1000; i++)
 缺点：
    * 会导致较慢的机器(有许多额外的内存访问来访问页表)
    * 内存浪费(内存被页表塞满而不是有用的应用数据)
+
+# 第19章 分页：快速地址转换 TLB(Translation Lookaside Buffer)
+## 关键问题
+* 如何加速地址转换
+   * 每次指令获取、显示加载或保存，都需要额外读一次内存以得到转换信息
+   * 如何才能加速虚拟地址转换，尽量避免额外的内存访问？
+   * 需要什么样的硬件支持？
+   * 操作系统该如何支持？
+
+## 硬件的帮助
+为了某些东西更快，常常需要硬件的帮助。这里我们需要转换旁路缓冲存储器(translation-lookaside buffer, TLB)，它就是频繁发生的虚拟到物理地址转换的硬件缓存(cache)。对每次内存访问，硬件先检测TLB，看看其中是否有期望的转换映射，如果有，就完成转换，不用访问页表。
+
+## TLB的基本算法
+```
+VPN = (VirtualAddress & VPN_MASK) >> SHIFT
+(Success, TlbEntry) = TLB_Lookup(VPN)
+if (Success == True) // TLB Hit
+   if (CanAccess(TlbEntry.ProtectBits) == True)
+      Offset = VirtualAddress & OFFSET_MASK
+      PhysAddr = (TlbEntry.PFN << SHIFT) | Offset
+      AccessMemory(PhysAddr)
+   else
+      RaiseException(PROTECTION_FAULT)
+else // TLB Miss
+   PTEAddr = PTBR + (VPN * sizeof(PTE))
+   PTE = AccessMemory(PTEAddr)
+   if (PTE.Valid == False)
+      RaiseException(SEGMENTATION_FAULT)
+   else if (CanAccess(PTE.ProtectBits) == False)
+      RaiseException(PROTECTION_FAULT)
+   else
+      TLB_Insert(VPN, PTE.PFN, PTE.ProtectBits)
+      RetryInstruction()
+```
+
+## 示例：访问数组
+```c
+int sum = 0;
+for (i = 0; i < 10; i++) {
+   sum += a[i];
+}
+```
+数组`a[]`的虚拟内存分布如下：
+![array_tlb](./pictures/array_tlb.png)
+总结下来，10次数组访问操作中TLB的行为表现：未命中(a[0]), 命中(a[1]), 命中, 未命中(a[3]), 命中，命中，命中，未命中(a[7])，命中，命中。TLB的命中率为70%。得益于空间局部性，TLB还是提高了性能。
+
+如果提高页大小，数组访问遇到的未命中会更少。
+
+### 尽可能利用缓存
+硬件缓存背后的思想是利用指令引用的局部性：
+* 时间局部性
+* 空间局部性
+
+## 谁来处理TLB未命中
+* 复杂指令集CISC
+   * 由硬件处理TLB未命中
+* 精简指令集RIS
+   * 由操作系统处理TLB未命中
+   * 发生TLB未命中时，硬件抛出一个异常，暂停当前指令流，将特权级提升至内核模式，跳转至陷阱处理程序，由处理程序处理TLB未命中
+      * 从TLB未命中的陷阱返回后，硬件必须从导致陷阱的指令继续执行，这次TLB就会命中
+      * 运行TLB未命中处理代码时，操作系统需要格外小心避免引起TLB未命中的无限递归
+
+## 上下文切换时对TLB的处理
+### 关键问题
+* 进程切换时如何管理TLB的内容
+   * 如果发生进程间上下文切换，上一个进程在TLB中的地址映射对于即将运行的进程是无意义的。硬件或操作系统应该做些什么来解决这个问题呢？
+
+一个简单的解决方案是在上下文切换的时候，清空TLB。但是这开销很大。为此，一些系统增加了硬件支持，实现跨上下文切换的TLB共享。比如有的系统在TLB中添加了一个地址空间标识符(Address Space Identifier, ASID)。可以把它看作是进程标识符PID。
+
+## TLB替换策略
+### 关键问题
+* 如何设计TLB替换策略
+   * 在向TLB添加新项时，应该替换哪个旧项？
+   * 目标当然时减小TLB未命中率，从而改进性能
+* 几种典型的策略：
+   * LRU(least-recently-used)
+      * 替换最近较少使用的项
+   * 随机策略
+      * 例如，一个程序循环访问n+1个页，但TLB大小只能存放n个页。那LRU就不如随机策略好。
+
+## 实际系统的TLB表项
+![tlb](./pictures/TLB.png)
+* MIPS R4000支持32位的地址空间，页大小为4KB
+   * 预期会有20位的VPN(2^32 / 2^12)，和12位的偏移量。但是上图只有19位的VPN。因为用户只占地址空间的一半(剩下的留给内核)
+* VPN转换成最大24位的物理帧号(PFN)，因此可最多支持64GB物理内存(2^24 * 2^12)的系统。
+* 全局位G，用来指示这个页是不是所有进程全局共享
+   * 如果全局位置为1，就会忽略ASID
+* 3个一致性位(Coherence, C)
+   * 决定硬件如何缓存该页
+* 脏位(dirty)
+   * 表示该页是否被写入新数据
+* 有效位(valid)
+   * 告诉硬件该项的地址映射是否有效
+
+## 小结
+TLB的问题：
+* 超出TBL覆盖范围
+   * 如果一个程序短时间内访问的页数超过了TLB中的页数，就会产生大量的TLB未命中，运行速度就会变慢。
+   * 解决：数据库管理系统DBMS，Database Management System
+      * 把关键数据结构放在程序地址空间的某些区域，这些区域被映射到更大的页
+* 访问TLB很容易成为CPU流水线的瓶颈，尤其是有所谓的物理地址索引缓存(地址转换必须发生在访问该缓存之前)
+
