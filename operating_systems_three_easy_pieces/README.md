@@ -980,3 +980,91 @@ else // TLB Miss
 ## 小结
 真正的页表不一定只是线性数组，而是更复杂的数据结构。这样的页表体现了时间和空间上的折中。
 
+# 第21章 超越物理内存：机制
+## 关键问题
+* 如何超越物理内存？
+   * 操作系统如何利用大而慢的设备，透明地提供巨大虚拟地址空间的假象？
+
+## 交换空间
+在硬盘上开辟一部分空间用于物理页的移入和移出，这样的空间称为交换空间(swap space)。
+![swap](./pictures/swap.png)
+上图的例子中，物理内存有4个页，而交换空间有8个页。3个进程(0,1,2)主动共享物理内存，但3个中的每一个都只有一部分有效页在内存中，剩下的在硬盘的交换空间中。第4个进程(进程3)的所有页都被交换到硬盘上，因此很清楚它目前没有运行。有一块交换空间时空闲的。
+
+## 存在位
+硬件(或操作系统，在软件管理TLB时)判断是否在内存中的方法，是通过页表项中的一条新信息，即存在位(present bit)。如果存在位设置为1，则表示该页存在于物理内存中。否则，页不在内存中，而在硬盘上。访问不在物理内存中的页，这种行为通常被称为**页错误(page fault)**。
+
+在页错误时，操作系统被唤起来处理页错误。一段称为"页错误处理程序"(page-fault handler)的代码会执行，来处理页错误。
+
+## 页错误
+### 关键问题
+* 操作系统如何知道所需的页在哪里？
+
+操作系统可以用页表中的PTE的某些位来存储硬盘地址，这些位通常用来存储像页的PFN(物理内存地址的)这样的数据。当硬盘I/O完成后，操作系统会更新页表，将此页标记为存在，更新页表项PTE的PFN字段以记录新获取页的内存位置，并重试指令。下一次重新访问TLB还是未命中，然而这次因为页在内存中，因此会将页表中的地址更新到TLB中(也可以在处理页错误时更新TLB以避免此步骤)。最后的重试操作会在TLB中找到转换映射，从已转换的内存物理地址，获取所需的数据或命令。
+
+当I/O在运行时，进程处于阻塞(block)状态。因此，当页错误正常处理时，操作系统可以自由地运行其他可执行的进程。
+
+### 为什么硬件不能处理页错误
+* 页错误导致的硬盘操作很慢，即使操作系统需要大量时间处理页错误，但相对于硬盘操作，开销仍然很小
+* 为了能够处理页故障，硬件必须了解交换空间，如何向硬盘发起I/O操作，以及很多它当前所不知道的细节
+
+## 内存满了怎么办
+当从存储交换空间换入页时，内存已经满了时，操作系统可能希望先交换出一个或多个页，以便为操作系统即将交换入的新页留出空间。先择哪些页被交换出或被替换的过程，称为**页交换策略(page-replacement policy)**。
+
+## 页错误处理流程
+### 硬件在地址转换过程中所做的工作
+```
+VPN = (VirtualAddress & VPN_MASK) >> SHIFT
+(Success, TlbEntry) = TLB_Lookup(VPN)
+   if (Success == True) // TLB Hit
+      if (CanAccess(TlbEntry.ProtectBits) == True)
+         Offset = VirtualAddress & OFFSET_MASK
+         PhysAddr = (TlbEntry.PFN << SHIFT) | Offset
+         Register = AccessMemory(PhysAddr)
+      else
+         RaiseException(PROTECTION_FAULT)
+   else // TLB Miss
+      PTEAddr = PTBR + (VPN * sizeof(PTE))
+      PTE = AccessMemory(PTEAddr)
+      if (PTE.Valid == False)
+         RaiseException(SEGMENTATION_FAULT)
+      else
+         if (CanAccess(PTE.ProtectBits) == False)
+            RaiseException(PROTECTION_FAULT)
+         else if (PTE.Present == True)
+            // assuming hardware-managed TLB
+            TLB_Insert(VPN, PTE.PFN, PTE.ProtectBits)
+            RetryInstruction()
+         else if (PTE.Present == False)
+            // Cause page fault!!!
+            RaiseException(PAGE_FAULT)
+```
+上面的硬件控制流程中，当TLB未命中有3种情况：
+* 该页存在(present)且有效(valid)
+   * TLB未命中处理程序可以简单地从PTE中获取PFN，然后重试指令(这次TLB会命中)
+* 该页不存在(preset == false)但有效(valid)
+   * 页错误处理程序将数据从硬盘搬到五路内存中
+* 该页无效(valid == false)
+   * 硬件捕获这个非法访问，操作系统陷阱处理程序运行，可能会杀死非法进程
+
+
+## 操作系统在页错误时所做的工作
+```
+PFN = FindFreePhysicalPage()
+if (PFN == -1) // no free page found
+   PFN = EvictPage() // run replacement algorithm
+DiskRead(PTE.DiskAddr, pfn) // sleep (waiting for I/O)
+PTE.present = True // update page table with present
+PTE.PFN = PFN // bit and translation (PFN)
+RetryInstruction() // retry instruction
+```
+上面时操作系统页错误处理程序：
+* 操作系统必须未将要换入的页找到一个物理帧
+   * 如果没有这样的物理帧，将运行交换算法，从物理内存中换出一些页，释放物理帧供这里使用
+* 获得物理帧后，发出I/O请求从交换空间读取页
+* 更新页表并重试指令
+   * 重试将导致TLB未命中，然后再重试一次，TLB命中，此时硬件将能访问所需的值
+
+## 交换何时真正发生
+交换守护进程(swap daemon)或页守护进程(page daemon)会设置高水位线(High Watermark, HW)和低水位线(Low Watermark, LW)，来帮助决定何时从内存中清除页。当操作系统发现有少于LW个页可用时，后台负责释放内存的线程会开始运行，直到HW个可用的物理页，然后进入休眠状态。
+
+
