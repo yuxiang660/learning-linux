@@ -938,4 +938,45 @@ AddressOfPTE = Base[SN] + (VPN * sizeof(PTE))
 
 假设我们有一个30位的虚拟地址空间和一个小的(512字节)页。因此我们的虚拟地址有一个21位的虚拟页号和一个9位偏移量，如下图：
 ![page_vm_address](./pictures/page_vm_address.png)
+鉴于页大小为512，假设PTE大小为4字节，那么单个页上最多放置128个PTE，因此需要将21位的VPN分成三部分，分别表示一二三级页表，如下图：
+![page_vm_address2](./pictures/page_vm_address2.png)
+
+### 地址转换过程：记住TLB
+假设硬件管理的TLB，则在任何复杂的多级页表访问发生之前，硬件首先检查TLB。在命中时，物理地址直接形成，而不像之前一样访问页表。只有在TLB未命中时，硬件才需要执行完整的多级查找。
+```c
+VPN = (VirtualAddress & VPN_MASK) >> SHIFT
+(Success, TlbEntry) = TLB_Lookup(VPN)
+if (Success == True) // TLB Hit
+   if (CanAccess(TlbEntry.ProtectBits) == True)
+      Offset = VirtualAddress & OFFSET_MASK
+      PhysAddr = (TlbEntry.PFN << SHIFT) | Offset
+      Register = AccessMemory(PhysAddr)
+   else
+      RaiseException(PROTECTION_FAULT)
+else // TLB Miss
+   // first, get page directory entry
+   PDIndex = (VPN & PD_MASK) >> PD_SHIFT
+   PDEAddr = PDBR + (PDIndex * sizeof(PDE))
+   PDE = AccessMemory(PDEAddr)
+   if (PDE.Valid == False)
+      RaiseException(SEGMENTATION_FAULT)
+   else
+      // PDE is valid: now fetch PTE from page table
+      PTIndex = (VPN & PT_MASK) >> PT_SHIFT
+      PTEAddr = (PDE.PFN << SHIFT) + (PTIndex * sizeof(PTE))
+      PTE = AccessMemory(PTEAddr)
+      if (PTE.Valid == False)
+         RaiseException(SEGMENTATION_FAULT)
+      else if (CanAccess(PTE.ProtectBits) == False)
+         RaiseException(PROTECTION_FAULT)
+      else
+         TLB_Insert(VPN, PTE.PFN, PTE.ProtectBits)
+         RetryInstruction()
+```
+
+## 将页表交换到磁盘
+当页表太大无法一次装入内存时，一些系统将这样的页表放入内核虚拟内存(kernel virtual memory)，从而允许系统在内存压力较大时，将这些页表中的一部分交换(swap)到磁盘。
+
+## 小结
+真正的页表不一定只是线性数组，而是更复杂的数据结构。这样的页表体现了时间和空间上的折中。
 
