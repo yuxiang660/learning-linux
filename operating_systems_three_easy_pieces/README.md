@@ -925,3 +925,17 @@ AddressOfPTE = Base[SN] + (VPN * sizeof(PTE))
    * 下表中，一级页表为页目录(Page Directory)，一共16块，其中，PFN100和PFN101为有效块
    * 下表中，二级页表为页表(Page of PT)，一共16块，其中，PFN10和PFN23为虚拟页0和1用于代码，PFN80和PFN59为虚拟页4和5用于堆，PFN55和PFN45为虚拟页254和255用于栈
    ![multi-level_page_table_example](./pictures/multi-level_page_table_example.png)
+* 地址转换
+   * 对VPN254的第0个字节进行地址转换
+      * VPN254的第0个字节的14位虚拟地址(8VPN+6偏移)为：0b11_111_1000_0000，或0x3F80
+      * VPN前4位是页目录索引PDIndex，1111表示第15个页目录。通过上表可知，1111的页目录索引对应地址101的页表的有效页
+      * VPN后4位是页表索引PTIndex，1110表示第14个页表PTE。通过上表可知，虚拟地址空间的页254映射到物理页55
+   * 计算实际物理地址
+      * PFN=55(或0x37)和offset=000000，通过公式：`PhysAddr = (PTE.PFN << SHIFT) + offset = 0b00_1101_1100_0000`得到实际物理地址为0x0DC0
+
+### 超过两级的页表
+构建多级页表的目标：使页表的每一部分都能放入一个页。因此当页目录太大，而无法放入一个页时，就需要多级页表了。
+
+假设我们有一个30位的虚拟地址空间和一个小的(512字节)页。因此我们的虚拟地址有一个21位的虚拟页号和一个9位偏移量，如下图：
+![page_vm_address](./pictures/page_vm_address.png)
+
