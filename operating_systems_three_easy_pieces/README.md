@@ -1652,3 +1652,58 @@ void mutex_unlock(int* mutex) {
    * 调用者会睡眠，知道锁可用
 
 上面的Linux实现，就是这种机制。不过只自旋一次，更常见的方式是在循环中指定自旋的次数，然后使用futex睡眠。
+
+# 第29章 基于锁的并发数据结构
+## 关键问题
+* 如何给数据结构枷锁？
+   * 对于特定数据结构，如何加锁才能让该结构功能正常？
+   * 进一步，如何对该数据结构枷锁，能保证高性能，让许多线程同时访问该结构，即并发访问？
+
+## 并发计数器
+### 简单的互斥
+```c
+typedef struct counter_t {
+   int value;
+   pthread_mutex_t lock;
+} counter_t;
+
+void init(counter_t* c) {
+   c->value = 0;
+   pthread_mutex_init(&c->lock, NULL);
+}
+
+void increment(counter_t* c) {
+   pthread_mutex_lock(&c->lock);
+   c->value++;
+   pthread_mutex_unlock(&c->lock);
+}
+
+void decrement(counter_t* c) {
+   pthread_mutex_lock(&c->lock);
+   c->value--;
+   pthread_mutex_unlock(&c->lock);
+}
+
+int get(counter_t* c) {
+   pthread_mutex_lock(&c->lock);
+   int rc = c->value;
+   pthread_mutex_unlock(&c->lock);
+   return rc;
+}
+
+```
+* 这种方式性能不高
+   * 理想情况下，我们期望多处理器上运行的多线程就像单线程一样快。
+
+### 可扩展的计数 - 懒惰计数器
+懒惰计数器通过多个局部计数器和一个全局计数器来实现一个逻辑计数器，其中每个CPU核心有一个局部计数器。例如，在4个CPU的机器上，有4个局部计数器和1个全局计数器。除了这些计数器，还有锁：每个局部计数器有一个锁，全局计数器有一个锁。
+
+懒惰计数器的基本思想：如果一个核心上的线程想增加计数器，那就增加它的局部计数器，访问这个局部计数器是通过对应的局部锁同步的。因为每个CPU有自己的局部计数器，不同CPU上的线程不会竞争，所以计数器的更新操作可扩展性好。
+
+为了保持全局计数器更新(以防止某个线程要读取该值)，局部值会定期转移给全局计数器，方法是获取全局锁，让全局计数器加上局部计数器的值，然后将局部计数器置零。
+
+详情可参考例子：[sloppy counter](./code/sloppy_counter)
+
+## 并发链表
+
+
