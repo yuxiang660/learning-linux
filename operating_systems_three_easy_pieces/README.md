@@ -1237,3 +1237,105 @@ mov %eax, 0x8049a1c
 
 * 条件变量 -- 如何协调多个线程的依赖执行，即一个线程在继续之前必须等待另一个线程完成某些操作
    * 如，支持在多线程程序中常见的睡眠/唤醒交互机制
+
+# 第27章 插叙：线程API
+## 关键问题
+* 如何创建和控制线程？
+   * 操作系统应该提供哪些创建和控制线程的接口？
+   * 这些接口如何设计得易用和实用？
+
+## 创建线程
+在POSIX中，创建线程API如下：
+```c
+#include <pthread.h>
+int pthread_create
+(
+   pthread_t* thread,               // 我们将利用这个结构与改线程交互
+   const pthread_attr_t* attr,      // 用于指定该线程可能具有的属性，包括栈大小等，可用“pthread_attr_init()”来初始化属性
+   void* (*start_routine)(void*),   // 指定线程中应该运行的函数，参数和返回值可以是其它类型
+   void* arg                        // 要传递给线程开始执行的函数参数
+);
+```
+* [例子](./code/thread_arg_ret)
+
+## 线程完成
+```c
+int pthread_join
+(
+   pthread_t thread,
+   void** ret        // 指向返回值的指针，因为可以返回任何东西，所以它被指定为一个指向void的指针
+);
+```
+* [例子](./code/thread_arg_ret)
+* 线程注意事项
+   * 永远不要在线程中返回一个指针，并让它指向栈上分配的东西
+   * 如果返回一个指针，则线程退出时，栈上的空间会被自动释放
+   * 因此应该返回一个堆上的指针，并将此指针强制转换成`(void*)`传出去
+   * 再用`(void**)`二级指针接住，二级指针会将其指向的一级指针赋值
+
+## 锁
+```c
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+```
+* 如何初始化锁`mutex`
+   * 使用`PTHREAD_MUTEX_INITIALIZER`
+   ```
+   pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER
+   ```
+   * 使用`pthread_mutex_init`
+   ```
+   pthread_mutex_t lock;
+   int rc = pthread_mutex_init(&lock, NULL); //传入NULL就是默认值，和上面的方法一样
+   assert(rc == 0);
+   ```
+
+* 如何获取锁而避免卡住
+```
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+int pthread_mutex_timedlock(pthread_mutex_t* mutex, struct timespec* abs_timeout);
+```
+
+## 条件变量
+当线程之间必须发生某种信号时，如果一个线程在等待另一个线程继续执行某些操作，条件变量就很有用。
+```c
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+int pthread_cond_signal(pthread_cond_t* cond);
+```
+要使用条件变量，必须另外有一个与此条件相关的锁。在调用上述任何一个函数时，应该持有这个锁。
+
+* 如何等待其他信号发出信号
+```c
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_lock(&lock);
+while(read == 0)  // 一个线程检查变量ready是否已经被设置为零，如果没有，调用等待函数以便休眠，知道其他线程唤醒它
+   thread_cond_wait(&cond, &lock);
+pthread_mutex_unlock(&lock);
+```
+* 如何唤醒其他线程
+```c
+pthread_mutex_lock(&lock);
+ready = 1;
+pthread_cond_signal(&cond);
+pthread_mutex_unlock(&lock);
+```
+
+* 为什么信号等待调用需要将锁作为第二参数传入，而信号调用仅需要一个条件？
+   * 因为等待调用除了时调用线程进入睡眠状态外，还会让调用者睡眠时释放锁
+   * 在被唤醒之后，重新获取该锁
+
+* 为什么时循环`while`等待，而不是用`if`语句？
+   * 为了安全考虑
+   * 因为有一些pthread实现可能会错误地唤醒等待的线程
+
+* 空转的问题
+   * 如何不用条件变量而用标志同步(如下)，不仅性能有问题，更容易出错。
+   ```c
+   while (ready == 0);
+   ```
+
+## 小结
+* 通过锁创建互斥执行
+* 通过条件变量实现等待
+
