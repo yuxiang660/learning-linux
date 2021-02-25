@@ -1531,3 +1531,124 @@ void unlock(lock_t* lock) {
 ## 自旋过多：怎么办
 * 如何让锁不会不必要地自旋，浪费CPU时间？
    * 只有硬件支持是不够的，我们还需要操作系统支持。
+
+## 简单方法：让出来吧，宝贝
+```c
+void lock() {
+   while(TestAndSet(&flag, 1) == 1)
+      yield(); // give up the CPU
+}
+```
+* 操作系统原语`yield`
+   * `yield`可以让线程状态从运行态变为就绪态，本质上是取消调度了它自己
+
+* 缺点
+   * 如果有100个线程反复竞争一把锁，一个线程持有锁，在释放锁之前被抢占，其他99个线程分别调用lock()，发现锁被抢占，然后让出CPU。假定采用某种轮转调度程序，这99个线程会一直处于运行--让出模式，知道持有锁的线程再次运行。这样上下文切换的开销，仍然不小。
+   * 更糟的是，可能会出现饿死的问题。一个线程可能一直处于让出的循环，而其他线程反复进出临界区。
+
+## 使用队列：休眠代替自旋
+前面两种方法都存在太多偶然性，如果调度不合理：
+* 自旋 - 线程一直处于自旋
+   * 造成浪费
+* yield - 线程立刻让出CPU
+   * 出现饿死
+
+因此，我们必须显式地施加控制，决定锁释放时，谁能抢到锁。为了做到这一点，我们需要操作系统的更多支持，并需要一个队列来保存等待锁的线程。
+
+以Solaris系统为例，其提供两个调用：
+* `park()`
+   * 让调用线程休眠
+* `unpark(threadID)`
+   * 唤醒threadID标识的线程
+
+用这两个调用来实现锁：
+```c
+typedef struct lock_t {
+   int flag;
+   int guard;
+   queue_t* q;
+} lock_t;
+
+void lock_init(lock_t* m) {
+   m->flag = 0;
+   m->guard = 0;
+   queue_init(m->q);
+}
+
+void lock(lock_t* m) {
+   while(TestAndSet(&m->guard, 1) == 1);
+   if (m->flag == 0) {
+      m->flag = 1;
+      m->guard = 0;
+   } else {
+      queue_add(m->q, gettid());
+      m->guard = 0;
+      park();
+   }
+}
+
+void unlock(lock_t* m) {
+   while (TestAndSet(&m->guard, 1) == 1);
+   if (queue_empty(m->q))
+      m->flag = 0; // let go of lock; no one wants it
+   else
+      unpark(queue_remove(m->q)); //hold lock for next thread
+   m->guard = 0;
+}
+
+```
+这个例子和上面`yield`例子不同之处在于，通过队列来控制谁会获得锁，避免饿死。这里把锁从释放的线程传递给下一个获得锁的线程，期间`flag`不必置0。
+* 此算法的问题：唤醒/等待竞争(wakeup/waiting race)
+   * 如果不凑巧，假设线程1将要park(m->guard已经为零，但还没有park)时，切换到了其他线程，其他线程全都执行完成后，才回到线程1。线程1开始park，那么线程1将永远不会被唤醒。
+
+Solaris通过增加了第三个系统调用`setpark()`来解决这一问题。通过`setpark()`，一个线程表明自己马上要park。如果刚好另一个线程被调度，并且调用了unpark，那么后续的park调用就会直接返回，而不是一直睡眠，修改如下
+```c
+queue_add(m->q, gettid());
+setpark();
+m->guard() = 0;
+park();
+```
+
+## 不同操作系统，不同实现
+为了构建更有效的锁，Linux提供了`futex`。具体来说，每个futex都关联一个特定的物理内存位置，也有一个事先建好的内核队列。调用者通过futex调用来睡眠或者唤醒。
+```c
+futex_wait(address, expected) - 如果address处的值等于expected，就会让调线程睡眠。否则，调用立刻返回。
+futex_wake(address) - 唤醒等待队列中的一个线程
+```
+```c
+void mutex_lock(int* mutex) {
+   int v;
+   // Bit 31 was clear, we got the mutex
+   if (atomic_bit_test_set(mutex, 31) == 0) return;
+   atomic_increment(mutex);
+   while(1) {
+      if (atomic_bit_test_set(mutex, 31) == 0) {
+         atomic_decrement(mutex);
+         return;
+      }
+      // We have to wait now. First make sure the futex value
+      // we are monitoring is truly negative
+      v = *mutex;
+      if (v >= 0) continue;
+      futex_wait(mutex, v);
+   }
+}
+
+void mutex_unlock(int* mutex) {
+   // Adding 0x80000000 to the counter results in 0 if and only if there are not other interested threads
+   if (atomic_add_zero(mutex, 0x80000000)) return;
+
+   // There are other threads waiting for this mutex, wake one of them up.
+   futex_wake(mutex);
+}
+```
+利用了一个整数，同时记录锁是否被持有(整数的最高位)，以及等待者的个数(整数的其余所有位)。因此，如果锁时负的，它就被持有(因为最高位被设置，该位决定了整数的符号)。
+
+## 两阶段锁
+锁实现方案的两个阶段：
+* 第一阶段
+   * 会先自旋一段时间，希望它可以获取锁
+* 第二阶段
+   * 调用者会睡眠，知道锁可用
+
+上面的Linux实现，就是这种机制。不过只自旋一次，更常见的方式是在循环中指定自旋的次数，然后使用futex睡眠。
