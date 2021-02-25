@@ -1339,3 +1339,195 @@ pthread_mutex_unlock(&lock);
 * 通过锁创建互斥执行
 * 通过条件变量实现等待
 
+# 第28章 锁
+
+## 锁的基本思想
+```c
+lock_t mutex; // some globally-allocated lock 'mutex'
+...
+lock(&mutex);
+balance = balance + 1;
+unlock(&mutex);
+```
+
+## Pthread锁
+POSIX库将锁称为互斥量(mutex)，因为它被用来提供线程之间的互斥。
+
+## 关键问题
+* 怎样实现一个锁？
+   * 如何构建一个高效的锁？高效的锁能够以低成本提供互斥，同时能够实现一些特性。
+   * 需要什么硬件支持？
+   * 需要什么操作系统支持？
+
+## 评价锁
+* 如何评价一种锁实现的效果？
+   * 互斥性
+      * 锁是否有效，能否提供互斥以阻止多个线程进入临界区？
+   * 公平性
+      * 是否有竞争锁的线程会饿死，一直无法获得锁？
+   * 性能
+      * 没有竞争的情况，即只有一个线程抢锁、释放锁的开支如何？
+      * 多个CPU，多个线程竞争时的性能如何?
+
+## 控制中断
+最早的互斥解决方案之一，就是在临界区关闭中断。这个方案时为单处理器系统开发的。
+```c
+void lock() {
+   DisableInterrupts();
+}
+void unlock() {
+   EnableInterrupts();
+}
+```
+* 优点
+   * 简单
+   * 没有中断，线程可用确信不被其他线程干扰
+* 缺点
+   * 给线程太大的权力，如果其一直不开启中断，只能重启系统
+   * 这中方案不支持多处理器
+      * 关闭中断无法阻止线程在其他处理器上运行
+   * 关闭中断可能导致中断丢失
+      * 假如磁盘设备完成了读请求，但CPU错失了这一事实，那么，操作系统如何知道去唤醒等待的读取进程？
+   * 效率低
+      * 关闭/打开中断的指令慢
+
+## 测试并设置指令(原子交换)
+最简单的硬件支持锁的指令是"测试并设置指令(test-and-set instruction)"，也叫作原子交换(atomic exchange)。
+### 第一次锁实现：简单标志
+```c
+typedef struct lock_t {int flag;} lock_t;
+
+void init(lock_t* mutex) {
+   mutex->flag = 0;
+}
+
+void lock(lock_t* mutex) {
+   while (mutex->flag == 1);
+   mutex->flag = 1;
+}
+
+void unlock(lock_t* mutex) {
+   mutex->flag = 0;
+}
+```
+* 问题
+   * 正确性
+      * 我们很容易构造出两个线程都将标志设置为1，都能进入临界区的场景
+   * 性能
+      * 等待锁是，采用了自旋等待(spin-waiting)的技术
+
+## 实现可用的自旋锁
+上面的简单实现在硬件指令支持下，是能完成互斥功能的。这个强大的指令是测试设置(test-and-set)指令：
+* 在SPARC上，这个指令叫`ldstub`(load/store unsigned byte，加载/保存无符号字节)
+* 在x86上，是`xchg`(atomic exchange, 原子交换)指令
+
+如果用C代码飘荡来定义测试并设置指令，如下：
+```c
+int TestAndSet(int* old_ptr, int new)
+{
+   int old = *old_ptr;
+   *old_ptr = new;
+   return old;
+}
+```
+用原子测试设置指令可用完成简单的自旋锁，如下：
+```c
+typedef struct lock_t {int flag;} lock_t;
+
+void init(lock_t* mutex) {
+   mutex->flag = 0;
+}
+
+void lock(lock_t* mutex) {
+   // 进入锁的操作保持了原子性，所以可用保证互斥
+   while (TestAndSet(&lock->flag, 1) == 1);
+}
+
+void unlock(lock_t* mutex) {
+   mutex->flag = 0;
+}
+```
+* 缺点
+   * 在单处理器上，需要抢占式的调度器，即不断通过时钟中断一个线程，运行其他线程。否则，自旋锁在单CPU上无法使用，因为一个自旋的线程永远不会主动放弃CPU。
+
+## 比较并交换指令
+某些系统提供了另一个硬件原语，即比较并交换指令(SPARC系统中是compare-and-swap, x86系统中是compare-and-exchange)，C语言伪代码如下：
+```c
+int CompareAndSwap(int* ptr, int expected, int new) {
+   int actual = *ptr;
+   if (actual == expected)
+      *ptr = new;
+   return actual;
+}
+```
+利用比较并交换指令，可实现锁：
+```c
+void lock(lock_t* lock) {
+   while(CompareAndSwap(&lock->flag, 0, 1) == 1);
+}
+```
+比较并交换指令比测试并设置指令更强大，特别体现在无等待同步。
+
+## 链接的加载和条件式存储指令
+在MIPS架构中，链接的加载(load-linked)和条件式存储(store-conditional)可用配合使用，实现其他并发结构。C语言伪代码如下：
+```c
+int LoadLinked(int* ptr) {
+   return *ptr;
+}
+int StoreConditional(int* ptr, int value) {
+   // 只有上一次加载的地址在期间都没有更新时，才会成功
+   if (no one has updated *ptr since the LoadLinked to this address) {
+      // 同时更新刚才链接的加载的地址的值
+      *ptr = value;
+      return 1;
+   } else {
+      return 0;
+   }
+}
+```
+lock代码如下：
+```c
+void lock(lock_t* lock) {
+   while(1) {
+      while (LoadLinked(&lock->flag) == 1); // spin until it is zero
+      if (StoreConditional(&lock->flag, 1) == 1) return; // if set-it-to-1 was a success
+   }
+}
+// 简洁版
+void lock(lock_t* lock) {
+   while(LoadLinked(&lock->flag) || !StoreConditional(&lock->flag, 1));
+}
+```
+
+## 获取并增加指令
+获取并增加(fetch-and-add)指令能原子地返回特定地址的旧值，并且让该值自增一。
+```c
+int FetchAndAdd(int* ptr) {
+   int old = *ptr;
+   *ptr = old + 1;
+   return old;
+}
+
+type struct lock_t {
+   int ticket;
+   int turn;
+} lock_t;
+
+void lock_init(lock_t* lock) {
+   lock->ticket = 0;
+   lock->turn = 0;
+}
+
+void lock(lock_t* lock) {
+   int myturn = FetchAndAdd(&lock->ticket);
+   while (lock->turn != myturn);
+}
+
+void unlock(lock_t* lock) {
+   FetchAndAdd(&lock->turn);
+}
+```
+
+## 自旋过多：怎么办
+* 如何让锁不会不必要地自旋，浪费CPU时间？
+   * 只有硬件支持是不够的，我们还需要操作系统支持。
