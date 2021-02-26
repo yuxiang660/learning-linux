@@ -2142,3 +2142,110 @@ int main(int argc, char *argv[]) {
 }
 ```
 
+## 读者--写者锁
+```c
+typedef struct _rwlock_t {
+   sem_t lock; // binary semaphore (basic lock)
+   sem_t writelock; // used to allow ONE write or MANY readers
+   int readers;
+} rwlock_t;
+
+void rwlock_init(rwlock_t* rw) {
+   rw->readers = 0;
+   sem_init(&rw->lock, 0, 1);
+   sem_init(&rw->writelock, 0, 1);
+}
+
+void rwlock_acquire_readlock(rwlock_t* rw) {
+   sem_wait(&rw->lock);
+   rw->readers++;
+   if (rw->readers == 1)
+      sem_wait(&rw->writelock); // first reader acquires writelock
+   sem_post(&rw->lock);
+}
+
+void rwlock_release_readlock(rwlock_t* rw) {
+   sem_wait(&rw->lock);
+   rw->readers--;
+   if (rw->readers == 0)
+      sem_post(&rw->writelock); // last reader releases writelock
+   sem_post(&rw->lock);
+}
+
+void rwlock_acquire_writelock(rwlock_t* rw) {
+   sem_wait(&rw->writelock);
+}
+
+void rwlock_release_writelock(rwlock_t* rw) {
+   sem_post(&rw->writelock);
+}
+
+```
+
+## 哲学家就餐问题
+![eat_problem](./pictures/eat_problem.png)
+由于餐具是互斥的有限资源，所以我们构建五个二值信号量`sem_t forks[5]`代表餐具。
+
+### 如何拿起或放下左右的餐具
+* 有问题的方案
+   * 会造成死锁，例如所有哲学家都拿起了左手边的餐具
+   ```c
+   void getforks() {
+      sem_wait(forks[left(p)]);
+      sem_wait(forks[right(p)])
+   }
+
+   void putforks() {
+      sem_post(forks[left(p)]);
+      sem_post(forks[right(p)])
+   }
+   ```
+
+* 一种方案：破除依赖
+```c
+void getforks() {
+   if (p == 4) {
+      sem_wait(forks[right(p)]);
+      sem_wait(forks[left(p)]);
+   }
+   else {
+      sem_wait(forks[left(p)]);
+      sem_wait(forks[right(p)]);
+   }
+}
+```
+
+## 如何实现信号量
+我们用更底层的同步原语(锁和条件变量)，来实现自己的信号量。
+```c
+typedef struct _Zem_t {
+   int value;
+   pthread_cond_t cond;
+   pthread_mutex_t lock;
+} Zem_t;
+
+// only one thread can call this
+void Zem_init(Zem_t* s, int value) {
+   s->value = value;
+   Cond_init(&s->cond);
+   Mutex_init(&s->lock);
+}
+
+void Zem_wait(Zem_t* s) {
+   Mutex_lock(&s->lock);
+   while (s->value <= 0)
+      Cond_wait(&s->cond, &s->lock);
+   s->value--;
+   Mutex_unlock(&s->lock);
+}
+
+void Zem_post(Zem_t* s) {
+   Mutex_lock(&s->lock);
+   s->value++;
+   Cond_signal(&s->cond);
+   Mutex_unlock(&s->lock);
+}
+```
+
+## 小心泛化
+在系统设计中，泛化的抽象技术是很有用处的。一个好的想法稍微扩展之后，就可以解决更大一类问题。然而，泛化时要小心。我们可以把信号量当作锁和条件变量的泛化。但这种泛化有必要吗？考虑基于信号量去实现条件变量的难度，可能这种泛化并没有你想的那么通用。
