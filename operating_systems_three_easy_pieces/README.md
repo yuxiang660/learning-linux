@@ -1831,3 +1831,65 @@ int Hash_Lookup(hash_t *H, int key) {
 }
 
 ```
+
+# 第30章 条件变量
+## 关键问题
+* 如何等待一个条件？
+   * 多线程程序中，一个线程等待某些条件是很常见的。简单的方案是自旋直到条件满足，这是极其低效的，某些情况下甚至是错误的。那么，线程应该如何等待一个条件？
+
+## 定义和程序
+线程可以使用条件变量(condition variable)，来等待一个条件变成真。条件变量是一个显式队列，当某些执行状态(即条件，condition)不满足时，线程可以把自己加入队列，等待(waiting)该条件。另外某个线程，当它改变了上述状态时，就可以唤醒一个或多个等待线程(通过在该条件上发信号)，让它们继续执行。
+
+POSIX的条件变量有两种相关操作：
+```c
+pthread_cond_wait(pthread_cond_t *c, pthread_mutex_t *m);
+pthread_cond_signal(pthread_cond_t *c);
+```
+
+通过例子[thr_join](./code/thr_join)，可明白如何通过POSIX的条件变量实现`thread_join`的功能。其中，wait()调用有一个参数，它是互斥量。它假定在wait()调用时，这个互斥量是已上锁状态。wait()的职责是释放锁，并让调用线程休眠(原子地)。当线程被唤醒时，它必须重新获取锁，再返回调用者。
+
+这里有两种情况：
+* 父线程创建子线程后继续运行
+   * 父线程会调用wait()等待子线程完成
+* 父线程创建子线程后，子线程立即运行
+   * 父线程通过变量done直接退出
+
+### 是否需要状态变量done?
+以下代码有什么问题：
+```c
+void thr_exit() {
+   pthread_mutex_lock(&m);
+   pthread_cond_signal(&c);
+   pthread_mutex_unlock(&m);
+}
+
+void thr_join() {
+   pthread_mutex_lock(&m);
+   pthread_cond_wait(&c, &m);
+   pthread_mutex_unlock(&m);
+}
+```
+假设子线程立刻运行，并且调用`thr_exit()`发送信号，但是此时却没有在条件变量上睡眠等待的线程(父线程还没有调用`wait()`)。然后，父线程运行，由于没有状态变量`done`，父线程就会调用`wait()`并卡在哪里，没有其他线程会唤醒它。
+
+### 如果线程在发信号和等待时都不加锁，会有什么问题？
+```c
+void thr_exit() {
+   done = 1;
+   pthread_cond_signal(&c);
+}
+
+void thr_join() {
+   if (done == 0)
+      pthread_cond_wait(&c);
+}
+```
+这里存在一个竞态条件。如果父线程调用`thr_join()`，然后检查完done的值为0，再试图睡眠。但是再调用wait进入睡眠之前，父线程被子线程中断了。子线程修改变量done为1，发出信号，发现没有等待的线程。子线程结束后，父线程再次运行调用wait，而后长眠不醒。
+
+* 发信号时最好总是持有锁
+   * hold the lock when calling signal
+* 调用wait的时候必须有锁
+   * 因为wait调用总是假设你调用它时已经持有锁、调用者睡眠之前会释放锁以及返回前重新持有锁
+
+### 为什么对条件变量的wait用while而不是if？
+多线程程序在检查条件变量时，使用while循环总是对的。if语句可能会对，这取决于发信号的语义。因此，总是使用while，代码就会符合预期。
+对条件变量使用while循环，也解决了假唤醒(spurious wakeup)的情况。某些线程库中，由于实现的细节，有可能出现一个信号唤醒两个线程的情况。每次检查线程的等待条件，假唤醒是另一个原因。
