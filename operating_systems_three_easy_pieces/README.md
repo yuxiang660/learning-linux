@@ -1754,4 +1754,80 @@ int List_Lookup(list_t* L, int key) {
    * 也称为耦合锁(lock coupling)，每个节点都有一个锁，代替对整个链表上锁。遍历链表的时候，首先抢占下一个节点的锁，然后释放当前节点的锁。
    * 实际上，在遍历链表的时候，每个节点取锁、释放锁的开销巨大，过手锁很难比单锁的方法更快
 
+## 并发队列
+```c
+typedef struct __node_t {
+   int value;
+   struct __node_t* next;
+} node_t;
 
+typedef struct queue_t {
+   node_t* head;
+   node_t* tail;
+   pthread_mutex_t headLock;
+   pthread_mutex_t tailLock;
+} queue_t;
+
+void Queue_Init(queue_t* q) {
+   node_t* tmp = malloc(sizeof(node_t));
+   tmp->next = NULL;
+   q->head = q->tail = tmp;
+   pthread_mutex_init(&q>headLock, NULL);
+   pthread_mutex_init(&q>tailLock, NULL);
+}
+
+void Queue_Enqueue(queue_t* q, int value) {
+   node_t* tmp = malloc(sizeof(node_t));
+   assert(tmp != NULL);
+   tmp->value = value;
+   tmp->next = NULL;
+
+   pthread_mutex_lock(&q->tailLock);
+   q->tail->next = tmp
+   q->tail = tmp;
+   pthread_mutex_unlock(&q->tailLock);
+}
+
+int Queue_Dequeue(queue_t* q, int* value) {
+   pthread_mutex_lock(&q->headLock);
+   node_t* tmp = q->head;
+   node_t* newHead = tmp->next;
+   if (newHead == NULL) {
+      pthread_mutex_unlock(&q->headLock);
+      return -1;
+   }
+   *value = newHead->value;
+   q->head = newHead;
+   pthread_mutex_unlock(&q->headLock);
+   free(tmp);
+   return 0;
+}
+
+```
+
+## 并发散列表
+```c
+#define BUCKETS (101)
+
+typedef struct __hash_t {
+   list_t lists[BUCKETS];
+} hash_t;
+
+void Hash_Init(hash_t *H) {
+   int i;
+   for (i = 0; i < BUCKETS; i++) {
+      List_Init(&H->lists[i]);
+   }
+}
+
+int Hash_Insert(hash_t *H, int key) {
+   int bucket = key % BUCKETS;
+   return List_Insert(&H->lists[bucket], key);
+}
+
+int Hash_Lookup(hash_t *H, int key) {
+   int bucket = key % BUCKETS;
+   return List_Lookup(&H->lists[bucket], key);
+}
+
+```
