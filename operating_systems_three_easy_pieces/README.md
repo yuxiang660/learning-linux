@@ -2031,3 +2031,114 @@ void* consumer(void* arg) {
 
 ## 小结
 我们看到了引入锁之外的另一个重要同步原语：条件变量。当某些程序状态不符合要求时，通过允许线程进入休眠状态，条件变量使我们能够漂亮地解决许多重要的同步问题，包括著名的生产者/消费者问题，以及覆盖条件。
+
+# 第31章 信号量
+作为与同步有关的所有工作的唯一原语，你会看到，可以使用信号量作为锁和条件变量。
+## 关键问题
+* 如何使用信号量？
+   * 如何使用信号量代替锁和条件变量？
+   * 什么是信号量？
+   * 什么是二值信号量？
+   * 用锁和条件变量来实现信号量是否简单？
+   * 不用锁和条件变量，如何实现信号量？
+
+## 信号量的定义
+信号量是有一个整数值的对象，可以用两个函数来操作它。在POSIX标准中，是`sem_wait()`和`sem_post()`。信号量在使用前需要初始化：
+```c
+#include <semaphore.h>
+sem_t s;
+sem_init(&s, 0, 1);
+```
+其中，第三个参数是信号量的初始值，此处将它初始化为1。第二个参数设置为0，表示此信号量是在同一个进程的多个线程共享的。
+```c
+int sem_wait(sem_t* s) {
+   decrement the value of semaphore s by one
+   wait if value of semaphore s is negative
+}
+
+int sem_post(sem_t* s) {
+   increment the value of semaphore s by one
+   if there are one or more threads waiting, wake one
+}
+```
+当信号量的值为负数时，这个值就是等待线程的个数。虽然这个值通常不会暴露给信号量的使用者，但这个恒定的关系值得了解，可能有助于记住信号量的工作原理。
+
+## 二值信号量(锁)
+信号量的第一种用法：
+* 用信号量作为锁
+```c
+sem_t m;
+sem_init(&m, 0, 1);
+
+sem_wait(&m);
+// critical section here
+sem_post(&m);
+```
+两个线程的调度过程可能如下：
+![semaphore_mutex](./pictures/semaphore_mutex.png)
+
+## 信号量用作条件变量
+```c
+sem_t s;
+void* chile(void* arg) {
+   printf("child\n");
+   sem_post(&s);
+   return NULL;
+}
+
+int main(int argc, char* argv[]) {
+   sem_init(&s, 0, 0); // 这里是0而不是1，不同于锁的实现
+   printf("parent:begin\n");
+
+   pthread_t c;
+   pthread_create(c, NULL, child, NULL);
+   sem_wait(&s);
+
+   printf("parent:end\n");
+   return 0;
+}
+```
+如果父线程创建子线程，但父线程继续运行：
+![semaphore_cond](./pictures/semaphore_cond.png)
+如果父线程创建子线程，子线程马上运行：
+![semaphore_cond2](./pictures/semaphore_cond2.png)
+
+## 生产者/消费者(有界缓冲区)问题
+用信号量实现像[producer_consumer](./code/producer_consumer)这样的有界缓冲区问题，需要三个信号量，分别代替两个条件变量，和一个锁。这会造成程序的可读性下降，建议不要使用，代码如下：
+```c
+sem_t empty;
+sem_t full;
+sem_t mutex;
+
+void *producer(void *arg) {
+   int i;
+   for (i = 0; i < loops; i++) {
+      sem_wait(&empty); // line p1
+      sem_wait(&mutex); // line p1.5 (MOVED MUTEX HERE...)
+      put(i); // line p2
+      sem_post(&mutex); // line p2.5 (... AND HERE)
+      sem_post(&full); // line p3
+   }
+}
+
+void *consumer(void *arg) {
+   int i;
+   for (i = 0; i < loops; i++) {
+      sem_wait(&full); // line c1
+      sem_wait(&mutex); // line c1.5 (MOVED MUTEX HERE...)
+      int tmp = get(); // line c2
+      sem_post(&mutex); // line c2.5 (... AND HERE)
+      sem_post(&empty); // line c3
+      printf("%d\n", tmp);
+   }
+}
+
+int main(int argc, char *argv[]) {
+   // ...
+   sem_init(&empty, 0, MAX); // MAX buffers are empty to begin with...
+   sem_init(&full, 0, 0); // ... and 0 are full
+   sem_init(&mutex, 0, 1); // mutex=1 because it is a lock
+   // ...
+}
+```
+
