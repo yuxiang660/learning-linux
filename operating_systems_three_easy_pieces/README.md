@@ -1893,3 +1893,141 @@ void thr_join() {
 ### 为什么对条件变量的wait用while而不是if？
 多线程程序在检查条件变量时，使用while循环总是对的。if语句可能会对，这取决于发信号的语义。因此，总是使用while，代码就会符合预期。
 对条件变量使用while循环，也解决了假唤醒(spurious wakeup)的情况。某些线程库中，由于实现的细节，有可能出现一个信号唤醒两个线程的情况。每次检查线程的等待条件，假唤醒是另一个原因。
+
+## 生产者/消费者(有界缓冲区)问题
+为了简单起见，我们先拿一个整数来做缓冲区，后面我们会将其变成一个数组。
+```c
+int buffer;
+int count = 0;
+
+void put(int value) {
+   assert(count == 0);
+   count = 1;
+   buffer = value;
+}
+
+int get() {
+   assert(count == 1);
+   count = 0;
+   return buffer;
+}
+```
+### 有问题的方案
+在例子[producer_consumer](./code/producer_consumer)中，如果生产者/消费者的实现如下：
+```c
+void* producer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      if (count == 1)
+         pthread_cond_wait(&cond, &mutex);
+      put(i);
+      pthread_cond_signal(&cond);
+      pthread_mutex_unlock(&mutex);
+   }
+}
+
+void* consumer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      if (count == 0)
+         pthread_cond_wait(&cond, &mutex);
+      int tmp = get();
+      pthread_cond_signal(&cond);
+      pthread_mutex_unlock(&mutex);
+      printf("%d\n", tmp);
+   }
+}
+```
+此方案在一个生产者和一个消费者的情况下是没有问题的，但是如果是一个生产者和多个消费者时，会出现消费者对一个空缓存区进行访问，因为缓冲区被另一个消费者访问过了。具体过程可参考下表：
+![producer_consumer_1](./pictures/producer_consumer_1.png)
+
+此现象发生的原因时：发信号给线程只是唤醒它们，按时状态发生了变化，但并不会保证在它运行之前一直时期望的情况。
+
+### 较好但仍有问题的方案：使用while语句替代if
+```c
+void* producer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      while (count == 1)
+         pthread_cond_wait(&cond, &mutex);
+      put(i);
+      pthread_cond_signal(&cond);
+      pthread_mutex_unlock(&mutex);
+   }
+}
+
+void* consumer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      while (count == 0)
+         pthread_cond_wait(&cond, &mutex);
+      int tmp = get();
+      pthread_cond_signal(&cond);
+      pthread_mutex_unlock(&mutex);
+      printf("%d\n", tmp);
+   }
+}
+```
+把`if`替换成`while`后，当消费者被唤醒后，立刻再次检查共享变量。如果缓冲区此时为空，消费者就会回去继续睡眠。但是此方案仍然存在一个问题问题：
+
+假设一个生产者和两个消费者，虽然解决了消费者访问空缓冲区的问题(通过循环检测共享变量)，但是仍然存在一个信号是唤醒消费者还是唤醒生产者的问题，具体步骤参考下表：
+![producer_consumer_2](./pictures/producer_consumer_2.png)
+
+信号显然需要更有指向性。消费者不应该唤醒消费者，而应该只唤醒生产者，反之亦然。
+
+### 单值缓冲区的生产者/消费者方案
+使用两个条件变量，可以解决上面的问题。
+```c
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
+pthread_cond_t fill = PTHREAD_COND_INITIALIZER;
+
+void* producer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      while (count == 1)
+         pthread_cond_wait(&empty, &mutex);
+      put(i);
+      pthread_cond_signal(&fill);
+      pthread_mutex_unlock(&mutex);
+   }
+}
+
+void* consumer(void* arg) {
+   int i;
+   int loops = (intptr_t)arg;
+   for (i = 0; i < loops; i++) {
+      pthread_mutex_lock(&mutex);
+      if (count == 0)
+         pthread_cond_wait(&fill, &mutex);
+      int tmp = get();
+      pthread_cond_signal(&empty);
+      pthread_mutex_unlock(&mutex);
+      printf("%d\n", tmp);
+   }
+}
+```
+
+### 最终的生产者/消费者方案
+* 例子：[producer_consumer](./code/producer_consumer)
+
+## 覆盖条件
+
+* 当信号唤醒多个等待线程时，应该唤醒哪个线程？
+   * 如果不知道唤醒哪个线程，可通过`pthread_cond_broadcast()`代替`pthread_cond_signal()`唤醒所有等待线程，将它们都变成就绪状态。
+   * 如果这些线程不应该被唤醒，则其被唤醒后，重新检查条件，马上再次睡眠
+
+这种条件变量叫做"覆盖体条件"(covering condition)，因为它能覆盖所有需要唤醒线程的场景。成本就是会影响一些性能。
+
+## 小结
+我们看到了引入锁之外的另一个重要同步原语：条件变量。当某些程序状态不符合要求时，通过允许线程进入休眠状态，条件变量使我们能够漂亮地解决许多重要的同步问题，包括著名的生产者/消费者问题，以及覆盖条件。
