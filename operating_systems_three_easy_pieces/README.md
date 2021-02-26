@@ -2249,3 +2249,181 @@ void Zem_post(Zem_t* s) {
 
 ## 小心泛化
 在系统设计中，泛化的抽象技术是很有用处的。一个好的想法稍微扩展之后，就可以解决更大一类问题。然而，泛化时要小心。我们可以把信号量当作锁和条件变量的泛化。但这种泛化有必要吗？考虑基于信号量去实现条件变量的难度，可能这种泛化并没有你想的那么通用。
+
+# 第32章 常见并发问题
+## 有哪些类型的缺陷
+4个重要的关于并发的开源应用：
+* MySQL - 流行的数据库管理系统
+* Apache - 著名的Web服务器
+* Mozilla - 著名的Web浏览器
+* OpenOffice - 微软办公套件的开源版本
+其中，大概两种类型的缺陷：
+* 非死锁的缺陷
+* 死锁缺陷
+
+## 非死锁缺陷
+主要两种：
+* 违反原子性(atomicity violation)缺陷
+* 错误顺序(order violation)缺陷
+### 违反原子性缺陷
+```c
+Thread 1::
+   if (thd->proc_info) {
+      ...
+      fputs(thd->proc_info, ...);
+      ...
+   }
+
+Thread 2::
+   thd->proc_info = NULL;
+```
+违反原子性的定义：违反了多次内存访问中预期的可串行性，即代码段本意是原子的，但在执行中并没有强制实现原子性。
+* 解决方法是：给共享变量加锁
+
+### 违反顺序缺陷
+```c
+Thread 1::
+   void init() {
+      ...
+      mThread = PR_CreateThread(mMain, ...);
+      ...
+   }
+
+Thread 2::
+   void mMain(...) {
+      ...
+      mState = mThread->State;
+      ...
+   }
+```
+违反顺序的定义：两个内存访问的预期顺序被打破了，即A应该在B之前执行，但是实际运行中却不是这个顺序。
+* 解决方法是：条件变量
+```c
+pthread_mutex_t mtLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t mtCond = PTHREAD_COND_INITIALIZER;
+int mtInit = 0;
+
+Thread 1::
+   void init() {
+      ...
+      mThread = PR_CreateThread(mMain, ...);
+
+      // signal that the thread has been created...
+      pthread_mutex_lock(&mtLock);
+      mtInit = 1;
+      pthread_cond_signal(&mtCond);
+      pthread_mutex_unlock(&mtLock);
+      ...
+   }
+
+Thread 2::
+   void mMain(...) {
+      ...
+      // wait for the thread to be initialized...
+      pthread_mutex_lock(&mtLock);
+      while (mtInit == 0)
+         pthread_cond_wait(&mtCond, &mtLock);
+      pthread_mutex_unlock(&mtLock);
+
+      mState = mThread->State;
+      ...
+   }
+```
+
+## 死锁缺陷
+### 为什么发生死锁
+产生死锁的4个必要条件：
+* 互斥
+   * 线程对于需要的资源进行互斥的访问，例如一个线程抢到锁
+* 持有并等待
+   * 线程持有了资源(例如已将持有的锁)，同时又在等待其他资源(例如需要获得的锁)
+* 非抢占
+   * 线程获得的资源，不能被抢占
+* 循环等待
+   * 线程之间存在一个环路，环路上每个线程都额外持有一个资源，而这个资源又是下一个线程要申请的
+
+下面针对每个条件，提出4种预防死锁的方法
+* 循环等待
+   * 全序(total ordering)
+      * 不产生循环等待最直接的方法就是获取锁时提供一个全序。假如系统共有两个锁(L1和L2)，那么我们每次都先申请L1，然后申请L2，就可以避免死锁了。
+   * 偏序(partial ordering)
+      * 系统中不会只有两个锁，锁的全序可能很难做到。偏序就是规定了某些锁的顺序
+   * 通过锁的地址来强制锁的顺序
+   ```c
+   if (m1 > m2) { // grab locks in high-to-low address order
+      pthread_mutex_lock(m1);
+      pthread_mutex_lock(m2);
+   } else {
+      pthread_mutex_lock(m2);
+      pthread_mutex_lock(m1);
+   }
+   ```
+
+* 持有并等待
+   * 持有并等待条件，可以通过原子地抢锁来避免
+   ```c
+   lock(prevention);
+   lock(L1);
+   lock(L2);
+   ...
+   unlock(prevention);
+   ```
+   * 由于上了一把`prevention`的大锁，L1和L2要么同时被一个线程占用，要么没有一个线程占用
+   * 缺点是并发性降低了
+
+* 非抢占
+   * 通过`trylock`，释放已抢占的锁
+   ```c
+   top:
+      lock(L1);
+      if (trylock(L2) == -1) {
+         unlock(L1);
+         goto top;
+      }
+   ```
+
+* 互斥
+   * 通过强大的硬件指令，我们可以构造出不需要锁的数据结构
+   * 强大的指令是`CompareAndSwap`:
+   ```c
+   int CompareAndSwap(int *address, int expected, int new) {
+      if (*address == expected) {
+         *address = new;
+         return 1; // success
+      }
+      return 0; // failure
+   }
+   ```
+   * 无锁编程实现加法
+   ```c
+   void AtomicIncrement(int *value, int amount) {
+      do {
+         int old = *value;
+      } while (CompareAndSwap(value, old, old + amount) == 0);
+   }
+   ```
+   * 对比链表插入的有锁版本和无锁版本
+   ```c
+   void insert(int value) {
+      node_t *n = malloc(sizeof(node_t));
+      assert(n != NULL);
+      n->value = value;
+      lock(listlock); // begin critical section
+      n->next = head;
+      head = n;
+      unlock(listlock); // end of critical section
+   }
+   ```
+   ```c
+   void insert(int value) {
+      node_t *n = malloc(sizeof(node_t));
+      assert(n != NULL);
+      n->value = value;
+      do {
+         n->next = head;
+      } while (CompareAndSwap(&head, n->next, n) == 0);
+   }
+   ```
+
+* 通过调度避免死锁
+   * 本质上是通过限制并发来避免死锁，只让不可能产生死锁的线程并发运行
