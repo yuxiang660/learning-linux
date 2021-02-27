@@ -2430,3 +2430,105 @@ Thread 2::
 
 ## 小结
 实践中自行设计抢锁的顺序，从而避免死锁发生。无等待的方案也很有希望，在一些通用库和系统中，包括Linux，都已经有了一些无等待的实现。然而，这种方案不够通用，并且设计一个新的无等待的数据结构及其复杂，以至于不够实用。也许，最好的死锁解决方案是开发一种新的并发编程模型：在类似MapReduce这样的系统中，程序员可以完成一些类型的并行计算，无须任何锁。
+
+# 第33章 基于事件的并发
+基于事件的并发(event-based concurrency)，如node.js，主要正对线程并发的两方面问题:
+* 正确处理锁等线程并发机制有难度
+* 开发者无法控制多线程在某一时刻的调度，调度完全由操作系统控制，但某些时候操作系统调度并不是最优的
+## 关键问题
+* 不用线程，如何构建并发服务器？
+   * 不用线程，同时保证对并发的控制，避免多线程应用中出现的问题，我们应该如何构建一个并发服务器？
+
+## 基本想法：事件循环
+基于事件的并发是：我们等待某事(即，事件)发生；当它发生时，检查事件类型，然后做少量的相应工作(可能时I/O请求，或者调度其他事件准备后续处理)。
+一些基于图形用户界面的应用，或某些类型的网络服务器，常常采用基于事件的并发。所谓基于事件的并发，其实是对事件的异步处理。比如，对鼠标点击，网络连接等事件的异步处理。
+
+* 事件循环的例子
+```c
+while(1) {
+   events = getEvents();
+   for (e in events)
+      processEvent(e);
+}
+```
+
+* 问题
+   * 基于事件的服务器如何决定哪个事件发生，尤其时对于网络和磁盘I/O？
+   * 具体来说，事件服务器如何确定是否有它的消息已经到达？
+
+## 重要API：select() 或 poll()
+```c
+int select
+(
+   int nfds,
+   fd_set *readfds, //watched to see if they are ready for reading
+   fd_set *writefds, //watched to see if they are ready for writing
+   fd_set *exceptfds, //watched for "exceptional conditions"
+   struct timeval *timeout
+);
+```
+
+* 阻塞与非阻塞接口
+   * 阻塞(或同步)接口在返回给调用者之前完成所有工作
+      * 通常是调用某种I/O
+   * 非阻塞(或异步)接口开始一些工作，但立即返回，从而让所有需要完成的工作都在后台完成
+      * 可用于任何类型的编程，但在基于事件的方法中非常重要，因为阻塞的调用会阻止所有进展
+
+`select`和`poll`这些基本原语为我们提供了一种构建非阻塞事件循环的方法，它可以简单地检查传入数据包，从带有消息的套接字中读取数据，并根据需要进行回复。
+
+## 使用select()
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+int main(void) {
+   // open and set up a bunch of sockets (not shown)
+   // main loop
+   while (1) {
+      // initialize the fd_set to all zero
+      fd_set readFDs;
+      FD_ZERO(&readFDs);
+      // now set the bits for the descriptors
+      // this server is interested in
+      // (for simplicity, all of them from min to max)
+      int fd;
+      for (fd = minFD; fd < maxFD; fd++)
+         FD_SET(fd, &readFDs);
+      // do the select
+      int rc = select(maxFD+1, &readFDs, NULL, NULL, NULL);
+      // check which actually have data using FD_ISSET()
+      int fd;
+      for (fd = minFD; fd < maxFD; fd++)
+         if (FD_ISSET(fd, &readFDs))
+         processFD(fd);
+   }
+}
+```
+
+## 阻塞系统调用
+* 请勿阻塞基于事件的服务器
+   * 基于事件的服务器可以对任务调度进行细粒度的控制。但是，基于事件的服务器不能被另一个线程中断，因为它是单线程的。也不可以有阻止调用者执行的调用。否则将导致基于事件的服务器阻塞。
+
+* 如何解决阻塞的系统调用？
+   * 异步I/O
+      * 异步请求使应用程序能够发出I/O请求，并在I/O完成之前立即将控制权返回给调用者
+
+* 如何确定异步I/O是否完成？
+   * 轮询
+      * 应用程序可以通过周期性的轮询，确定I/O是否完成
+   * 中断
+      * 使用信号signal在异步I/O完成时通知应用程序，消除重复询问系统的需要
+
+* 如何管理异步I/O的状态？
+   * 不同于基于线程的程序，异步调用需要打包一些程序的状态，以便下一个事件处理程序在I/O最终完成时使用，称为手工栈管理
+   * 解决方法是，在某些数据结构中，记录完成处理该事件需要的信息，当事件发生时(即磁盘I/O完成时)，查找所需信息并处理事件
+
+## 什么事情仍然很难
+* 多CPU
+   * 当出现多CPU时，事件必须并行处理多个事件，就出现了同步问题
+* 基于事件的方法不能与某系系统活动很好地集成，如分页
+   * 如果事件处理程序发生页错误，它将被阻塞，丙夜因此服务器在页错误完成之前不会有进展。尽管服务器的结构可以避免显示阻塞，但由于页错误导致的隐式阻塞很难避免
+* 代码很难管理
+   * 各种函数的确切语义因为异步操作发生了变化。如果函数从非阻塞变为阻塞，则调用者也要剥离阻塞部分的调用
