@@ -2619,3 +2619,119 @@ while(STATUS == BUSY)
 
 ![linux_software_level](./pictures/linux_software_level.png)
 通过抽象可以将设备交互细节隐藏。上图时Linux软件的组织方式。其中，文件系统和应用程序完全不清楚它使用的是什么类型的磁盘。它只需要简单地向通用块设备层发送读写请求即可，块设备层会将这些请求路由给对应的设备驱动，然后又设备驱动来完成真正的底层操作。
+
+## 案例研究：简单的IDE磁盘驱动程序
+IDE硬盘暴露给操作系统的接口比较简单：
+* 4种类型的寄存器
+   * 控制、命令块、状态和错误
+在x86上，利用I/O指令in和out向特定的I/O地址读取或写入时，可以访问这些寄存器。
+
+### IDE的寄存器
+```c
+Control Register:
+   Address 0x3F6 = 0x80 (000 1RE0): R=reset, E=0 means "enable interrupt"
+
+Command Block Registers:
+   Address 0x1F0 = Data Port
+   Address 0x1F1 = Error
+   Address 0x1F2 = Sector Count
+   Address 0x1F3 = LBA low byte
+   Address 0x1F4 = LBA mid byte
+   Address 0x1F5 = LBA hi byte
+   Address 0x1F6 = 1B1D TOP4LBA: B=LBA, D=drive
+   Address 0x1F7 = Command/status
+
+Status Register (Address 0x1F7):
+   7    6     5     4    3   2    1     0
+   BUSY READY FAULT SEEK DRQ CORR IDDEX ERROR
+
+Error Register (Address 0x1F1): (check when Status ERROR==1)
+   7   6   5  4    3   2    1    0
+   BBK UNC MC IDNF MCR ABRT T0NF AMNF
+   BBK = Bad Block
+   UNC = Uncorrectable data error
+   MC = Media Changed
+   IDNF = ID mark Not Found
+   MCR = Media Change Requested
+   ABRT = Command aborted
+   T0NF = Track 0 Not Found
+   AMNF = Address Mark Not Found
+```
+
+### IDE的操作协议
+从上文中提到的操作系统与设备的交互协议可知，一般操作设备的包括：等待设备就绪 -> 向色好吧写入数据与命令 -> 等待设备执行完成 -> 检测错误。
+
+* 等待设备就绪
+   * 检测寄存器(0x1F7)，直到READY而非忙碌
+   ```c
+   static int ide_wait_ready() {
+      while (((int r = inb(0x1f7)) & IDE_BSY) || !(r & IDE_DRDY))
+         ;  // loop until drive isn't busy
+   }
+   ```
+* 向设备写入数据与命令
+   * 选择扇区并开启I/O，向命令寄存器(0x1F7)中写入READ-WRITE命令
+   * 数据传送，等待直到驱动状态为READY和DRQ(驱动请求数据)，向数据端口写入数据
+   ```c
+   static void ide_start_request(struct buf* b) {
+      ide_wait_ready();
+      outb(0x3f6, 0);      // generate interrupt
+      outb(0x1f2, 1);      // how many sectors
+      outb(0x1f3, b->sector & 0xff);         // LBA low byte
+      outb(0x1f4, (b->sector >> 8) & 0xff);  // LBA mid byte
+      outb(0x1f5, (b->sector >> 16) & 0xff); // LBA high byte
+      outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((b->sector>>24)&0x0f));
+      if (b0>flags & B_DIRTY) {
+         outb(0x1f7, IDE_CMD_WRITE);   // this is a WRITE
+         outsl(0x1f0, b->data, 512/4); // transfer data too
+      } else {
+         outb(0x1f7, IDE_CMD_READ);    // this is a READ (no data)
+      }
+   }
+   ```
+* 等待设备执行完成
+   * 中断处理，每个扇区的数据传送结束后会触发一次中断处理程序，读取数据
+   ```c
+   void ide_intr() {
+      struct buf* b;
+      acquire(&ide_lock);
+      if (!(b->flags & D_DIRTY) && ide_wait_ready() >= 0)
+         insl(0x1f0, b->data, 512/4); // if READ: get data
+      b->flags |= B_VALID;
+      b->flags &= ~B_DIRTY;
+      wakeup(b);     // wake waiting process
+      if ((ide_queue = b->next) != 0)  // start next request
+         ide_start_request(ide_queue); // if one exits
+      release(&ide_lock);
+   }
+   ```
+* 检测错误
+   * 读取状态寄存器
+
+调用者通过`ide_rw()`完成一次IDE的访问，其定义如下：
+```cw
+void ide_rw(struct buf* b) {
+   acquire(&ide_lock);
+   for (struct buf **pp = &ide_queue; *pp; pp= &(*pp)->qnext)
+      ;                 // walk queue
+   *pp = b;             // add request to end
+   if (ide_queue = b)   // if q is empty
+      ide_start_request(b);   // send req to dist
+   while((b->flags & (B_VALID | B_DIRTY)) != B_VALID)
+      sleep(b, &ide_lock);    // wait for completion
+   release(&ide_lock);
+}
+```
+它会将一个请求加入队列，或者直接将请求发送到磁盘(通过`ide_start_request()`)。
+
+## 历史记录
+在20世纪50年代中期，就有系统的I/O设备可以直接和内存交互，并在完成后中断CPU。
+
+## 小结
+本章介绍了两种技术，可用于提高设备效率：
+* 中断
+* DMA
+
+还介绍了两种访问设备寄存器的方法：
+* I/O指令
+* 内存映射I/O
