@@ -2819,3 +2819,220 @@ T(I/O) = T(寻道) + T(旋转) + T(传输)
       * 如果丢失多个磁盘，则无法重建丢失的数据
    * 容量减少一个阵列(用于奇偶校验)，性能能稍有丢失，
 
+# 第39章 插叙：文件和目录
+## 关键问题
+* 如何管理持久存储设备？
+   * 操作系统应该如何管理持久存储设备？
+   * 都需要哪些API？
+   * 实现有哪些重要方面？
+
+## 文件和目录
+存储虚拟化两个关键的抽象：
+* 文件file
+   * 一个线性字节数组
+   * 每个文件都有一个与其关联的inode号
+* 目录directory
+   * 也有一个低级名字(即inode号)，并且同时与目录名关联
+   * 目录中的每个条目都指向文件或其他目录
+
+## 创建文件
+通过系统调用`open()`并传入O_CREATE标志，程序可以创建一个新文件。
+```c
+int fd = open("foo", O_CREATE | O_WRONLY | O_TRUNC);
+```
+返回文件描述符(file descriptor)，每个进程私有，可将它作为指向文件类型对象的指针。
+
+## 读写文件
+```bash
+prompt> strace cat foo
+...
+open("foo", O_RDONLY|O_LARGEFILE) = 3
+read(3, "hello\n", 4096) = 6
+write(1, "hello\n", 6) = 6
+hello
+read(3, "", 4096) = 0
+close(3) = 0
+...
+prompt>
+```
+
+## 读取和写入，但不按顺序
+lseek()系统调用：
+```c
+off_t lseek(int fildes, off_t offset, int whence);
+/*
+If whence is SEEK_SET, the offset is set to offset bytes.
+If whence is SEEK_CUR, the offset is set to its current location plus offset bytes.
+If whence is SEEK_END, the offset is set to the size of the file plus offset bytes.
+*/
+```
+* 如何更新打开文件的当前偏移量：
+   * 每次读写都会隐式更新偏移量
+   * lseek也会改变偏移量
+
+## 用fsync()立即写入
+当程序调用write()时，只是告诉文件系统：请在将来的某个时刻，将此数据写入持久存储。出于性能的原因，文件系统会将这些写入在内存中缓冲一段时间(5s或30s)。在稍后的时间点，写入实际发送到存储设备。
+
+当进程针对特定文件描述符调用`fsync()`时，文件系统通过强制将所有脏(dirty)数据(即尚未写入的)写入磁盘来响应。有时不仅需要`fsync()`文件，还需要`fsync()`文件夹。
+
+## 文件重命名
+```c
+rename(char* old, char* new);
+```
+* `rename`是原子操作
+   * 对文件状态进行原子更新的应用就是调用了`rename`
+   ```c
+   int fd = open("foo.txt.tmp", O_WRONLY|O_CREAT|O_TRUNC);
+   write(fd, buffer, size); // write out new version of file
+   fsync(fd);
+   close(fd);
+   rename("foo.txt.tmp", "foo.txt");
+   ```
+
+## 获取文件信息
+使用`stat()`或`fstat()`可以查看文件信息，称为文件元数据metadata。
+```c
+struct stat {
+   dev_t st_dev; /* ID of device containing file */
+   ino_t st_ino; /* inode number */
+   mode_t st_mode; /* protection */
+   nlink_t st_nlink; /* number of hard links */
+   uid_t st_uid; /* user ID of owner */
+   gid_t st_gid; /* group ID of owner */
+   dev_t st_rdev; /* device ID (if special file) */
+   off_t st_size; /* total size, in bytes */
+   blksize_t st_blksize; /* blocksize for filesystem I/O */
+   blkcnt_t st_blocks; /* number of blocks allocated */
+   time_t st_atime; /* time of last access */
+   time_t st_mtime; /* time of last modification */
+   time_t st_ctime; /* time of last status change */
+};
+```
+
+## 删除文件
+系统调用`unlink()`用来删除文件。为什么叫unlink？
+* 在后面“硬链接”中，会解释
+
+## 创建目录
+不能直接写入目录，因为目录的格式被视为文件系统元数据，只能间接更新目录。
+系统调用`mkdir()`用于创建目录。
+空目录有两个条目：
+* 一个引用自身的条目：`.`
+* 一个引用父目录的条目：`..`
+
+## 读取目录
+`opendir()`,`readdir()`和`closedir()`这三个系统调用用于读取目录，下面代码可以打印目录内容：
+```c
+int main(int argc, char* argv[]) {
+   DIR* dp = opendir(".");
+   assert(dp != NULL);
+   struct dirent* d;
+   while((d = readdir(dp)) != NULL) {
+      printf("%d %s\n", (int)d->d_ino, d->d_name);
+   }
+   closedir(dp);
+   return 0;
+}
+```
+目录中每个条目的信息有：
+```c
+struct dirent {
+   char d_name[256]; // filename
+   ino_t d_ino;      // inode number
+   off_t d_off;      // offset to next dirent
+   unsigned short d_reclen;   //length of this record
+   unsigned char d_type;      // type of file
+}
+```
+
+## 删除目录
+`rmdir()`用于删除目录。
+
+## 硬链接
+`link()`系统调用有两个参数：
+* 一个旧路径
+* 一个新路径
+
+```c
+prompt> echo hello > file
+prompt> cat file
+hello
+prompt> ln file file2
+prompt> cat file2
+hello
+prompt> ls -i file file2
+67158084 file
+67158084 file2
+prompt>
+```
+
+link只是在要创建连接的目录中创建了另一个名称，并将其指向原有文件的相同inode号。该文件不以任何方式赋值。相反，其创建了两个人类可读的名称(file和file2)，都指向同一个文件。硬链接只是对同一个inode号创建了新的引用。
+
+* 创建一个文件时，实际上做了两件事：
+   * 要构建一个结构(inode)，它将跟踪几乎所有关于文件的信息，包括其大小、文件块在磁盘上的位置等等
+   * 将人类可读的名称链接到该文件，并将该链接放入目录中
+
+在创建文件的硬链接之后，在文件系统中，原有文件名file和新创建的文件名file2之间没有区别。实际上，它们都只是指向文件底层元数据的链接，可以在inode编号67158084中找到。
+
+* 系统调用`unlink()`用来删除文件。为什么叫unlink？
+   * 当文件系统取消链接文件时，它检查inode号中的引用计数(reference count)。该引用计数允许文件系统跟踪有多少不同的文件名已经链接到这个inode。调用unlink时，会删除人类可读的名称与给定inode号之间的“链接”，并减少引用计数。只有当引用计数达到零时，文件系统才会释放inode和相关数据块，从而真正“删除”该文件。
+   ```bash
+   prompt> echo hello > file
+   prompt> stat file
+   ... Inode: 67158084 Links: 1 ...
+   prompt> ln file file2
+   prompt> stat file
+   ... Inode: 67158084 Links: 2 ...
+   prompt> stat file2
+   ... Inode: 67158084 Links: 2 ...
+   prompt> ln file2 file3
+   prompt> stat file
+   ... Inode: 67158084 Links: 3 ...
+   prompt> rm file
+   prompt> stat file2
+   ... Inode: 67158084 Links: 2 ...
+   prompt> rm file2
+   prompt> stat file3
+   ... Inode: 67158084 Links: 1 ...
+   prompt> rm file3
+   ```
+
+## 符号链接 - 软链接
+硬链接的局限：
+* 你不能创建目录的硬链接，因为担心会在目录树中创建一个环
+* 你不能硬链接到其他磁盘分区中的文件，因为inode号在特定文件系统中时唯一的，而不是跨文件系统
+
+因此，人们创建了一种称为符号链接的新型链接。符号链接与硬链接的区别：
+* 符号链接本身实际上是一个不同类型的文件
+   * 我们已经讨论过常规文件、目录，而符号链接时第三种类型
+   ```bash
+   prompt> stat file2
+   ... symbolic link ...
+   prompt> ls -al
+   drwxr-x--- 2 remzi remzi 29 May 3 19:10 ./
+   drwxr-x--- 27 remzi remzi 4096 May 3 15:14 ../
+   -rw-r----- 1 remzi remzi 6 May 3 19:10 file
+   lrwxrwxrwx 1 remzi remzi 4 May 3 19:10 file2 -> file
+   ```
+* 删除原始文件
+   * 对于硬链接，只是减少了一个inode号的引用计数
+   * 对于软链接，会导致符号链接指向不再存在的路径名
+
+## 创建并挂载文件系统
+### 关键问题
+* 如何从许多底层文件系统组建完整的目录树？
+   * 通过mkfs工具，以一个设备(例如磁盘分区，例如/dev/sda1)，一种文件系统类型(例如ext3)作为输入，在该磁盘分区上写入一个空文件系统，从根目录开始。
+   * 再通过mount程序，以现有目录作为目标挂载点(mount point)，本质上是将新的文件系统粘贴到目录树的这个点上。
+
+例如，`prompt> mount -t ext3 /dev/sda1 /home/users`命令是将类型为ext3的文件系统分区/dev/sda1挂载到/home/users目录树上。
+
+运行mount命令，可遍历所有的挂载信息，例如：
+```bash
+/dev/sda1 on / type ext3 (rw)
+proc on /proc type proc (rw)
+sysfs on /sys type sysfs (rw)
+/dev/sda5 on /tmp type ext3 (rw)
+/dev/sda7 on /var/vice/cache type ext3 (rw)
+tmpfs on /dev/shm type tmpfs (rw)
+AFS on /afs type afs (rw)
+```
