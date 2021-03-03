@@ -43,3 +43,5 @@ main1
 main2
 test.txt
 *.log
+client
+server
