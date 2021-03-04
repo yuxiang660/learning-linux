@@ -1,3 +1,38 @@
+# 第0章 环境准备
+通过这一章，搭建此文的工作环境，目的是：
+* 在VMware的Ubuntu20上，基于Debug Mode的Bochs(2.6.11)，跑起来本书的第一个hello world演示程序。
+
+## 软件版本：
+* Ubuntu 20.04.1 LTS on VMware
+* Bochs x86 Emulator 2.6.11
+
+## 配置步骤
+假设已经安装好Ubuntu20，下面开始编译安装Bochs(2.6.11)。
+### 编译安装Bochs
+* 下载[bochs-2.6.11.tar.gz](https://sourceforge.net/projects/bochs/files/bochs/)
+* 解压并进入主目录: `cd ./bochs-2.6.11`
+* 配置工程，开启调试功能：`./configure --enable-debugger --enable-disasm`
+* 编译：`make`
+   * 如果出现以下错误：`x.cc:37:10: fatal error: X11/Xlib.h: No such file or directory`
+   * 安装libx11-dev: `sudo apt-get install libx11-dev`
+   * 重新编译：`make dist-clean`, `./configure --enable-debugger --enable-disasm`, `make`
+* 安装：`sudo make install`
+* 退出"bochs-2.6.11"目录，启动bochs: `cd ~`, `bochs`
+   * 出现bochs菜单选项
+   ![bochs](./pictures/bochs.png)
+* 选择“6. Begin simulation”，输入"c"继续，由于没有指定启动方式，会出现下图：
+![bochs2](./pictures/bochs2.png)
+* Continue后，得到下图：
+![bochs3](./pictures/bochs3.png)
+
+### 启动第一个image
+* 准备好image文件"a.img"和bochs配置文件“bochsrc”
+   * 文件的准备过程可参考后面的下一章节，这里直接拷贝到[hello_img](./code/hello_img)
+* 以配置文件[bochsrc](./code/hello_img/bochsrc)启动bochs：`cd ./code/hello_img`，`bochs -f ./bochsrc`
+   * 出现某些文件找不到的错误，请更新配置文件[bochsrc](./code/hello_img/bochsrc)
+* 选择“6. Begin simulation”，输入"c"继续后，出现"Hello, OS world!"界面：
+![hello_os](./pictures/hello_os.png)
+
 # 第1章 马上动手写一个最小的“操作系统”
 ## NASM语法
 * 方括号[]的使用
