@@ -37,15 +37,15 @@
 ### 通过VMware启动镜像
 * 利用VMware创建一个系统，系统类型选择other，并添加软驱floppy，软驱镜像选择上面生成的a.img，配置如下：
 ![vmware_hello](./pictures/vmware_hello.png)
-* 启动后出现期望界面：
-![vmware_hello2](./pictures/vmware_hello2.png)
+* 启动后出现期望界面
+   ![vmware_hello2](./pictures/vmware_hello2.png)
 
 ### 通过Qemu启动镜像
 * 安装Qemu：`sudo apt update && sudo apt-get install qemu-system`
 * 启动镜像：`qemu-system-i386 -fda ./a.img`
    * "-fda file"的意思是：“use 'file' as floppy disk 0/1 image”
 * 出现期望的启动界面
-![qemu](./pictures/qemu.png)
+   ![qemu](./pictures/qemu.png)
 
 # 第1章 马上动手写一个最小的“操作系统”
 ## NASM语法
