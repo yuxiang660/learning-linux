@@ -32,6 +32,7 @@
    * 出现某些文件找不到的错误，请更新配置文件[bochsrc](./code/hello_img/bochsrc)
 * 选择“6. Begin simulation”，输入"c"继续后，出现"Hello, OS world!"界面：
 ![hello_os](./pictures/hello_os.png)
+   * 如果出现错误：`>>PANIC<< bochs: cannot connect to X server`，请选择支持"X server"的终端，如：“MobaXterm”，或者直接登录ubuntu的图形界面操作
 
 # 第1章 马上动手写一个最小的“操作系统”
 ## NASM语法
