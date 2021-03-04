@@ -9,5 +9,9 @@ dis: bin
 img: bin
 	dd if=boot.bin of=a.img bs=512 count=1 conv=notrunc
 
+# If bochs enables debug mode, enter "c" after running, otherwise it is always black.
+run:
+	bochs -f ./bochsrc
+
 clean:
 	@rm -rf a.img *.bin
