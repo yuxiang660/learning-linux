@@ -64,5 +64,43 @@
       * `times 510-($-$$) db 0`表示将0这个字节重复510-($-$$)遍，也就是将剩下的空间一直填0，直到510字节。
 
 ## 生成hello镜像
-
-
+所有命令都在[Makefile](./code/hello_boot/Makefile)中:
+* `make bin`: 汇编[boot.asm](./code/hello_boot/boot.asm)，生成二进制文件"boot.bin"
+   * 打开二进制文件"boot.bin"，总共512(0 ~ 0x1ff)字节，最后两个字节内容是“55 AA”，其他内容是：<br>
+   ![boot_bin](./pictures/boot_bin.png)
+* `make dis`：反汇编二进制文件“boot.bin”
+   ```bash
+   # https://stackoverflow.com/questions/14530461/first-os-a-few-assembly-line-explanations
+   # nasm boot.asm -o boot.bin
+   # ndisasm -o 0x7c00 boot.bin, 起始地址是0x7c00: "org 07c00h"
+   00007C00  8CC8              mov ax,cs
+   00007C02  8ED8              mov ds,ax
+   00007C04  8EC0              mov es,ax
+   00007C06  E80200            call 0x7c0b         # 0x7c0b是DispStr的地址
+   00007C09  EBFE              jmp short 0x7c09
+   00007C0B  B81E7C            mov ax,0x7c1e       # 0x7c1e是字符串“Hello, OS world!”的起始地址
+   00007C0E  89C5              mov bp,ax           # ES:BP -> string to write
+   00007C10  B91000            mov cx,0x10         # CX = number of characters in string，设置字符串长度0x10
+   00007C13  B80113            mov ax,0x1301       # AH = 0x13 表示写字符串，AL = 0x01 表示写模式1
+   00007C16  BB0C00            mov bx,0xc          # BH = 0x00 表示page number, BL = 0x0c 表示字符串颜色
+   00007C19  B200              mov dl,0x0          # DH,DL = row,column at which to start writing.
+   00007C1B  CD10              int 0x10
+   00007C1D  C3                ret
+   00007C1E  48                dec ax              # H的ASCII码：0x48
+   00007C1F  656C              gs insb             # el
+   00007C21  6C                insb                # l
+   00007C22  6F                outsw               # o
+   00007C23  2C20              sub al,0x20         # , 
+   00007C25  4F                dec di              # O
+   00007C26  53                push bx             # S
+   00007C27  20776F            and [bx+0x6f],dh    #  wo
+   00007C2A  726C              jc 0x7c98           # rl
+   00007C2C  642100            and [fs:bx+si],ax   # d!
+   00007C2F  0000              add [bx+si],al
+   ...
+   00007DFD  0055AA            add [di-0x56],dl
+   ```
+* `make img`：生成镜像文件“a.img”
+   * “a.img”和“boot.bin”的内容是一样的
+* `make bochs`：bochs启动hello界面
+* `make qemu`：qemu启动hello界面
