@@ -34,6 +34,19 @@
 ![hello_os](./pictures/hello_os.png)
    * 如果出现错误：`>>PANIC<< bochs: cannot connect to X server`，请选择支持"X server"的终端，如：“MobaXterm”，或者直接登录ubuntu的图形界面操作
 
+### 通过VMware启动镜像
+* 利用VMware创建一个系统，系统类型选择other，并添加软驱floppy，软驱镜像选择上面生成的a.img，配置如下：
+![vmware_hello](./pictures/vmware_hello.png)
+* 启动后出现期望界面：
+![vmware_hello2](./pictures/vmware_hello2.png)
+
+### 通过Qemu启动镜像
+* 安装Qemu：`sudo apt update && sudo apt-get install qemu-system`
+* 启动镜像：`qemu-system-i386 -fda ./a.img`
+   * "-fda file"的意思是：“use 'file' as floppy disk 0/1 image”
+* 出现期望的启动界面
+![qemu](./pictures/qemu.png)
+
 # 第1章 马上动手写一个最小的“操作系统”
 ## NASM语法
 * 方括号[]的使用
@@ -49,3 +62,7 @@
    * `$`表示当前行被汇编后的地址
    * `$$`表示一个节(section)的开始地址，例子[boot.asm](./code/hello_boot/boot.asm)只有一个节，所以值是0x7c00。
       * `times 510-($-$$) db 0`表示将0这个字节重复510-($-$$)遍，也就是将剩下的空间一直填0，直到510字节。
+
+## 生成hello镜像
+
+

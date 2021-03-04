@@ -13,5 +13,9 @@ img: bin
 run:
 	bochs -f ./bochsrc
 
+# -fda/-fdb file  use 'file' as floppy disk 0/1 image
+run2:
+	qemu-system-i386 -fda ./a.img
+
 clean:
 	@rm -rf a.img *.bin
