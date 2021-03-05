@@ -79,6 +79,71 @@ AX、BX、CX、DX这四个16位寄存器称为通用寄存器，用于存储一�
 内存没有被划分成一个一个段，段的划分来自于CPU。8086CPU在访问内存时要由相关部件提供内存单元的段地址和偏移地址。段地址在8086CPU的段寄存器中存放，总共有4个段寄存器：CS、DS、SS、ES
 
 ## CS和IP
-CS和IP寄存器指示了CPU当前要读取指令的地址
+CS和IP寄存器指示了CPU当前要读取指令的地址。CS为代码段寄存器，IP为指令指针寄存器。
+
+![8086_csip](./pictures/8086_csip.png)
+
+上图的过程如下：
+* 8086CPU当前状态：CS中的内容为2000H，IP中的内容为000H；
+* 内存20000H~20009H单元存放着可执行的机器码；
+   * 对应着4条汇编指令
+* 加法器运算段地址CS和偏移IP，得到物理地址20000H<br>
+   ![8086_csip1](./pictures/8086_csip1.png)
+* 控制电路将物理地址20000H送上地址总线<br>
+   ![8086_csip2](./pictures/8086_csip2.png)
+* 从内存20000H单元开始存放的机器指令B8 23 01通过数据总线被送入CPU<br>
+   ![8086_csip3](./pictures/8086_csip3.png)
+* 输入输出控制电路将机器指令B8 23 01送入指令缓冲器<br>
+   ![8086_csip4](./pictures/8086_csip4.png)
+* IP中的值自动增加<br>
+   ![8086_csip5](./pictures/8086_csip5.png)
+* 执行控制器执行指令B8 23 01(即 mov ax,0123H)<br>
+   ![8086_csip6](./pictures/8086_csip6.png)
+* 指令B8 23 01被执行后AX中的内容变为0123H
+   ![8086_csip7](./pictures/8086_csip7.png)
+
+上面的过程，大致是：
+* 从CS:IP指向的内存单元读取指令，读取的指令进入指令缓冲器；
+* IP = IP + "所读取指令的长度"，从而指向下一条指令；
+* 执行指令。转到第一步，重复这个过程。
+
+### CPU刚上电时，CS和IP的值是什么？
+在8086CPU加电启动或复位后，CS=FFFFH，IP=000H，即在刚启动时，CPU从内存FFFF0H单元中读取指令执行，一般这条指令会启动BIOS程序。计算机的启动过程可参考：[计算机是如何启动的？](https://www.ruanyifeng.com/blog/2013/02/booting.html)
+
+## 修改CS、IP的指令
+8086CPU大部分寄存器的值可以用mov指令来改变，但是mov指令不能用于设置CS、IP的值，需要用jmp指令。
+
+* 若想同时修改CS、IP的内容，可用`jmp 段地址：偏移地址`完成，如：
+   ```nasm
+   jmp 2AE3:3  ;执行后，CS=2AE3H，IP=0003H，CPU将从2AE33H处读取指令
+   jmp 3:0B16  ;执行后，CS=0003H，IP=0B16H，CPU将从00B46H处读取指令
+   ```
+
+* 若仅向修改IP的内容，可用`jmp 某一合法寄存器`完成，如：
+   ```nasm
+   jmp ax      ;执行前：ax=1000H, CS=2000H, IP=0003H. 执行后：ax=1000H, CS=2000H, IP=1000H
+   ```
+
+# 第3章 寄存器(内存访问)
+
+## DS和[address]
+0886CPU中有一个DS寄存器，通常用来存放要访问数据的段地址。比如我们要读取10000H单元的内容，可用如下程序段进行：
+```nasm
+mov bx,1000H   ;将数据直接送入寄存器
+mov ds,bx      ;将一个寄存器中的内容送入另一个寄存器
+mov al,[0]     ;将某偏移的内存单元的值送入寄存器
+```
+上面的3条指令将10000H中的数据读到al中，**注意CPU不支持直接把数据直接送入段寄存器**，因此不能直接写：`mov ds,1000H`
+
+## mov、add、sub指令
+### Debug环境搭建
+“debug.exe” 是早期windows版本中的汇编调试工具，我们可以用这个工具测试一些汇编语句。
+* 如何安装debug工具？
+   * 由于win10中不含有此工具，推荐安装win98虚拟机，可参考[网页](https://dellwindowsreinstallationguide.com/windows98se-vmwareplayer/)
+* debug工具有哪些常用命令？
+   * 可通过？查看，或参考[文档](https://thestarman.pcministry.com/asm/debug/debug2.htm#T)<br>
+   ![debug_commands](./pictures/debug_commands.png)
+
+### 常见的mov指令
 
 

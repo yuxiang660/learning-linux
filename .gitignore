@@ -49,3 +49,6 @@ server
 # oranges
 *.bin
 *.img
+
+# assembly
+main*
