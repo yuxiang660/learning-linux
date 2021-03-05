@@ -13,6 +13,9 @@ img: bin
 bochs:
 	bochs -f ./bochsrc
 
+bochs_mini:
+	bochs -f ./bochsrc_mini
+
 # -fda/-fdb file  use 'file' as floppy disk 0/1 image
 qemu:
 	qemu-system-i386 -fda ./a.img
