@@ -185,3 +185,21 @@ mov al,[0]     ;将某偏移的内存单元的值送入寄存器
 * 常见的add和sub指令有：<br>
 ![mov_add](./pictures/mov_add.png)
 
+## CPU提供的栈机制
+* PUSH - 入栈
+* POP - 出栈
+
+![8086_stack](./pictures/8086_stack.png)
+
+### CPU如何知道栈顶的位置？
+8086CPU有两个寄存器，任意时刻，SS:SP指向栈顶元素。
+* 段寄存器SS - 存放栈顶的段地址
+* 寄存器SP - 存放偏移地址
+
+下面是8086CPU对push指令的执行过程：<br>
+![8086_push](./pictures/8086_push.png)
+
+下面是8086CPU对pop指令的执行过程：<br>
+![8086_pop](./pictures/8086_pop.png)
+
+
