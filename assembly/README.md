@@ -180,6 +180,8 @@ mov al,[0]     ;将某偏移的内存单元的值送入寄存器
 
 * mov指令
    * mov是把值转移到存储单元，除了段寄存器不能直接mov数据以外(需要通过通用寄存器周转)，其他大部分存储单元都可以通过mov把值转移到其内部。
-   * 常见的mov指令有：<br>
-   ![mov_ins](./pictures/mov_ins.png)
+* 常见的mov指令有：<br>
+![mov_ins](./pictures/mov_ins.png)
+* 常见的add和sub指令有：<br>
+![mov_add](./pictures/mov_add.png)
 
