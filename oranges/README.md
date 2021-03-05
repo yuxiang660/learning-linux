@@ -104,3 +104,25 @@
    * “a.img”和“boot.bin”的内容是一样的
 * `make bochs`：bochs启动hello界面
 * `make qemu`：qemu启动hello界面
+
+## 用Bochs调试操作系统
+* Bochs官方调试手册：http://bochs.sourceforge.net/doc/docbook/user/internal-debugger.html
+* 常用命令
+   * 断点：`b 0x7c00`
+   * 继续执行：`c`
+   * 查看CPU信息：`info cpu`
+   * 查看寄存器：`r`
+   * 查看后面Memory的内容(以byte方式，十六进制形式，打印后面30个bytes的memory)：`x /30bx`
+   * 单步运行：`s`
+   * 开启寄存器跟踪：`trace-reg on`
+* Bochs调试命令表:<br>
+![bochs_debug4](./pictures/bochs_debug4.png)
+
+### Bochs调试例子
+* `r`<br>
+![bochs_debug1](./pictures/bochs_debug1.png)
+* `x /30bx 0x7c00`<br>
+![bochs_debug2](./pictures/bochs_debug2.png)
+   * 可以发现上图的内容和[a.img](./code/hello_img/a.img)是一致的
+* `trace-reg on`<br>
+![bochs_debug3](./pictures/bochs_debug3.png)
