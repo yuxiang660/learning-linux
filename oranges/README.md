@@ -1,4 +1,4 @@
-# 第0章 环境准备
+# 第1章 环境准备
 通过这一章，搭建此文的工作环境，目的是：
 * 在VMware的Ubuntu20上，基于Debug Mode的Bochs(2.6.11)，跑起来本书的第一个hello world演示程序。
 
@@ -47,7 +47,7 @@
 * 出现期望的启动界面<br>
 ![qemu](./pictures/qemu.png)
 
-# 第1章 马上动手写一个最小的“操作系统”
+# 第2章 马上动手写一个最小的“操作系统”
 ## NASM语法
 * 方括号[]的使用
    * 在NASM中，任何不被方括号[]括起来的标签或变量名都被认为是地址，例如：
@@ -126,3 +126,8 @@
    * 可以发现上图的内容和[a.img](./code/hello_img/a.img)是一致的
 * `trace-reg on`<br>
 ![bochs_debug3](./pictures/bochs_debug3.png)
+
+# 第3章 保护模式(Protect Mode)
+
+## 认识保护模式
+
