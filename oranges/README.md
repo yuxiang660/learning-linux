@@ -1,3 +1,4 @@
+# 于渊《ORANGE'S 一个操作系统的实现》读书笔记
 # 第1章 环境准备
 通过这一章，搭建此文的工作环境，目的是：
 * 在VMware的Ubuntu20上，基于Debug Mode的Bochs(2.6.11)，跑起来本书的第一个hello world演示程序。
