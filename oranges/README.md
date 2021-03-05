@@ -84,7 +84,7 @@
    00007C13  B80113            mov ax,0x1301       # AH = 0x13 表示写字符串，AL = 0x01 表示写模式1
    00007C16  BB0C00            mov bx,0xc          # BH = 0x00 表示page number, BL = 0x0c 表示字符串颜色
    00007C19  B200              mov dl,0x0          # DH,DL = row,column at which to start writing.
-   00007C1B  CD10              int 0x10
+   00007C1B  CD10              int 0x10            # http://www.ctyme.com/intr/int-10.htm
    00007C1D  C3                ret
    00007C1E  48                dec ax              # H的ASCII码：0x48
    00007C1F  656C              gs insb             # el
