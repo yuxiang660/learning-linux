@@ -1,3 +1,42 @@
+# 第0章 汇编环境搭建
+## Windows98下的Debug环境搭建
+“debug”工具是早期windows版本中的汇编调试工具，我们可以用这个工具测试一些汇编语句。
+* 如何安装debug工具？
+   * 由于win10中不含有此工具，推荐安装win98虚拟机，可参考[网页](https://dellwindowsreinstallationguide.com/windows98se-vmwareplayer/)
+* debug工具有哪些常用命令？
+   * 可通过？查看，或参考[文档](https://thestarman.pcministry.com/asm/debug/debug2.htm#T)<br>
+   ![debug_commands](./pictures/debug_commands.png)
+### 16位hello例子
+* 在debug工具中，输入hello汇编代码到xxxx:0100地址，并通过`g =100`运行，结果如下：<br>
+![debug_hello](./pictures/debug_hello.png)
+* 通过`d 100 130`命令dump地址0x100的内存，可以看出内存中的字符就是上面汇编代码输入的字符，结果如下：<br>
+![debug_mem](./pictures/debug_mem.png)
+* 通过`u 126 12F`命令反汇编地址0x126内存中的二进制代码，和上面的汇编代码也是一致的，结果如下：<br>
+![debug_dis](./pictures/debug_dis.png)
+
+## Ubuntu20搭建汇编环境
+Linux下编译x86的汇编代码需要安装nasm：`sudo apt install nasm`，下面介绍如何在Linux64位系统下编译运行不同位数的汇编代码，可参考对应的[Makefile](./code/hello/Makefile)。
+
+### 64位hello例子
+* [代码](./code/hello/hello.asm)
+* 编译方式：`nasm -felf64 hello.asm && ld hello.o -o main`
+* 运行方式：可直接在terminal中运行，`./main`
+
+### 32位hello例子
+* [代码](./code/hello/hello_32.asm)
+* 编译方式：`nasm -felf32 hello_32.asm && ld -m elf_i386 -s hello_32.o -o main_32`
+* 运行方式：可直接在terminal中运行，`./main_32`
+* 运行方式：可直接在terminal中运行，`./main_32`
+
+### 16位hello例子
+* [代码](./code/hello/hello_16.asm)
+* 编译方式：`nasm -f bin -o main.com hello_16.asm`
+* 运行方式
+   * 由于编译的时候选择了`-f bin`，所以编译出的是bin文件，需要在dos下运行
+   * Linux下可安装dosbox工具运行bin文件，具体参考[网页](https://forum.nasm.us/index.php?topic=1297.0)
+   * 在dosbox下运行的结果如下:<br>
+   ![dosbox_hello](./pictures/dosbox_hello.png)
+
 # 第1章 基础知识
 ## 汇编语言的产生
 ![assembly](./pictures/assembly.png)
@@ -136,14 +175,6 @@ mov al,[0]     ;将某偏移的内存单元的值送入寄存器
 上面的3条指令将10000H中的数据读到al中，**注意CPU不支持直接把数据直接送入段寄存器**，因此不能直接写：`mov ds,1000H`
 
 ## mov、add、sub指令
-### Debug环境搭建
-“debug.exe” 是早期windows版本中的汇编调试工具，我们可以用这个工具测试一些汇编语句。
-* 如何安装debug工具？
-   * 由于win10中不含有此工具，推荐安装win98虚拟机，可参考[网页](https://dellwindowsreinstallationguide.com/windows98se-vmwareplayer/)
-* debug工具有哪些常用命令？
-   * 可通过？查看，或参考[文档](https://thestarman.pcministry.com/asm/debug/debug2.htm#T)<br>
-   ![debug_commands](./pictures/debug_commands.png)
-
 ### 常见的mov指令
 
 

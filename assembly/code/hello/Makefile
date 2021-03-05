@@ -13,8 +13,8 @@ hello_32:
 # dos> c:
 # dos> cd "main.com folder"
 # dos> main
-dos:
-	nasm -f bin -o main.com hello_dos.asm
+hello_16:
+	nasm -f bin -o main.com hello_16.asm
 
 clean:
 	@rm -rf main_32 main.com main *.o
