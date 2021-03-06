@@ -36,8 +36,29 @@ Linux下编译x86的汇编代码需要安装nasm：`sudo apt install nasm`，下
 * 运行方式
    * 由于编译的时候选择了`-f bin`，所以编译出的是bin文件，需要在dos下运行
    * Linux下可安装dosbox工具运行bin文件，具体参考[网页](https://forum.nasm.us/index.php?topic=1297.0)
+   * 可修改dosbox的配置，自动挂载linux的文件夹，实现文件共享
+      * 配置文件在：`~/.dosbox/dosbox-<version>.conf`
+      * 在最下方的`autoexec`中输入挂载命令，会自动执行:
+      ```bash
+      [autoexec]
+      # Lines in this section will be run at startup.
+      # You can put your MOUNT lines here.
+      mount c /home/ben
+      c:
+      ```
    * 在dosbox下运行的结果如下:<br>
    ![dosbox_hello](./pictures/dosbox_hello.png)
+
+## 通过MASM编译x86汇编代码
+MASM是早期windows下的x86汇编代码编译器，因此需要在win98或者dosbox中执行。MASM的安装文件在[8086.rar](./code/hello_masm/8086.rar)，解压后即可运行。可将文件解压后，将文件夹路径加入PATH，这样全局就都可以用`masm`和`link`命令了。
+### 通过MASM工具编译执行最基本的汇编代码
+* [代码](./code/hello_masm/hello.asm)
+   * 配置了一些寄存器后，直接通过`int 21h`退出
+* 编译代码：`masm hello.asm`
+* 连接代码：`link hello.obj`
+* 执行代码：`hello.exe`
+* 调试代码：`debug hello.exe`
+
 
 # 第1章 基础知识
 ## 汇编语言的产生

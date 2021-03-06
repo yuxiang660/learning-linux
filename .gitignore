@@ -52,3 +52,7 @@ server
 
 # assembly
 main*
+*.exe
+*.EXE
+*.obj
+*.OBJ
