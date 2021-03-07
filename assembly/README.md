@@ -70,6 +70,18 @@ MASM是早期windows下的x86汇编代码编译器，因此需要在win98或者d
 
 16位x86寄存器：<br>
 ![registers_16bit](./pictures/registers_16bit.png)
+* AX寄存器
+   * 累加器Accumulator，与它有关的指令还会做指令长度上的优化
+* BX寄存器
+   * 基址寄存器Base Address，提供偏移地址
+* CX寄存器
+   * 计数器Counter
+* DX寄存器
+   * 数据寄存器Data，除了作为通用寄存器使用外，还专门用于和外设之间进行数据传送
+* SI寄存器
+   * 源索引寄存器Source Index
+* DI寄存器
+   * 目标索引寄存器Destination Index，用于数据传送操作
 
 32位x86寄存器：<br>
 ![registers_32bit](./pictures/registers_32bit.png)

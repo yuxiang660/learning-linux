@@ -41,7 +41,7 @@
 一段精心编写的主引导扇区代码将检测用来启动计算机的操作系统，并计算出它所在的硬盘位置。然后，它把操作系统的自举代码加载到内存，也用jmp指令跳转到那里继续执行，直到操作系统完全启动。
 
 ## 在屏幕上显示文字
-[例子print_mbr](./code/mbr/print_mbr.asm)是在屏幕上打印“Label offset:”加上一个数字，这个数字是“number”的汇编地址。
+[例子print_mbr](./code/mbr/mbr.asm)是在屏幕上打印“Label offset:”加上一个数字，这个数字是“number”的汇编地址。
 ### 显卡和显存
 显卡的工作是周期性地从显存中提取比特位，并把它们按顺序显示在屏幕上<br>
 ![video_mem](./pictures/video_mem.png)
@@ -58,7 +58,7 @@
 ### 初始化段寄存器
 考虑到文本模式下显存的起始物理地址是0xB800，所以初始CS段寄存器为0xB800，偏移地址从0x0000延伸到0xFFFF。
 访问内存可以使用段寄存器DS，也可以使用ES(extra segment)。
-为了往显存中写数据，将ES寄存器设置为0xB800，可参考[print_mbr.asm](./code/mbr/print_mbr.asm)最开始两行
+为了往显存中写数据，将ES寄存器设置为0xB800，可参考[mbr.asm](./code/mbr/mbr.asm)最开始两行
 ### 显存的访问和ASCII代码
 屏幕上的每个字符对应着显存中的两个连续字节，前一个是字符的ASCII代码，后面是字符的显示属性，包括字符颜色和底色。如下图，字符"H"的ASCII代码是0x48，其显示属性是0x07；字符“e”的ASCII代码是0x65，其显示属性是0x07<br>
 ![video_code](./pictures/video_code.png)
@@ -91,7 +91,7 @@ mov byte [es:0x03],0x07
    ```
    ```
 ### 如何显示十进制数字
-标号`number`位于[源程序](./code/mbr/print_mbr.asm)第100行。由于标号可用用来代表指令的汇编地址，所以可用通过`mov ax,number`将汇编地址传递到寄存器AX。
+标号`number`位于[源程序](./code/mbr/mbr.asm)第100行。由于标号可用用来代表指令的汇编地址，所以可用通过`mov ax,number`将汇编地址传递到寄存器AX。
 传送到寄存器AX的值是在源程序编译时确定的，在编译阶段，编译器会将标号number转换成立即数。编译后，number的汇编地址是0x012E，因此，这条上面的语句其实就是`mov ax,0x012E`。
 * 在程序中声明并初始化数据，四种数据声明伪指令，数据不能超过伪指令所指示的大小
    * DB指令来声明字节Byte
@@ -115,3 +115,102 @@ mov byte [es:0x03],0x07
 ### 加载和运行主引导扇区代码
 通过[Makefile](./code/mbr/Makefile)中的命令，可用生成启动镜像a.img，可用于bochs或者qemu虚拟机启动。`make && make qemu`运行结果如下：<br>
 ![mbr_result](./pictures/mbr_result.png)
+
+# 第6章 相同的功能，不同的代码
+本章介绍三种不同的程序流程控制方法(参见[例子](./code/mbr2))，实现上一章(参见[例子](./code/mbr))一样的程序功能。
+
+## 跳过非指令的数据区
+```nasm
+6:   jmp near start
+7:
+8:   mytext db 'L',0x07,'a',0x07,'b',0x07,'e',0x07,'l',0x07,' ',0x07,'o',0x07,\
+9:            'f',0x07,'f',0x07,'s',0x07,'e',0x07,'t',0x07,':',0x07
+10:  number db 0,0,0,0,0
+```
+* 跳转指令`jmp near start`
+   * 源程序第8行和第10行声明了非指令的数据，通过第6行的跳转指令，越过这些不可执行的数据，转移到后面的代码出执行。
+* 在数据声明中使用字面值
+   * 源程序第8行和第9行，将字面值用数据声明，便于修改
+
+## 段之间的批量数据传送
+两个指令可用于把数据从内存中的一个地方批量地传动到另一个地方。原始数据串的地址由DS:SI指定，要传送的目的地址由ES:DI指定，传送的字节数由CX指定。
+* `movsb` - 以字节为单位
+* `movsw` - 以字为单位
+
+## 使用循环分解数位
+循环依赖的使循环指令loop，可参见程序的第37行，处理器在执行loop指令时会做两件事：
+* 将寄存器CX的内容减一
+* 如果CX的内容不为零，转到指定的位置处执行，否则顺序执行后面的指令
+
+对比存储数位的两种不同形式：
+* 通过BX寄存器，相对地址存储
+```nasm
+  digit: 
+         xor dx,dx
+         div si
+         mov [bx],dl                   ;保存数位
+         inc bx 
+         loop digit
+```
+* 以绝对地址存储，需要加上数据段地址0x7c00
+   * 通过反汇编可看出，`mov [0x7c00+number+0x01],dl`是内存的绝对地址
+```nasm
+         ;求个位上的数字
+         mov dx,0
+         div bx                        ;被除数是dx:ax，除数是bx，执行后，余数存到dx中，商存到ax中
+         mov [0x7c00+number+0x00],dl   ;保存个位上的数字
+
+         ;求十位上的数字
+         xor dx,dx
+         div bx
+         mov [0x7c00+number+0x01],dl   ;保存十位上的数字
+```
+
+## 数位的显示
+```nasm
+   show:
+         mov al,[bx+si]
+         add al,0x30
+         mov ah,0x04
+         mov [es:di],ax
+         add di,2
+         dec si
+         jns show
+```
+`jns show`的意思是，如果未设置符号位，则转移到“show”所在的位置处执行。标志寄存器里有符号位SF，dec指令会影响到该位。如果计算结果的最高位不是0，则SF置1。因此，`dec si`指令在SI的内容变负的时候，循环退出。
+
+## NASM编译器的$和$$标记
+* $是当前行的汇编地址
+* $$是当前汇编节的其实汇编地址，如果没定义节或段，就默认自成一个汇编段，起始汇编地址是0
+程序第53行`jmp near $`是一个无限循环，相当于`infi: jmp near infi`。
+
+## 运行结果
+![qemu_result2](./pictures/qemu_result2.png)
+
+## 8086寄存器类型
+![registers_16bit](./pictures/registers_16bit.png)
+* AX寄存器
+   * 累加器Accumulator，与它有关的指令还会做指令长度上的优化
+* BX寄存器
+   * 基址寄存器Base Address，提供偏移地址
+* CX寄存器
+   * 计数器Counter
+* DX寄存器
+   * 数据寄存器Data，除了作为通用寄存器使用外，还专门用于和外设之间进行数据传送
+* SI寄存器
+   * 源索引寄存器Source Index
+* DI寄存器
+   * 目标索引寄存器Destination Index，用于数据传送操作
+
+## 8086标志位
+* 符号标志位SF - Sign Flag
+* 奇偶标志位PF
+   * 如果运算结果低8位中，由偶数个为1的比特，则PF=1
+* 进位标志位CF
+   * 如果最高位由向前进位或借位的情况发生，则CF=1
+* 溢出标志OF
+   * 如果结果超出了目标操作数所能容纳的范围，OF=1
+### 现有指令对标志位的影响
+![ins_flag](./pictures/ins_flag.png)
+### 条件转移指令
+![jmp](./pictures/jmp.png)
