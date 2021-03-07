@@ -187,6 +187,7 @@ mov byte [es:0x03],0x07
 ## 运行结果
 ![qemu_result2](./pictures/qemu_result2.png)
 
+# 第7章 8086处理器
 ## 8086寄存器类型
 ![registers_16bit](./pictures/registers_16bit.png)
 * AX寄存器
@@ -214,3 +215,33 @@ mov byte [es:0x03],0x07
 ![ins_flag](./pictures/ins_flag.png)
 ### 条件转移指令
 ![jmp](./pictures/jmp.png)
+
+## 8086寻址方式
+
+8086有多种寻址方式：
+* 寄存器寻址
+   * 指令执行时，操作的数位于寄存器中
+   * `mov ax,cx`，`inc dx`
+* 立即寻址
+   * 指令的操作数时一个立即数
+   * `add bx,0xf000`，`mov dx,label_a`
+* 内存寻址
+   * 直接寻址
+      * 操作数是一个偏移地址，而且给出了该偏移地址的具体数值
+      * `mov ax,[0x5c0f]` - 处理器将数据段寄存器DS的内容左移4位，加上0x5c0f，形成20位物理地址
+      * `add word [0x0230],0x5000`
+      * `xor byte [es:label_b],0x05`
+   * 基址寻址
+      * 指令的地址部分使用基址寄存器BX或BP来提供偏移地址
+      * `buffer dw 0x20,0x100,0x0f,0x300,0xff00`
+      * `mov [bx],dx` - 目的操作数采用了基址寻址，处理器将数据段寄存器DS的内容左移4位，加上基址寄存器BX中的内容
+      * `add byte [bx],0x55`
+      * `mov ax,[bp]` - 处理器将栈段寄存器SS的内容左移4位，加上寄存器BP的内容，形成20位的物理地址
+   * 变址寻址
+      * 使用变址寄存器SI和DI
+      * `mov [si],dx` - 处理器将数据段寄存器DS的内容左移4位，加上变址寄存器SI中的内容
+      * `and byte [di+label_a],0x80`
+   * 基址变址寻址
+      * 使用基址变址的操作数可用使用一个基址寄存器(BX或者BP)，外加一个变址寄存器(SI或者DI)
+      * `mov ax,[bx+si]` - 处理器把数据段寄存器DS的内容左移4位，加上基址寄存器BX的内容，再加上变址寄存器SI的内容，通过形成了20位的物理地址
+      * `add word [bx+di],0x3000`
