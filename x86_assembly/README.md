@@ -341,6 +341,9 @@ stack_segment   dd section.stack.start  ;[0x1c]
 * 保持ES不变，指向header段，用于从header段中找到其他段的段地址
 * 时刻注意代码段寄存器CS的值，如果要切换代码段，要注意改变CS的值
 
+将加载器二进制文件mbr.bin写入VHD硬盘的扇区0，将用户程序二进制文件program.bin写入VHD硬盘的扇区100，运行虚拟机可得到以下输出：<br>
+![load_results](./pictures/load_results.png)
+
 ## I/O端口和端口访问
 不可能将所有的I/O接口直接和处理器相连，设备那么多，还有些设备现在没有发明出来，将来一定会有。你怎么办？即如何扩展？
 * 采用总线技术，I/O设备和总线打交道，总线再和处理器打交道，增加一层抽象
