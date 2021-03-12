@@ -772,14 +772,6 @@ mov [mem4],eax
    * TI=1时，表示描述符在LDT中
 * RPL是请求特权级
 
-下面以代码[protected_mode_mbr](./code/protected_mod_mbr/mbr.asm)中的`flush`为例子，介绍32位的内存访问过程：
-* 通过段选择子选择段
-   * `00000000000_10_000B`表示从GDT中选择#2号段描述符，特权级别0，因此此段描述符高速缓存器的加载过程如下：<br>
-   ![select_from_gdt](./pictures/select_from_gdt.png)
-   * 从段描述符高速缓存器中可读取段基地址，结合段内偏移，就可以访问到真正的内存位置
-      * `mov byte [0x00], 'P'`的内存访问过程如下：
-      ![mem_access_32](./pictures/mem_access_32.png)
-
 如何从实模式跳转到保护模式？
 * `jmp dword 0x0008:flush`这句语句解决了两个问题：
    * 保护模式下，段选择器里的内容是描述符选择子，需要尽快刷新CS等段寄存器的内容，包括它们的段选择器和描述符高速缓存器
@@ -790,3 +782,21 @@ mov [mem4],eax
    * 指令中给出的32位偏移量被传送到指令指针寄存器EIP
    * 保护模式下处理器取指令的过程如下：<br>
    ![fetch_inst_32](./pictures/fetch_inst_32.png)
+
+如何在保护模式下访问内存？
+* 下面以代码[protected_mode_mbr](./code/protected_mod_mbr/mbr.asm)中的`flush`为例子，介绍32位的内存访问过程，通过段选择子选择段：
+   * `00000000000_10_000B`表示从GDT中选择#2号段描述符，特权级别0，因此此段描述符高速缓存器的加载过程如下：<br>
+   ![select_from_gdt](./pictures/select_from_gdt.png)
+   * 从段描述符高速缓存器中可读取段基地址，结合段内偏移，就可以访问到真正的内存位置
+      * `mov byte [0x00], 'P'`的内存访问过程如下：
+      ![mem_access_32](./pictures/mem_access_32.png)
+
+如何初始化保护模式下的栈？
+
+![stack_pmode](./pictures/stack_pmode.png)
+
+* 上图时例子中栈初始化完后的布局
+   * GDT的栈区中，线性基地址为0x00000000，段界限为0x07A00
+   * 以粒度值是1字节为例，只要栈顶ESP的值只要大于0x0007A00就是合法的
+
+
