@@ -962,4 +962,21 @@ LDT是针对每个任务(用户进程)，和GDT一样，最大也是64KB，可�
 * 使TR和LDTR寄存器指向这个任务
 * 假装从调用门返回
 
+# 分页机制和动态页面分配
 
+## 分段机制
+![segment_mem](./pictures/segment_mem.png)
+
+## 分页机制
+![page_mem](./pictures/page_mem.png)
+![pages_mem](./pictures/pages_mem.png)
+
+### 分页的硬件支持
+![cr3](./pictures/cr3.png)
+
+在处理器内部，有一个控制寄存器CR3，存放着当前任务页目录的物理地址，故又叫做页目录基址寄存器(Page Directory Base Register, PDBR)
+
+假如某个任务加载后，操作系统根据它的实际情况，在其4GB虚拟地址空间里创建了一个段，段的起始地址为0x00800000，段界限值为0x5000，字节粒度。当该任务执行时，段寄存器DS指向该段。
+
+对于下面这条指令：`mov edx,[0x1050]`，段部件会输出线性地址0x00801050。在没有开启分页机制时，这就时要访问的物理内存，如果开启了分页机制，这就是一个虚拟地址，要经过页部件的转换，才能得到物理地址，如下图：<br>
+![page_convert](./pictures/page_convert.png)
