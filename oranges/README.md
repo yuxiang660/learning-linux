@@ -132,5 +132,48 @@
 
 ## 认识保护模式
 
+### GDT(Global Descriptor Table)
+![descriptor](./pictures/descriptor.png)
+
+GDT的作用是用来提供段式存储机制，这种机制式通过段寄存器和GDT中的描述符共同提供的。上图是代码段和数据段的描述符格式，此外还有系统段描述符和门描述符。
+
+### 如何将cs、ds等段寄存器和GDT中的描述符对应起来？
+![selector](./pictures/selector.png)
+
+简单来说，是通过“选择子Selector”将两者联系起来的。选择子的结构如上如，TI和RPL都为零时，选择子就变成了对应描述符想读与GDT基址的偏移(一个描述符8字节)，如同下面例子中的`LABEL_DESC_VIDEO	- LABEL_GDT`。
+```nasm
+SelectorVideo		equ	LABEL_DESC_VIDEO	- LABEL_GDT
+mov	ax, SelectorVideo
+mov	gs, ax
+```
+
+### 如何将逻辑地址(段：偏移)转化成线性地址？
+![address_logical_to_linear](./pictures/address_logical_to_linear.png)
+
 ### 如何从实模式到保护模式？
-参见代码[pmtest1](./code/protect_mode/pmtest1.asm)
+参见代码[“pmtest1”](./code/protect_mode/pmtest1.asm)，过程如下：
+* 准备好GDT
+* 通过指令`lgdt`配置GDTR寄存器，其结构如下：<br>
+   ![gdtr](./pictures/gdtr.png)
+   * 打开地址线A20
+   ```nasm
+   ; 打开地址线A20
+   in	al, 92h
+   or	al, 00000010b
+   out	92h, a
+   ```
+* 配置CR0寄存器使能保护位<br>
+   ![cr0](./pictures/cr0.png)
+   ```nasm
+   ; 准备切换到保护模式
+   mov	eax, cr0
+   or	eax, 1
+   mov	cr0, ea
+   ```
+* 把代码段的选择子装入cs段寄存器
+   ```nasm
+   ; 真正进入保护模式
+   jmp	dword SelectorCode32:0	; 执行这一句会把 SelectorCode32 装入 cs,
+                                 ; 并跳转到 Code32Selector:0  
+   ```
+
