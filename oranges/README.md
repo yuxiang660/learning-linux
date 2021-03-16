@@ -132,3 +132,5 @@
 
 ## 认识保护模式
 
+### 如何从实模式到保护模式？
+参见代码[pmtest1](./code/protect_mode/pmtest1.asm)
