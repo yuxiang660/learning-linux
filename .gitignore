@@ -49,6 +49,9 @@ server
 # oranges
 *.bin
 *.img
+!base.img
+!freedos.img
+!pm.img
 
 # assembly
 main*
