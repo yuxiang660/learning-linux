@@ -216,7 +216,7 @@ mov	gs, ax
 
 ![call_jmp_rule](./pictures/call_jmp_rule.png)
 
-### 如何在保护模式下访问5MB内存，然后退回到实模式？
+### 如何在保护模式下访问超过1MB地址空间，并退回到实模式？
 参见代码[“pmtest”](./code/protect_mode/enhance/pmtest.asm)，其主要功能是：
 * 从实模式进入保护模式
 * 在保护模式下从0x0500000线性地址位置读写8字节
@@ -226,4 +226,19 @@ mov	gs, ax
 
 ![pm_to_rm](./pictures/pm_to_rm.png)
 
+### LDT(Local Descriptor Table)
+LDT和GDT区别仅仅在于全局和局部的不同，参加代码["pmtest"](./code/protect_mode/ldt/pmtest.asm)。LDT选择子比GDT选择子多出了一个属性`SA_TIL`，其值是4，对应选择子TI位。如果此位被置位，系统会从LDT中寻找描述符，而不是从GDT中寻找描述符。
+```nasm
+; LDT 选择子
+SelectorLDTCodeA	equ	LABEL_LDT_DESC_CODEA	- LABEL_LDT + SA_TIL
+```
+创建LDT需要以下额外几个步骤：
+* GDT中需要加入LDT的描述符
+* 需要用`lldt`指令加载ldtr
+   * `lldt`的操作数是GDT中用来描述LDT的描述符
+* LDT选择子的TI位要置1
+   * 系统发现选择子中的TI位被置位，会从ldtr指向的LDT中寻找对应的描述符
 
+代码执行结果如下，LDT的代码段只是打印一个字符"L":
+
+![ldt_result](./pictures/ldt_result.png)
