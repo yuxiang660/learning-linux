@@ -215,3 +215,15 @@ mov	gs, ax
 所有数据段都是非一致的，这意味着不可能被低特权级的代码访问到。然而，与代码段不同，数据段可以被更高特权级的代码访问到，而不需要使用特定的门。
 
 ![call_jmp_rule](./pictures/call_jmp_rule.png)
+
+### 如何在保护模式下访问5MB内存，然后退回到实模式？
+参见代码[“pmtest”](./code/protect_mode/enhance/pmtest.asm)，其主要功能是：
+* 从实模式进入保护模式
+* 在保护模式下从0x0500000线性地址位置读写8字节
+* 从保护模式返回实模式
+
+与上节[代码](./code/protect_mode/dos/pmtest1.asm)不同之处在于，此程序在dos下可正常退出，运行结果如下：
+
+![pm_to_rm](./pictures/pm_to_rm.png)
+
+
