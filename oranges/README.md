@@ -151,7 +151,7 @@ mov	gs, ax
 ![address_logical_to_linear](./pictures/address_logical_to_linear.png)
 
 ### 如何从实模式到保护模式？
-参见代码[“pmtest1”](./code/protect_mode/pmtest1.asm)，过程如下：
+参见代码[“pmtest1”](./code/protect_mode/base/pmtest1.asm)，过程如下：
 * 准备好GDT
 * 通过指令`lgdt`配置GDTR寄存器，其结构如下：<br>
    ![gdtr](./pictures/gdtr.png)
