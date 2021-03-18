@@ -52,6 +52,7 @@ server
 !base.img
 !freedos.img
 !pm.img
+*.com
 
 # assembly
 main*

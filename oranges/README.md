@@ -187,6 +187,8 @@ mov	gs, ax
    * 0：系统段/门描述符
 * TYPE位<br>
    ![descriptor_type](./pictures/descriptor_type.png)
+   ![sd_type](./pictures/sd_type.png)
+   * 上图中“依从”就是“一致”
 * G位
    * 0：段界限粒度为字节
    * 1：段界限粒度为4KB
@@ -242,3 +244,69 @@ SelectorLDTCodeA	equ	LABEL_LDT_DESC_CODEA	- LABEL_LDT + SA_TIL
 代码执行结果如下，LDT的代码段只是打印一个字符"L":
 
 ![ldt_result](./pictures/ldt_result.png)
+
+## 特权级概述
+![level](./pictures/level.png)
+
+CPL(Current Privilege Level)
+* 存在于cs和ss的第0位和第1位
+* 当程序转移到不同特权级的代码时，处理器将改变CPL，一致代码除外
+
+DPL(Descriptor Privilege Level)
+* 存在于段或门的描述符中
+* DPL将会和CPL以及段或门选择子的RPL相比较，不同类型描述符中的DPL意义不同
+   * 数据段：DPL规定了可以访问此段的最低特权级。比如，一个数据段的DPL是1，那么只有运行在CPL为0或者1的程序才有权访问它。
+   * 非一致代码段(不使用调用门的情况下)：DPL规定访问此段的特权级。比如，一个非一致代码段的特权级为0，那么只有CPL为0的程序才可以访问它。
+   * 调用门：DPL规定了当前执行的程序或任务可以访问此调用门的最低特权级(这与数据段的规则是一致的)。
+   * 一致代码段和通过调用门访问的非一致代码段：DPL规定了访问此段的最高特权级。比如，一个一致代码段的DPL是2，那么CPL为0和1的程序将无法访问此段。
+   * TSS：DPL规定了可以访问此TSS的最低特权级(这与数据段的规则是一致的)。
+
+RPL(Requested Privilege Level)
+* 存在于选择子的第0位和第1位
+* 从RPL和CPL中选取特权级低的值起作用
+* RPL用来避免低特权级应用程序访问高特权级段内的数据
+
+### 不同特权级代码段之间的转移
+程序从一个代码段转移到另一个代码段之前，目标代码段的选择子会被加载到cs中。作为加载过程的一部分，处理器将会检查描述符的界限、类型、特权级等内容。如果检验成功，cs将被加载，程序控制将转移到新的代码段中，从eip指示的位置开始执行。
+
+程序控制转移的发生，可由指令`jmp, call, ret, sysenter, sysexit, int n, iret`引起。使用jmp或call指令可以实现以下几种转移：
+* 直接转移
+   * 目标操作数包含目标代码段的段选择子
+* 间接转移
+   * 目标操作数指向一个包含目标代码段选择子的调用门描述符
+   * 目标操作数指向一个包含目标代码段选择子的TSS
+   * 目标操作数指向一个任务门，这个任务门指向一个包含目标代码段选择子的TSS
+
+### 如何在不同的特权级之间转移？
+通过jmp或call的直接转移，
+* 对于非一致代码，只能在相同特权级代码之间转移
+* 对于一致代码，只能从低特权级到高特权级，且CPL不会改变
+
+如果想自由地进行不同特权级之间转移，需要运用门描述符或者TSS。不同于代码段或数据段的描述符，门描述符的结构如下：<br>
+![gate_descriptor](./pictures/gate_descriptor.png)
+* 上图中S位是0，代表是门描述符或者系统描述符
+
+一个门描述符由一个选择子和一个偏移所指定的线性地址，程序正是通过这个地址进行转移的。门描述符分别为4种：
+* 调用门(Call gates)
+* 中断门(Interrupt gates)
+* 陷阱门(Trap gates)
+* 任务门(Task gates)
+
+代码[call_gate](./code/protect_mode/call_gate/pmtest.asm)中，在GDT中创建了一个调用门描述符，虽然没有特权级的转移，但是阐释了如果通过调用门描述符，转移到目标代码段。
+* 在GDT中创建一个调用门描述符
+   ```nasm
+   LABEL_CALL_GATE_TEST: Gate SelectorCodeDest,   0,     0, DA_386CGate+DA_DPL0
+   ```
+* 调用门对应的选择子
+   ```nasm
+   SelectorCallGateTest	equ	LABEL_CALL_GATE_TEST	- LABEL_GDT
+   ```
+* 通过调用门描述符转移代码
+   ```nasm
+   ; 测试调用门（无特权级变换），将打印字母 'C'
+   call	SelectorCallGateTest:0
+   ```
+
+假设我们想由代码A转移到代码B，涉及到：CPL、RPL、代码B的DPL(记做DPL_B)、调用门G的DPL(记做DPL_G)。A访问G这个调用门时，规则相当于访问一个数据段，要求CPL和RPL都小于或者等于DPL_G，总结规则如下：<br>
+![call_gate_rule](./pictures/call_gate_rule.png)
+* 通过调用门和call指令，可以实现从低特权级到高特权级的转移，无论目标代码段时一致的还是非一致的。
