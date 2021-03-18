@@ -383,3 +383,31 @@ call	SelectorCallGateTest:0
 
 jmp	$
 ```
+
+## 保护模式总结
+代码["final"](./code/protect_mode/final/pmtest.asm)，完成了以下几个过程：
+* 构建GDT
+   * 其中包括各种描述符：数据描述符、代码描述符、堆栈描述符、LDT描述符、门描述符，TSS描述符等
+* 构建LDT
+   * 其中的描述符和GDT结构是一样的
+* 进入16位实模式
+   * 配置正确的段基址到GDT和LDT中，此时就需要创建个描述符对应的代码或数据
+   * 通过`lgdt`指令加载GDT
+* 进入32位保护模式
+   * 显示字符串“In Protect Mode now. ^-^”
+   * 通过`ltr`指令加载TSS
+   * 通过`retf`指令，从高特权转移到低特权
+      * 打印字符“3”
+      * 通过调用门，从低特权转移到高特权：`call	SelectorCallGateTest:0`
+         * 打印字符“C”
+         * 通过`lldt`指令加载LDT
+         * 跳入同特权级的局部代码：`jmp	SelectorLDTCodeA:0`
+            * 打印字符“L”
+            * 跳入同特权级的代码：`jmp	SelectorCode16:0`
+               * 关闭保护模式
+* 进入16位实模式
+   * 正常结束退出
+
+![final_result](./pictures/final_result.png)
+
+
