@@ -356,3 +356,30 @@ retf
 执行结果如下：<br>
 ![ret_results](./pictures/ret_results.png)
 
+## 如何从低特权级转移到高特权级？
+调用门和call指令可以使代码从低特权级转移到高特权级，但是由于转移时需要从TSS中获取新的ss和esp，需要通过`ltr`指令加载一个准备好的TSS基地址和大小：
+```nasm
+mov	ax, SelectorTSS
+ltr	ax
+```
+
+TSS的结构如下：<br>
+![tss](./pictures/tss_structure.png)
+
+参加代码[TSS](./code/protect_mode/tss/pmtest.asm)，运行结果如下：
+![tss_result](./pictures/tss_result.png)
+
+从上图中发现，不仅用ring3代码显示了“3”，还通过调用门显示了“C”，代码如下。此程序实现了两次从高特权级到低特权级(retf指令和call调用门)，以及一次从低特权级到高特权级的转移(call调用门)。
+```nasm
+LABEL_CODE_RING3:
+mov	ax, SelectorVideo
+mov	gs, ax
+mov	edi, (80 * 14 + 0) * 2
+mov	ah, 0Ch
+mov	al, '3'
+mov	[gs:edi], ax
+
+call	SelectorCallGateTest:0
+
+jmp	$
+```
