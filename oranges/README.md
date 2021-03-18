@@ -310,3 +310,49 @@ RPL(Requested Privilege Level)
 假设我们想由代码A转移到代码B，涉及到：CPL、RPL、代码B的DPL(记做DPL_B)、调用门G的DPL(记做DPL_G)。A访问G这个调用门时，规则相当于访问一个数据段，要求CPL和RPL都小于或者等于DPL_G，总结规则如下：<br>
 ![call_gate_rule](./pictures/call_gate_rule.png)
 * 通过调用门和call指令，可以实现从低特权级到高特权级的转移，无论目标代码段时一致的还是非一致的。
+
+## 短调用和长调用中，调用时和返回时的堆栈是如何的？
+* 短调用调用时的堆栈<br>
+   ![stack_short_call](./pictures/stack_short_call.png)
+* 短调用返回时的堆栈<br>
+   ![stack_short_ret](./pictures/stack_short_ret.png)
+* 长调用调用时的堆栈<br>
+   ![stack_long_call](./pictures/stack_long_call.png)
+* 长调用返回时的堆栈<br>
+   ![stack_long_ret](./pictures/stack_long_ret.png)
+
+## 当特权级发生变化时，堆栈是如何变化的？
+当特权级别变化的时候，堆栈也要发生变化。处理器的这种机制避免了高特权级的过程由于栈空间不足而崩溃。而且，如果不同特权级共享同一个堆栈的话，高特权级的程序可能因此受到有意或无意的干扰。
+
+当发生特权级变化，我们在堆栈A中压入参数和返回时地址，等到需要使用它们的时候堆栈已经变成B了，这该怎么办？Intel提供了这样的一种机制，将堆栈A的诸多内容复制到堆栈B中，如下图。
+
+![stack_privilege_change](./pictures/stack_privilege_change.png)
+
+当发生从低特权级到高特权级转移，处理器从TSS(Task-State Stack)数据结构中获得其余堆栈的ss和esp。并且只有从低特权级到高特权级切换时，新堆栈才会从TS中取得，所以TSS中没有最外层的ring3的堆栈信息。
+
+从低特权级到高特权级转移的过程如下：
+* 根据目标代码段的DPL从TSS中选择应该切换至哪个ss和esp
+* 从TSS中读取新的ss和esp
+* 暂时性地保存当前ss和esp的值
+* 加载新的ss和esp
+* 将刚刚保存起来的ss和esp的值压入新栈
+* 从调用者堆栈中将参数复制到被调用者堆栈(新堆栈)中，复制参数的数目由调用门中Param Count一项来决定。如果Param Count是零的话，将不会复制参数
+* 将当前的cs和eip压栈
+* 加载调用门中指定的新的cs和eip，开始指向被调用者过程
+
+## 如何从高特权级转移到低特权级？
+通过调用门，`call`和`jmp`指令可以实现从低特权级到高特权级的转移，那如何从高特权级转移到低特权级呢？答案是，可以通过`ret`指令。`ret`指令执行前，准备好目标代码段的cs、eip，以及ss和esp，如下图所示：<br>
+![stack_ret](./pictures/stack_ret.png)
+
+代码[“ret”](./code/protect_mode/ret/pmtest.asm)通过以下代码，在进入保护模式显示字符“In Protect Mode now.”之后，直接从ring0转移到ring3。
+```nasm
+push	SelectorStack3
+push	TopOfStack3
+push	SelectorCodeRing3
+push	0
+retf
+```
+
+执行结果如下：<br>
+![ret_results](./pictures/ret_results.png)
+
