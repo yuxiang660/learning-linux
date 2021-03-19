@@ -443,3 +443,20 @@ jmp	$
 * 初始化1024个页表，每个页表里有1024个表项，每个表项填入物理地址的地址
 * 将页目录地址填入CR3寄存器
 * 使能CR0寄存器
+
+### 如何动态获取内存大小进行分页？
+代码[monitor](./code/page/monitor/pmtest.asm)利用了BIOS中断`int 15h`，在实模式下对内存进程了检测。得到了内存大小后，根据内存大小创建大小合适的页表，以防止过大的页表造成内存空间浪费。
+
+![monitor_result](./pictures/monitor_result.png)
+
+### 如何利用分页机制实现线性地址到不同物理地址的转换？
+前面的例子虽然创建了页目录和页表，但是线性地址和物理地址都是一样的。分页机制最大的作用是对内存的抽象，用户不需要关心程序运行时的实际物理内存，只需要对线性内存进行操作。因此，下面的代码[switch](./code/page/switch/pmtest.asm)，实现了同一线性地址根据不同的页表，转换成不同的物理地址。
+
+![switch_result](./pictures/switch_result.png)
+
+上图中，`Foo`和`Bar`都是通过调用`call	SelectorFlatC:ProcPagingDemo`打印的，中间做了一次页表切换：
+```nasm
+call	SelectorFlatC:ProcPagingDemo
+call	PSwitch			; 切换页目录，改变地址映射关系
+call	SelectorFlatC:ProcPagingDemo
+```
