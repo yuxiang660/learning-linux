@@ -454,9 +454,16 @@ jmp	$
 
 ![switch_result](./pictures/switch_result.png)
 
-上图中，`Foo`和`Bar`都是通过调用`call	SelectorFlatC:ProcPagingDemo`打印的，中间做了一次页表切换：
+上图中，`Foo`和`Bar`都是通过调用`call	SelectorFlatC:ProcPagingDemo`打印的，中间做了一次页目录切换：
 ```nasm
 call	SelectorFlatC:ProcPagingDemo
 call	PSwitch			; 切换页目录，改变地址映射关系
 call	SelectorFlatC:ProcPagingDemo
 ```
+
+页目录切换前，线性地址和物理地址映射关系如下：<br>
+![before_switch](./pictures/before_switch.png)
+
+页目录切换后，线性地址和物理地址映射关系如下：<br>
+![after_switch](./pictures/after_switch.png)
+
