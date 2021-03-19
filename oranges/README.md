@@ -411,3 +411,35 @@ jmp	$
 ![final_result](./pictures/final_result.png)
 
 
+
+## 页式存储
+
+### 分页机制是如何将线性地址转换成物理地址的？
+![address_conv](./pictures/address_conv.png)
+在未开启分页时，线性地址等于物理地址。开启分页后，线性地址需要通过分页机制转换成物理地址，其过程如下：
+
+![address_linear_to_physical](./pictures/address_linear_to_physical.png)
+
+上图中，页目录大小为4KB，每个表项简称PDE(Page Directory Entry)，每个表项4字节，共有1024各表项。每个页目录的表项PDE对应一个页表，页表的表项简称PTE(Page Table Entry)，共有1024各表项，因此一个页表也是4KB大小。每个页表的表项对应一个物理页，一个物理页的大小也是4KB。
+
+下图是PDE和PTE的结构：
+
+![pde_pte](./pictures/pde_pte.png)
+* P位
+   * 0：表示页不在内存中，访问将会产生页异常(page-fault exception)
+   * 1: 表示存在
+* R/W位
+   * 0：表示只读
+   * 1：表示可读可写
+* U/S位
+   * 0：表示系统级别
+   * 1：表示用户级别
+
+代码[page](./code/page/pmtest.asm)的页目录和页表分布如下：<br>
+![page_test_mem](./pictures/page_test_mem.png)
+
+我们用4MB的空间来存放页表(1024张页表 * 4KB大小)，它映射了4GB的内存空间。建立页目录和页表的过程如下：
+* 初始化一个4KB的页目录，一共1024各表项，每个表项填入页表的地址
+* 初始化1024个页表，每个页表里有1024个表项，每个表项填入物理地址的地址
+* 将页目录地址填入CR3寄存器
+* 使能CR0寄存器
