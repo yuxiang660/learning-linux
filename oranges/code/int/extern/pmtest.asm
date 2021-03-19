@@ -136,7 +136,7 @@ LABEL_BEGIN:
 	lgdt	[GdtPtr]
 
 	; 关中断
-	;cli
+	cli
 
 	; 加载 IDTR
 	lidt	[IdtPtr]
