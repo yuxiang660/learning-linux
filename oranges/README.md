@@ -467,3 +467,40 @@ call	SelectorFlatC:ProcPagingDemo
 页目录切换后，线性地址和物理地址映射关系如下：<br>
 ![after_switch](./pictures/after_switch.png)
 
+## 中断和异常
+实模式下的中断向量表，在保护模式下变成了中断描述符表IDT(Interrupt Descriptor Table)。IDT中的描述符可以是下面三种之一：
+* 中断门描述符
+* 陷阱门描述符
+* 任务门描述符
+
+IDT的作用是将每一个中断向量和一共描述符对应起来。下图显示了中断向量到中断处理程序的对应过程：<br>
+![int_entry](./pictures/int_entry.png)
+
+中断门和陷阱门的作用机理和调用门几乎一样，指示调用门使用`call`指令，而这里使用`int`指令。下图中，中断门和陷阱门的低5位变成了保留位，而不再是`Param Count`。TYPE也变成了0xE(中断门)或0xF(陷阱门)。
+
+![gate_int_trap](./pictures/gate_int_trap.png)
+
+
+### 保护模式下的中断和异常有哪些？
+![int_list](./pictures/int_list.png)
+中断分三类：
+* 非屏蔽的外部中断
+   * 一般是严重的错误，如电源异常等
+* 可屏蔽的外部中断
+   * 如IO中断
+* `int n`指令产生的中断
+   * 称为软中断，也称为同步中断
+
+异常有三种类型：
+* Fault
+   * 处理程序返回时，指向产生fault的指令，而不是后面的指令
+* Trap
+   * 处理程序返回的时产生trap指令的后面那条指令
+* Abort
+   * 不允许程序或任务继续执行
+
+### 如何在保护模式下配置外部中断？
+![8259A](./pictures/8259A.png)
+
+
+
