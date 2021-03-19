@@ -435,7 +435,7 @@ jmp	$
    * 0：表示系统级别
    * 1：表示用户级别
 
-代码[page](./code/page/pmtest.asm)的页目录和页表分布如下：<br>
+代码[page](./code/page/init/pmtest.asm)的页目录和页表分布如下：<br>
 ![page_test_mem](./pictures/page_test_mem.png)
 
 我们用4MB的空间来存放页表(1024张页表 * 4KB大小)，它映射了4GB的内存空间。建立页目录和页表的过程如下：
