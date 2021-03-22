@@ -591,3 +591,12 @@ FAT12把磁盘划分为三个层次：
 因此，通过BIOS中断`int 13h`，并结合FAT12文件系统的格式，将软盘上的文件，加载到内存指定位置。最终跳转的加载的位置，并执行。代码[“load”](./code/load/prog/boot.asm)阐释了此过程。
 
 
+# 内核雏形
+
+## 在Linux下用汇编写Hello World
+参见代码[“hello_linux”](./code/hello_linux/hello.asm)
+
+## 汇编和C同步使用
+
+
+
