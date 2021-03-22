@@ -23,7 +23,7 @@ everything : $(BOOT_BIN) $(LDR_BIN) $(KERNEL_BIN)
 	sudo umount $(FLOPPY)
 
 clean :
-	rm -f $(BOOT_BIN) $(LDR_BIN) $(KERNEL_BIN) *.o *.img
+	rm -f $(BOOT_BIN) $(LDR_BIN) $(KERNEL_BIN) *.o
 
 $(BOOT_BIN) : $(BOOT)
 	nasm $< -o $@
