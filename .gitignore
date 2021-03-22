@@ -49,6 +49,7 @@ server
 # oranges
 *.bin
 *.img
+!a.img
 !base.img
 !freedos.img
 !pm.img
