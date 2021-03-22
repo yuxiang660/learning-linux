@@ -700,3 +700,4 @@ ELF文件由4部分组成：
 * ["loader.asm"](./code/kernel/enhance/loader.asm)，用于加载ELF格式的"kernel"到指定地址
 * ["kernel.asm"](./code/kernel/enhance/kernel.asm)，将权限转交给C代码
 
+代码整理后，可参见["enhance_kernel_sort"](./code/kernel/enhance_sort)，其中修改了`disp_str`函数的一个Bug。
