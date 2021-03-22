@@ -35,7 +35,7 @@ $(KERNEL_BIN) : $(KERNEL)
 	nasm -f elf -o kernel.o kernel.asm
 	nasm -f elf -o string.o string.asm
 	nasm -f elf -o kliba.o kliba.asm
-	gcc -m32 -c -nostdlib -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -o start.o start.c
+	gcc -m32 -c -fno-builtin -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -o start.o start.c
 	ld -m elf_i386 -s -Ttext 0x30400 -o kernel.bin kernel.o string.o start.o kliba.o
 
 bochs:

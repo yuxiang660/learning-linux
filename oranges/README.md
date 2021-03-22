@@ -695,4 +695,8 @@ ELF文件由4部分组成：
 ## 扩充内核
 目的：将esp和GDT等内容从Loader放进内核中。
 
+代码["enhance_kernel"](./code/kernel/enhance)，完成了下面几件事情：
+* ["boot.asm"](./code/kernel/enhance/boot.asm)，用于引导系统，加载"loader"程序
+* ["loader.asm"](./code/kernel/enhance/loader.asm)，用于加载ELF格式的"kernel"到指定地址
+* ["kernel.asm"](./code/kernel/enhance/kernel.asm)，将权限转交给C代码
 
