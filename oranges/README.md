@@ -597,6 +597,13 @@ FAT12把磁盘划分为三个层次：
 参见代码[“hello_linux”](./code/hello_linux/hello.asm)
 
 ## 汇编和C同步使用
-
+代码["c_asm"](./code/c_asm)阐释了汇编语言和C语言相互调用的过程，汇编通过`global`导出函数。
+* 汇编代码调用C函数
+   ```nasm
+   push	dword [num2nd]	;
+   push	dword [num1st]	;
+   call	choose			; 调用C函数 choose(num1st, num2nd);
+   add	esp, 8			; pop出栈上的num2nd和num1st，调用者需要负责出栈
+   ```
 
 
