@@ -35,13 +35,14 @@ disp_str:
 	jnz	.3
 	push	eax
 	mov	eax, edi
-	mov	bl, 160
-	div	bl
-	and	eax, 0FFh
-	inc	eax
-	mov	bl, 160
-	mul	bl
-	mov	edi, eax
+.sub_loop:
+	cmp	eax,160
+	jl	.stop
+	sub	eax,160
+	jmp	.sub_loop
+.stop:
+	add edi,160
+	sub edi,eax
 	pop	eax
 	jmp	.1
 .3:
@@ -73,13 +74,14 @@ disp_color_str:
 	jnz	.3
 	push	eax
 	mov	eax, edi
-	mov	bl, 160
-	div	bl
-	and	eax, 0FFh
-	inc	eax
-	mov	bl, 160
-	mul	bl
-	mov	edi, eax
+.sub_loop:
+	cmp	eax,160
+	jl	.stop
+	sub	eax,160
+	jmp	.sub_loop
+.stop:
+	add edi,160
+	sub edi,eax
 	pop	eax
 	jmp	.1
 .3:
