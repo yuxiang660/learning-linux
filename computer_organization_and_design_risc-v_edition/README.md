@@ -15,3 +15,16 @@ The purpose of this book is to show the relationship between hardware and softwa
 * Recognize he generation change in computing from the PC era to the post-PC era.
 * Spread the I/O material throughout the book rather than have it in its own chapter.
 
+# Computer Abstractions and Technology
+## Key Question
+* What level of cost/performance computers will have in the future?
+
+## Introduction
+Applications that were economically infeasible suddenly become practical:
+* Computers in automobiles
+* Cell phones
+* Human genome project
+* World Wide Web
+* Search engines
+
+
