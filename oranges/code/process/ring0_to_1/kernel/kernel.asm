@@ -128,7 +128,7 @@ csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<O
 
 
 	xor	eax, eax
-	mov	ax, SELECTOR_TSS
+	mov	ax, SELECTOR_TSS	;GDT中第4个选择子: 0x20/8 = 4，由protect.c::init_prot()函数添加
 	ltr	ax
 
 	;sti
@@ -295,7 +295,7 @@ restart:
 	mov	esp, [p_proc_ready]
 	lldt	[esp + P_LDT_SEL] 
 	lea	eax, [esp + P_STACKTOP]
-	mov	dword [tss + TSS3_S_SP0], eax
+	mov	dword [tss + TSS3_S_SP0], eax	; 配置TSS中的ESP0为当前进程的栈顶，当前进程的堆栈选择子SS0已经在初始化的时候配置好了
 
 	pop	gs
 	pop	fs
