@@ -769,7 +769,183 @@ ELF文件由4部分组成：
 * ring0 -> ring1
    * 从高到低转移，通过指令`iretd`和准备好的栈(包括eip、cs、eflags、esp和ss等)
 
-## 时钟中断处理程序
-目标：通过时钟中断处理程序实现由ring0到ring1的转移。
+## 从内核态到进程态(ring0 -> ring1)
+目标：通过`iretd`指令从ring0的内核态，切换到ring1的进程态，在低权限下执行程序。
 
+设计：下图是此程序的4个主要部分：进程表(包括了LDT)，进程体，GDT和TSS。
+
+![one_process_org](./pictures/one_process_org.png)
+
+这四个部分的主要关系大致分为三个部分：
+* 进程表和GDT。进程表内的LDT Selector对应GDT中的一个描述符，而这个描述符所指向的内存空间就存在于进程表内。
+* 进程表和进程。进程表是进程的描述，进程运行过程中如果被中断，各个寄存器的值都会被保存进进程表中。
+* GDT和TSS。GDT中需要有一个描述符来对应TSS，需要事先初始化这个描述符。TSS存储的是全局共享的信息，这和GDT一样，而进程表中每个条目是每个进程的私有信息。
+
+程序["ring0_to_1"](./code/process/ring0_to_1)在初始化完成后，通过`iretd`指令从ring0转移到了ring1，并在ring1下执行了一个不断循环打印的程序，下面分部分介绍。
+
+### 首先准备一个小的进程体
+以一个不停循环打印的程序作为u进程体的功能：
+```c
+void TestA()
+{
+	int i = 0;
+	while(1){
+		disp_str("A");
+		disp_int(i++);
+		disp_str(".");
+		delay(1);
+	}
+}
+```
+下面，我们要想办法如何在ring1特权级下，运行该进程体。
+
+### 定义进程表结构
+虽然此程序没有进程程序切换，而且进程表中也只有一个程序信息，但是为了后续支持进程切换，我们需要考虑设计合适的进程表结构，以保证能保存当前进程环境信息。为了保存所有寄存器的信息，以及完成高权限到低权限的转移，进程表中每一项的结构如下：<br>
+![s_proc](./pictures/s_proc.png)
+* 一部分是被中断处理程序相关寄存器的值
+* 另一部分是从高特权级到低特权级转移时所需的信息(低特权级转移到高特权级会从TSS中拿相关信息，而不需要从栈中获取)。
+
+这样，当我们想要切换到低权限的进程时，就可以通过将进程表中要切换进程的内存作为栈空间，弹出相关寄存器的值，再通过`retd`指令和esp寄存器(指向合适位置)，完成切换。
+
+除了上述寄存器需要在切换前准备，还需要加载要切换进程的LDT，因此我们可以将进程表每一项结构定义如下：
+```c
+typedef struct s_stackframe {
+	u32	gs;		/* \                                    */
+	u32	fs;		/* |                                    */
+	u32	es;		/* |                                    */
+	u32	ds;		/* |                                    */
+	u32	edi;		/* |                                    */
+	u32	esi;		/* | pushed by save()                   */
+	u32	ebp;		/* |                                    */
+	u32	kernel_esp;	/* <- 'popad' will ignore it            */
+	u32	ebx;		/* |                                    */
+	u32	edx;		/* |                                    */
+	u32	ecx;		/* |                                    */
+	u32	eax;		/* /                                    */
+	u32	retaddr;	/* return addr for kernel.asm::save()   */
+	u32	eip;		/* \                                    */
+	u32	cs;		/* |                                    */
+	u32	eflags;		/* | pushed by CPU during interrupt     */
+	u32	esp;		/* |                                    */
+	u32	ss;		/* /                                    */
+}STACK_FRAME;
+
+
+typedef struct s_proc {
+	STACK_FRAME regs;          /* process registers saved in stack frame */
+
+	u16 ldt_sel;               /* gdt selector giving ldt base and limit */
+	DESCRIPTOR ldts[LDT_SIZE]; /* local descriptors for code and data */
+	u32 pid;                   /* process id passed in from MM */
+	char p_name[16];           /* name of the process */
+}PROCESS;
+```
+因此，进程表可定义为：`PUBLIC PROCESS proc_table[NR_TASKS]`，其中`NR_TASKS`定义了最大允许进程数。
+
+### 向GDT中添加LDT
+LDT内容定义在进程表的每一项中，由每个程序私有。`s_proc`结构中的`DESCRIPTOR ldts[LDT_SIZE]`就是LDT的内容。但是，其不是一个固定地址，如何定位到每个进程的LDT呢？
+
+通过将每个进程的LDT的描述符添加到全局的GDT中，就可以定位到相应的LDT了，并且将GDT的16位的LDT选择子保存到`s_proc`结构中的`u16 ldt_sel`。
+```c
+/* 填充 GDT 中进程的 LDT 的描述符 */
+init_descriptor(&gdt[INDEX_LDT_FIRST],
+	vir2phys(seg2phys(SELECTOR_KERNEL_DS), proc_table[0].ldts),
+	LDT_SIZE * sizeof(DESCRIPTOR) - 1,
+	DA_LDT);
+```
+### 向GDT中添加TSS
+不同于LDT，TSS是全局的，因此我们需要开辟一个全局的空间，让后将它的系统描述符加入GDT中。
+```c
+/* 填充 GDT 中 TSS 这个描述符 */
+memset(&tss, 0, sizeof(tss));
+tss.ss0 = SELECTOR_KERNEL_DS;
+init_descriptor(&gdt[INDEX_TSS],
+		vir2phys(seg2phys(SELECTOR_KERNEL_DS), &tss),
+		sizeof(tss) - 1,
+		DA_386TSS);
+tss.iobase = sizeof(tss); /* 没有I/O许可位图 */
+
+// TSS Structure
+typedef struct s_tss {
+	u32	backlink;
+	u32	esp0;	/* stack pointer to use during interrupt */
+	u32	ss0;	/*   "   segment  "  "    "        "     */
+	u32	esp1;
+	u32	ss1;
+	u32	esp2;
+	u32	ss2;
+	u32	cr3;
+	u32	eip;
+	u32	flags;
+	u32	eax;
+	u32	ecx;
+	u32	edx;
+	u32	ebx;
+	u32	esp;
+	u32	ebp;
+	u32	esi;
+	u32	edi;
+	u32	es;
+	u32	cs;
+	u32	ss;
+	u32	ds;
+	u32	fs;
+	u32	gs;
+	u32	ldt;
+	u16	trap;
+	u16	iobase;	/* I/O位图基址大于或等于TSS段界限，就表示没有I/O许可位图 */
+}TSS;
+```
+需要注意的是当发生低权限到高权限切换是，系统会自动从TSS中获取对应权限所需的栈信息`eps`和`ss`值，进行栈的切换。因此，我们需要确保，切换前，相对应的TSS中的`eps`和`ss`值是正确的。
+
+同时，需要通过`ltr`指令，将TSS的描述符加载到指定的段寄存器。类似于用`lgdt`指令加载GDT，或者用`lidt`加载IDT。
+```nasm
+xor	eax, eax
+mov	ax, SELECTOR_TSS	;GDT中第4个选择子: 0x20/8 = 4，由protect.c::init_prot()函数添加
+ltr	ax
+```
+
+### 初始化进程表
+当准备好了进程体、LDT和栈空间后，我们就可以初始化进程表中的各项值了(可配置合适的特权级)：
+```c
+PROCESS* p_proc	= proc_table;
+
+p_proc->ldt_sel	= SELECTOR_LDT_FIRST; // GDT中第5个选择子: 0x28/8 = 5，由protect.c::init_prot()函数添加
+memcpy(&p_proc->ldts[0], &gdt[SELECTOR_KERNEL_CS>>3], sizeof(DESCRIPTOR));  // 构建LDT第一个描述符
+p_proc->ldts[0].attr1 = DA_C | PRIVILEGE_TASK << 5;	// change the DPL
+memcpy(&p_proc->ldts[1], &gdt[SELECTOR_KERNEL_DS>>3], sizeof(DESCRIPTOR));  // 构建LDT第二个描述符
+p_proc->ldts[1].attr1 = DA_DRW | PRIVILEGE_TASK << 5;	// change the DPL
+
+p_proc->regs.cs	= (0 & SA_RPL_MASK & SA_TI_MASK) | SA_TIL | RPL_TASK; // 指向LDT第一个描述符
+p_proc->regs.ds	= (8 & SA_RPL_MASK & SA_TI_MASK) | SA_TIL | RPL_TASK; // 指向LDT第二个描述符
+p_proc->regs.es	= (8 & SA_RPL_MASK & SA_TI_MASK) | SA_TIL | RPL_TASK; // 指向LDT第二个描述符
+p_proc->regs.fs	= (8 & SA_RPL_MASK & SA_TI_MASK) | SA_TIL | RPL_TASK; // 指向LDT第二个描述符
+p_proc->regs.ss	= (8 & SA_RPL_MASK & SA_TI_MASK) | SA_TIL | RPL_TASK; // 指向LDT第二个描述符
+p_proc->regs.gs	= (SELECTOR_KERNEL_GS & SA_RPL_MASK) | RPL_TASK; // 指向GDT中的显存，RPL发生改变
+p_proc->regs.eip= (u32) TestA;
+p_proc->regs.esp= (u32) task_stack + STACK_SIZE_TOTAL; // global.c中定义的单独栈，栈是递减的，所以取最大地址起始
+p_proc->regs.eflags = 0x1202;	// IF=1, IOPL=1, bit 2 is always 1. 这样，进程就可以使用I/O指令，并且中断会iretd执行时被打开
+```
+
+### 最后通过iretd进行转移
+```asm
+mov	esp, [p_proc_ready]
+lldt	[esp + P_LDT_SEL] 
+lea	eax, [esp + P_STACKTOP]
+mov	dword [tss + TSS3_S_SP0], eax	; 配置TSS中的ESP0为当前进程的栈顶，当前进程的堆栈选择子SS0已经在初始化的时候配置好了
+
+pop	gs
+pop	fs
+pop	es
+pop	ds
+popad
+
+add	esp, 4
+
+iretd
+```
+在通过`iretd`进行转移之前，对于要转移的进程，需要做如下的事情：
+* 通过`lldt`，加载要转移进程的LDT
+* 设置TSS中对应位置的ESP值，以便发生低权限到高权限转移时，能获得合适的栈空间
+* 弹出要转移进程的所有寄存器的值
 
