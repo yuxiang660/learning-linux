@@ -56,7 +56,7 @@ server
 *.com
 
 # assembly
-main*
+main_*
 *.exe
 *.EXE
 *.obj

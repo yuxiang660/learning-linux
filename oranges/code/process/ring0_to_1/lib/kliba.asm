@@ -9,6 +9,7 @@
 ; 导入全局变量
 extern	disp_pos
 
+
 [SECTION .text]
 
 ; 导出函数
@@ -18,7 +19,7 @@ global	out_byte
 global	in_byte
 
 ; ========================================================================
-;                  void disp_str(char * pszInfo);
+;                  void disp_str(char * info);
 ; ========================================================================
 disp_str:
 	push	ebp
@@ -35,14 +36,13 @@ disp_str:
 	jnz	.3
 	push	eax
 	mov	eax, edi
-.sub_loop:
-	cmp	eax,160
-	jl	.stop
-	sub	eax,160
-	jmp	.sub_loop
-.stop:
-	add edi,160
-	sub edi,eax
+	mov	bl, 160
+	div	bl
+	and	eax, 0FFh
+	inc	eax
+	mov	bl, 160
+	mul	bl
+	mov	edi, eax
 	pop	eax
 	jmp	.1
 .3:

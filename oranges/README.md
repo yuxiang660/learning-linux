@@ -611,8 +611,7 @@ FAT12把磁盘划分为三个层次：
 
 ELF文件由4部分组成：
 * ELF头(ELF header)
-   * 描述了ELF文件类型，入口函数，其他各部分的排布等信息<br>
-   ![main_elf](./pictures/main_elf.png)
+   * 描述了ELF文件类型，入口函数，其他各部分的排布等信息
 * 程序头表(Program header table)
    * 描述了系统准备程序运行所需的一个段在文件中的位置、大小以及它被放进内存后所在的位置和大小
 * 节(Sections)
@@ -698,6 +697,79 @@ ELF文件由4部分组成：
 代码["enhance_kernel"](./code/kernel/enhance)，完成了下面几件事情：
 * ["boot.asm"](./code/kernel/enhance/boot.asm)，用于引导系统，加载"loader"程序
 * ["loader.asm"](./code/kernel/enhance/loader.asm)，用于加载ELF格式的"kernel"到指定地址
+   * `InitKernel`函数通过解析ELF格式的kernel，将指定段加载到指定地址(在ELF文件中存在地址信息)
+   * `InitKernel`函数结束后，入口函数的地址已经确定，直接跳转过去即可
 * ["kernel.asm"](./code/kernel/enhance/kernel.asm)，将权限转交给C代码
 
 代码整理后，可参见["enhance_kernel_sort"](./code/kernel/enhance_sort)，其中修改了`disp_str`函数的一个Bug。
+
+## 内部软件异常
+目的：建立中断描述符表IDT，当发生异常时(如：非法指令)，能进入指定的异常处理函数进程处理。
+
+代码["int_internal"](./code/kernel/int_internal)实现了“无效操作码”#UD异常，并在异常处理程序中打印出相关信息，其过程如下：
+* 引导程序建立GDT，依据ELF格式信息加载内核各段到指定位置，最后将权限转交给内核的入口函数(编译ELF时已经指定)
+* 内核的入口函数将权限交给C函数[cstart](./code/kernel/int_internal/kernel/start.c)，其如主要完成
+   * 复制引导程序建立的GDT到本地内存的GDT中
+   * 建立中断描述符表IDT，见["init_prot()"](./code/kernel/int_internal/kernel/protect.c)，中断向量的标号可参考前面介绍异常章节中的异常列表
+* C入口函数结束后，内核汇编代码加载新的GDT和IDT到相关寄存器
+* 指向无效操作码，触发异常后，在异常处理程序中，打印出如下内容：<br>
+![int_internal_result](./pictures/int_internal_result.png)
+
+## 外部时钟中断
+目的：配置外部中断，可检测键盘中断
+
+代码["int_extern"](./code/kernel/int_extern)实现了对键盘中断的监控，当敲击键盘时，可在屏幕中打印出处理程序的信息，其过程如下：
+* 引导程序将内核加载并移交权限到入口函数
+* 内核入口函数需
+   * 初始化中断控制器
+      * [init_8259A()](./code/kernel/int_extern/kernel/i8259.c)函数配置中断向量表，并将键盘中断打开
+   * 初始化中断向量表
+      * ["init_prot()"](./code/kernel/int_internal/kernel/protect.c)函数不仅向中断向量表中添加了异常处理函数的中断门，还添加了外部中断的中断门(起始位：主0x20，从0x28)
+* 加载完GDT和IDT后，通过`sti`指令设置IF位，等待键盘中断到来
+* 键盘中断到来后，触发`spurious_irq`中断函数执行，结果如下：<br>
+![int_extern_result](./pictures/int_extern_result.png)
+
+# 进程
+
+## 开始准备创建进程
+![process_state](./pictures/process_state.png)
+
+按时间顺序，进程切换过程如下：
+* 进程A运行中
+* 时钟中断发生，ring1 -> ring0，时钟中断处理程序启动
+* 进程调度，下一个应允许的进程(假设为进程B)被指定
+* 进程B被恢复，ring0 -> ring1
+* 进程B运行中
+
+### 进程的哪些状态需要被保存？
+只有可能被改变的才有保存的必要。因为不同进程共享一个CPU的一套寄存器，所有这些寄存器的值都要保存。
+
+### 进程的状态需要何时以及怎样被保存？
+为了保证进程状态完整，不被破坏，应该再进程刚刚被挂起是保存所有寄存器的值。
+
+### 如何恢复进程B的状态？
+当恢复所有寄存器后，通过指令iretd，就回到进程B了。
+
+### 进程表的引入
+进程表(或叫进程控制块，PCB)维护了素有进程的状态，用于描述进程，独立于所有进程之外。
+
+![pcb.png](./pictures/pcb.png)
+
+### 进程栈和内核栈
+通过push/pop操作进程表时，需要切换esp指向的位置。因此在进程切换过程中，esp的位置出现在3个不同的区域。
+
+![stack_process_kernel](./pictures/stack_process_kernel.png)
+* 进程栈 - 进程运行时的自身的堆栈
+* 进程表 - 存储进程状态信息的数据结构
+* 内核栈 - 进程调度模块运行时使用的堆栈
+
+### 特权级变换
+* ring1 -> ring0
+   * 从低到高转移，通过TSS获取高特权级的ss和esp
+* ring0 -> ring1
+   * 从高到低转移，通过指令`iretd`和准备好的栈(包括eip、cs、eflags、esp和ss等)
+
+## 时钟中断处理程序
+目标：通过时钟中断处理程序实现由ring0到ring1的转移。
+
+
