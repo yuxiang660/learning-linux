@@ -960,3 +960,6 @@ iretd
 * 通过`iretd`指令进行了转移，但在这之前需加载LDT，并通过进程表准备环境
 * 最终得到如下图的运行结果，程序在ring1特权级下不断打印字符`A0x0.A0x1....`：<br>
    ![ring0_to_1_result](./pictures/ring0_to_1_result.png)
+
+下图是各时间段，此程序的运行状态：<br>
+![ring0_to_1_process](./pictures/ring0_to_1_process.png)
