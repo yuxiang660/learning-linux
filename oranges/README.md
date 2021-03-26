@@ -963,3 +963,6 @@ iretd
 
 下图是各时间段，此程序的运行状态：<br>
 ![ring0_to_1_process](./pictures/ring0_to_1_process.png)
+
+## 开启中断
+
