@@ -896,7 +896,7 @@ typedef struct s_tss {
 	u16	iobase;	/* I/O位图基址大于或等于TSS段界限，就表示没有I/O许可位图 */
 }TSS;
 ```
-需要注意的是当发生低权限到高权限切换是，系统会自动从TSS中获取对应权限所需的栈信息`eps`和`ss`值，进行栈的切换。因此，我们需要确保，切换前，相对应的TSS中的`eps`和`ss`值是正确的。
+需要注意的是当发生低权限到高权限切换时，系统会自动从TSS中获取对应权限所需的栈信息`eps`和`ss`值，进行栈的切换。因此，我们需要确保，在发生低权限到高权限转移前，相对应的TSS中的高权限的`eps`和`ss`值是期望的，以便保存低权限时的相关寄存器(具体实验，后面会讲到)。
 
 同时，需要通过`ltr`指令，将TSS的描述符加载到指定的段寄存器。类似于用`lgdt`指令加载GDT，或者用`lidt`加载IDT。
 ```nasm
@@ -964,5 +964,93 @@ iretd
 下图是各时间段，此程序的运行状态：<br>
 ![ring0_to_1_process](./pictures/ring0_to_1_process.png)
 
-## 开启中断
+## 进程被时钟中断切换，从ring1到ring0再回到ring1
+上面的例子解释了如何从ring0转移到ring1，执行进程A的程序。现在，我们开始通过时钟中断，中断进程A的运行，从ring1到ring0。中断程序完成后，再从ring0回到ring1，重新执行进程A的程序。
+
+### 配置时钟中断
+我们需要做两件事情：
+* 代开中断控制权的时钟中断
+   * ["i8259.c"](./code/process/int/kernel/i8259.c)在配置8259时，开启了主控的时钟中断
+   ```c
+   out_byte(INT_M_CTLMASK,	0xFE);	// Master 8259, OCW1. 打开时钟中断
+   out_byte(INT_S_CTLMASK,	0xFF);	// Slave  8259, OCW1.
+   ```
+* 设置EOI
+   * ["kernel1.asm"](./code/process/int/kernel/kernel1.asm)的IRQ0时钟中断程序设置了EOI，因此中断可以不停地发生
+   ```nasm
+   ALIGN	16
+   hwint00:		; Interrupt routine for irq 0 (the clock).
+      mov	al, EOI		; `. reenable
+      out	INT_M_CTL, al	; / master 8259
+      iretd
+   ```
+
+### 现场的保护与恢复
+在特权级发生变化时，需要对现场进行保护与恢复。下面我们介绍：
+* 从ring1到ring0对进程A现场的保护
+* 从ring0到ring1对进程A现场的恢复
+
+#### ring1->ring0的保护
+目的：在执行中断处理程序前，将进程A当前的所有寄存器的值保存到进程表对应的数据结构中
+
+从ring1到ring0转移，系统会自动从TSS中获取esp0和ss0的值(具体过程，请参加前面的章节)。因此，首先我们需要知道，在发生中断之前，TSS中的tss.esp0和tss.ss0是什么值。
+* ["restart"](./code/process/int/kernel/kernel.final.asm)函数在执行进程A之前，已经将tss.esp0设置为进程A在进程表中`STACK_FRAME`结构的尾部，作为中断程序现场保护的栈
+   ```nasm
+   restart:
+      mov	esp, [p_proc_ready]
+      lldt	[esp + P_LDT_SEL] 
+      lea	eax, [esp + P_STACKTOP]       ; P_STACKTOP的值和P_LDT_SEL是一样的，代表STACK_FRAME的尾地址
+      mov	dword [tss + TSS3_S_SP0], eax ; 当发生ring1->ring0的转移时，ring0的程序会得到进程表中的STACK_FRAME结构作为栈进程现场保护
+   ```
+* ["init_prot"](./code/process/int/kernel/protect.c)函数在初始化阶段，已经配置好了tss.ss0的值
+   ```c
+   PUBLIC void init_prot() {
+      ...
+      /* 填充 GDT 中 TSS 这个描述符 */
+      memset(&tss, 0, sizeof(tss));
+      tss.ss0		= SELECTOR_KERNEL_DS;
+   }
+   ```
+
+tss.esp0和tss.ss0配置好后，发生时钟中断。通过前的章节，我们可知，有特权级变化的中断发生时，系统会自动压栈`eip`,`cs`,`eflags`, `esp`, `ss`(可能还有`ErrorCode`)到tss.esp0和tss.ss0(假设转移到ring0)指向的栈中。因此当进入中断后，esp已经指向了`s_stackframe`结构中的`retaddr`位置。
+
+下面，我们开始保护进程A的现场:
+* [中断处理函数"hwint00"](./code/process/int/kernel/kernel4.asm)要做的第一件事情就是将当前的所有寄存器保存到进程A在进程表中相应的数据结构中
+   ```nasm
+   ALIGN	16
+   hwint00:		; Interrupt routine for irq 0 (the clock).
+      sub	esp,4	; 减4跳过retaddr
+      pushad		; `.
+      push	ds	;  |
+      push	es	;  | 保存原寄存器值，和s_stackframe中定义的寄存器顺序相反
+      push	fs	;  |
+      push	gs	; /
+      mov	dx, ss
+      mov	ds, dx
+      mov	es, dx
+      ...
+   ```
+
+#### ring0->ring1的恢复
+目的：在结束中断处理程序返回进程A前，将进程A的所有寄存器的值从进程表的相关数据结构中恢复到当前所有寄存器中
+
+由于我们现在还只有一个进程A，在中断处理程序完成后，我们需要恢复到进程A。因此在通过`iretd`命令从ring0转移到ring1之前，我们需要配置好`tss.esp0`和所有进程A相关的寄存器。下面的程序从`s_stackframe`的起始位开始出栈恢复`gs`,`fs`等寄存器，最后跳过`retaddr`，指向了进程A转移时存入的`eip`,`cs`,`eflags`,`esp`和`ss`。这和最初进入进程A时的动作是一样的。
+```nasm
+ALIGN	16
+hwint00:		; Interrupt routine for irq 0 (the clock).
+   ...
+	mov	esp, [p_proc_ready]	; 离开内核栈
+
+	lea	eax, [esp + P_STACKTOP]
+	mov	dword [tss + TSS3_S_SP0], eax
+
+	pop	gs	; `.
+	pop	fs	;  |
+	pop	es	;  | 恢复原寄存器值
+	pop	ds	;  |
+	popad		; /
+	add	esp, 4   ;跳过retaddr
+
+	iretd
+```
 

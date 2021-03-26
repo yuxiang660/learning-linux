@@ -149,10 +149,10 @@ csinit:		; “这个跳转指令强制使用刚刚初始化的结构”——<<O
 
 ALIGN	16
 hwint00:		; Interrupt routine for irq 0 (the clock).
-	sub	esp,4
+	sub	esp,4	; 刚发生中断时，esp的值时刚刚从TSS里面取到到的进程表A中regs的最高地址，减4后跳过retaddr，eip~ss的位置，以及在进入中断前被处理了
 	pushad		; `.
 	push	ds	;  |
-	push	es	;  | 保存原寄存器值
+	push	es	;  | 保存原寄存器值，和s_stackframe中定义的寄存器顺序相反
 	push	fs	;  |
 	push	gs	; /
 	mov	dx, ss
@@ -165,11 +165,11 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 	out	INT_M_CTL, al	; /  master 8259
 
 	lea	eax, [esp + P_STACKTOP]
-	mov	dword [tss + TSS3_S_SP0], eax
+	mov	dword [tss + TSS3_S_SP0], eax	;如果有多个进程，tss.esp0的值可能会被修改成进程表B或者C中相应的地址
 
 	pop	gs	; `.
 	pop	fs	;  |
-	pop	es	;  | 恢复原寄存器值
+	pop	es	;  |
 	pop	ds	;  |
 	popad		; /
 	add	esp,4

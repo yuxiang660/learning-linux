@@ -294,9 +294,9 @@ exception:
 restart:
 	mov	esp, [p_proc_ready]
 	lldt	[esp + P_LDT_SEL] 
-	lea	eax, [esp + P_STACKTOP]
-	mov	dword [tss + TSS3_S_SP0], eax	; 配置TSS中的ESP0为当前进程的栈顶，当前进程的堆栈选择子SS0已经在初始化的时候配置好了
-
+	lea	eax, [esp + P_STACKTOP]			; “P_STACKTOP”的值和“P_LDT_SEL”是一样的，代表“STACK_FRAME”的尾地址
+	mov	dword [tss + TSS3_S_SP0], eax	; 配置TSS中的ESP0为要切换进程的进程表项中“STACK_FRAME”结构的尾部(栈顶)，当前进程的堆栈选择子SS0已经在初始化的时候配置好了
+													; 这样，当发生ring1->ring0的转移时，ring0的程序会得到进程表中的“STACK_FRAME”结构做位栈，以便保存ring1的寄存器
 	pop	gs
 	pop	fs
 	pop	es
