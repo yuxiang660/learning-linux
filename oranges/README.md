@@ -1054,3 +1054,47 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 	iretd
 ```
 
+### 加入内核栈
+刚进入中断处理程序时，esp指向的是进程表。进程表只是用于保护现场，不能当作正常的栈进程操作。因此，我们需要在执行真正的中断处理程序时，切换堆栈，将esp指向另外的位置。并在结束前，切回到进程表，以进行现场恢复。
+* ["hwint00"](./code/process/int/kernel/kernel.final.asm)展示了一个完整的中断处理程序
+   ```nasm
+   ALIGN	16
+   hwint00:		; Interrupt routine for irq 0 (the clock).
+      sub	esp, 4
+      pushad		; `.
+      push	ds	;  |
+      push	es	;  | 保存原寄存器值
+      push	fs	;  |
+      push	gs	; /
+      mov	dx, ss
+      mov	ds, dx
+      mov	es, dx
+      
+      mov	esp, StackTop		; 切到内核栈
+
+      inc	byte [gs:0]		; 改变屏幕第 0 行, 第 0 列的字符
+
+      mov	al, EOI			; `. reenable
+      out	INT_M_CTL, al		; /  master 8259
+      
+      push	clock_int_msg
+      call	disp_str
+      add	esp, 4
+      
+      mov	esp, [p_proc_ready]	; 离开内核栈
+
+      lea	eax, [esp + P_STACKTOP]
+      mov	dword [tss + TSS3_S_SP0], eax
+
+      pop	gs	; `.
+      pop	fs	;  |
+      pop	es	;  | 恢复原寄存器值
+      pop	ds	;  |
+      popad		; /
+      add	esp, 4
+
+      iretd
+   ```
+
+此中断处理程序，会在屏幕上打印`^`符号。加上进程A会隔段时间打印字符`A0x0...`，[int_final](./code/process/int)程序运行的结果如下：<br>
+![ring1_to_ring0_result](./pictures/ring1_to_ring0_result.png)
