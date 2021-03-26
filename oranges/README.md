@@ -1109,6 +1109,124 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 
 [代码](./code/process/reenter)虽然执行现象和前面的程序没有区别，但是此时在中断处理函数已经支持了，接收其他中断了。
 
-
 ## 多进程
+在完成了上面的程序后，我们可以很容易实现两个进程切换运行。例子["multi_proc"](./code/process/mult_proc)就实现了进程A和进程B通过时钟中断处理程序不断切换，打印字符。在这个程序中，我们主要关注几件事情：进程体、进程表、GDT、TSS、LDT和进程调度。
+
+### 进程体
+* [main.c](./code/process/mult_proc/kernel/main.c)添加了一个新的进程体`TestB`
+   ```c
+   void TestB()
+   {
+      int i = 0x1000;
+      while(1){
+         disp_str("B");
+         disp_int(i++);
+         disp_str(".");
+         delay(1);
+      }
+   }
+   ```
+
+### 进程表
+[main.c](./code/process/mult_proc/kernel/main.c)通过一个`For`循环初始化各进程的在进程表中的内容。在初始化进程表时，我们借助了一个数据结构`TASK`将每个进程不同的内容(程序体，栈大小，程序名)抽取出来，以便于初始化操作。
+* TASK结构体定义如下：
+   ```c
+   typedef struct s_task {
+      task_f	initial_eip;
+      int	stacksize;
+      char	name[32];
+   }TASK;
+   ```
+* 借助TASK结构体，初始化进程表的代码如下：
+   ```c
+   PUBLIC int kernel_main()
+   {
+      ...
+      TASK*		p_task		= task_table;
+      PROCESS*	p_proc		= proc_table;
+      char*		p_task_stack	= task_stack + STACK_SIZE_TOTAL;
+      u16		selector_ldt	= SELECTOR_LDT_FIRST;
+      int i;
+      for (i=0; i < NR_TASKS; i++) {
+         ...
+         p_proc->ldt_sel = selector_ldt;
+         ...
+         p_proc->regs.eip = (u32)p_task->initial_eip;
+         p_proc->regs.esp = (u32)p_task_stack;
+         ...
+         p_task_stack -= p_task->stacksize;
+         p_proc++;
+         p_task++;
+         selector_ldt += 1 << 3;
+      }
+      ...
+   }
+   ```
+
+### LDT和GDT
+在初始化进程表时，我们发现不仅`TASK`结构体里的内容每个进程不一样，每个进程的LDT选择子也是不同的。LDT的内容是每个进程私有的，我们刚进入内核时的`cstart`函数中，就为所有进程建立了LDT表，并将描述符加入到GDT中(有几个进程，GDT中就有几个LDT描述符)。当进程切换时，需要重新加载ldtr。
+```c
+// 填充 GDT 中进程的 LDT 的描述符
+int i;
+PROCESS* p_proc	= proc_table;
+u16 selector_ldt = INDEX_LDT_FIRST << 3;
+for(i=0; i < NR_TASKS; i++){
+   init_descriptor(&gdt[selector_ldt>>3],
+         vir2phys(seg2phys(SELECTOR_KERNEL_DS),
+            proc_table[i].ldts),
+         LDT_SIZE * sizeof(DESCRIPTOR) - 1,
+         DA_LDT);
+   p_proc++;
+   selector_ldt += 1 << 3;
+}
+```
+
+### TSS和进程调度
+在从ring0到低权限进程切换时，需要保证TSS中的tss.esp0指向了要转移进程的进程表现场保护空间，以便在以后从此进程转移到ring0时，可以保存此进程的现场到其程序表中。
+
+下面是进程调度的C代码，其最主要的目的是改变`p_proc_ready`指针的值，使其指向要切换进程的进程表项。
+```c
+PUBLIC void clock_handler(int irq)
+{
+   disp_str("#");
+   p_proc_ready++;
+   if (p_proc_ready >= proc_table + NR_TASKS)
+      p_proc_ready = proc_table;
+}
+```
+得到要切换进程的进程表项指针`p_proc_ready`后，我们还需要：
+* 加载LDT到段寄存器
+* 设置tss.eps0到要切换进程的现场保护数据结构
+* 从要切换进程的现场保护数据结构种弹出相关寄存器
+* 通过`iretd`指令完成切换
+```nasm
+	sti
+	
+	push	0
+	call	clock_handler
+	add	esp, 4
+	
+	cli
+	
+	mov	esp, [p_proc_ready]	; 离开内核栈
+	lldt	[esp + P_LDT_SEL]
+	lea	eax, [esp + P_STACKTOP]
+	mov	dword [tss + TSS3_S_SP0], eax
+
+.re_enter:	; 如果(k_reenter != 0)，会跳转到这里
+	dec	dword [k_reenter]
+	pop	gs	; `.
+	pop	fs	;  |
+	pop	es	;  | 恢复原寄存器值
+	pop	ds	;  |
+	popad		; /
+	add	esp, 4
+
+	iretd
+```
+
+### 运行程序
+最终，我们可以得到交替运行的进程A和进程B，结果如下：<br>
+![mult_proc_result](./pictures/mult_proc_result.png)
+
 
