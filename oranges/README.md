@@ -970,13 +970,13 @@ iretd
 ### 配置时钟中断
 我们需要做两件事情：
 * 代开中断控制权的时钟中断
-   * ["i8259.c"](./code/process/int/kernel/i8259.c)在配置8259时，开启了主控的时钟中断
+   * ["i8259.c"](./code/process/ring1_to_0/kernel/i8259.c)在配置8259时，开启了主控的时钟中断
    ```c
    out_byte(INT_M_CTLMASK,	0xFE);	// Master 8259, OCW1. 打开时钟中断
    out_byte(INT_S_CTLMASK,	0xFF);	// Slave  8259, OCW1.
    ```
 * 设置EOI
-   * ["kernel1.asm"](./code/process/int/kernel/kernel1.asm)的IRQ0时钟中断程序设置了EOI，因此中断可以不停地发生
+   * ["kernel1.asm"](./code/process/ring1_to_0/kernel/kernel1.asm)的IRQ0时钟中断程序设置了EOI，因此中断可以不停地发生
    ```nasm
    ALIGN	16
    hwint00:		; Interrupt routine for irq 0 (the clock).
@@ -994,7 +994,7 @@ iretd
 目的：在执行中断处理程序前，将进程A当前的所有寄存器的值保存到进程表对应的数据结构中
 
 从ring1到ring0转移，系统会自动从TSS中获取esp0和ss0的值(具体过程，请参加前面的章节)。因此，首先我们需要知道，在发生中断之前，TSS中的tss.esp0和tss.ss0是什么值。
-* ["restart"](./code/process/int/kernel/kernel.final.asm)函数在执行进程A之前，已经将tss.esp0设置为进程A在进程表中`STACK_FRAME`结构的尾部，作为中断程序现场保护的栈
+* ["restart"](./code/process/ring1_to_0/kernel/kernel.final.asm)函数在执行进程A之前，已经将tss.esp0设置为进程A在进程表中`STACK_FRAME`结构的尾部，作为中断程序现场保护的栈
    ```nasm
    restart:
       mov	esp, [p_proc_ready]
@@ -1002,7 +1002,7 @@ iretd
       lea	eax, [esp + P_STACKTOP]       ; P_STACKTOP的值和P_LDT_SEL是一样的，代表STACK_FRAME的尾地址
       mov	dword [tss + TSS3_S_SP0], eax ; 当发生ring1->ring0的转移时，ring0的程序会得到进程表中的STACK_FRAME结构作为栈进程现场保护
    ```
-* ["init_prot"](./code/process/int/kernel/protect.c)函数在初始化阶段，已经配置好了tss.ss0的值
+* ["init_prot"](./code/process/ring1_to_0/kernel/protect.c)函数在初始化阶段，已经配置好了tss.ss0的值
    ```c
    PUBLIC void init_prot() {
       ...
@@ -1015,7 +1015,7 @@ iretd
 tss.esp0和tss.ss0配置好后，发生时钟中断。通过前的章节，我们可知，有特权级变化的中断发生时，系统会自动压栈`eip`,`cs`,`eflags`, `esp`, `ss`(可能还有`ErrorCode`)到tss.esp0和tss.ss0(假设转移到ring0)指向的栈中。因此当进入中断后，esp已经指向了`s_stackframe`结构中的`retaddr`位置。
 
 下面，我们开始保护进程A的现场:
-* [中断处理函数"hwint00"](./code/process/int/kernel/kernel4.asm)要做的第一件事情就是将当前的所有寄存器保存到进程A在进程表中相应的数据结构中
+* [中断处理函数"hwint00"](./code/process/ring1_to_0/kernel/kernel4.asm)要做的第一件事情就是将当前的所有寄存器保存到进程A在进程表中相应的数据结构中
    ```nasm
    ALIGN	16
    hwint00:		; Interrupt routine for irq 0 (the clock).
@@ -1056,7 +1056,7 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
 
 ### 加入内核栈
 刚进入中断处理程序时，esp指向的是进程表。进程表只是用于保护现场，不能当作正常的栈进程操作。因此，我们需要在执行真正的中断处理程序时，切换堆栈，将esp指向另外的位置。并在结束前，切回到进程表，以进行现场恢复。
-* ["hwint00"](./code/process/int/kernel/kernel.final.asm)展示了一个完整的中断处理程序
+* ["hwint00"](./code/process/ring1_to_0/kernel/kernel.final.asm)展示了一个完整的中断处理程序
    ```nasm
    ALIGN	16
    hwint00:		; Interrupt routine for irq 0 (the clock).
@@ -1096,5 +1096,5 @@ hwint00:		; Interrupt routine for irq 0 (the clock).
       iretd
    ```
 
-此中断处理程序，会在屏幕上打印`^`符号。加上进程A会隔段时间打印字符`A0x0...`，[int_final](./code/process/int)程序运行的结果如下：<br>
+此中断处理程序，会在屏幕上打印`^`符号。加上进程A会隔段时间打印字符`A0x0...`，[ring1_to_0](./code/process/ring1_to_0)程序运行的结果如下：<br>
 ![ring1_to_ring0_result](./pictures/ring1_to_ring0_result.png)
