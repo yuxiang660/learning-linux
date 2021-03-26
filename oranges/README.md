@@ -1229,4 +1229,63 @@ PUBLIC void clock_handler(int irq)
 最终，我们可以得到交替运行的进程A和进程B，结果如下：<br>
 ![mult_proc_result](./pictures/mult_proc_result.png)
 
+添加一个任务的步骤如下：
+* 在task_table种增加一项(global.c)
+* 让NR_TASKS加1(proc.h)
+* 定义任务堆栈(proc.h)
+* 修改STACK_SIZE_TOTAL(proc.h)
+* 添加新任务执行体的函数声明(proto.h)
 
+### 如何通用化中断处理程序？
+["mult_proc_clean"](./code/process/mult_proc_clean)整理了上面的程序，将中断处理程序通用化成如下形式：
+```nasm
+; 中断和异常 -- 硬件中断
+; ---------------------------------
+%macro	hwint_master	1
+	call	save
+	in	al, INT_M_CTLMASK       ; `.
+	or	al, (1 << %1)		      ;  | 屏蔽当前中断
+	out	INT_M_CTLMASK, al	   ; /
+	mov	al, EOI			      ; `. 置EOI位
+	out	INT_M_CTL, al		   ; /
+	sti	                     ; CPU在响应中断的过程中会自动关中断，这句之后就允许响应新的中断
+	push	%1			            ; `.
+	call	[irq_table + 4 * %1]	;  | 中断处理程序
+	pop	ecx			         ; / 压出程序调用前压入的%1
+	cli
+	in	al, INT_M_CTLMASK	      ; `.
+	and	al, ~(1 << %1)		   ;  | 恢复接受当前中断
+	out	INT_M_CTLMASK, al	   ; /
+	ret
+%endmacro
+```
+* `save`函数
+   * `save`函数有点类似python的装饰器，完成了对现场的保护和恢复的工作
+   * 由于`save`执行时可能会改变栈空间，所以不能用`ret`返回，只能通过jmp地址返回：`jmp [eax + RETADR - P_STACKBASE]`，`[eax + RETADR - P_STACKBASE]`是在`call save`的时候被压入的
+   * 在`save`函数完成现场保护后，esp指向了进程表的起始地址：
+      * 如果中断非重入，切换栈空间，并将`restart`压栈，以供中断程序`ret`时调用
+      * 如果中断重入，不切换栈空间，直接将`restart_reenter`压栈，供中断程序`ret`调用(?这里好像用来非法的栈空间来存储`restart_reenter`?)
+   ```
+   save:
+         pushad          ; `.
+         push    ds      ;  |
+         push    es      ;  | 保存原寄存器值
+         push    fs      ;  |
+         push    gs      ; /
+         mov     dx, ss
+         mov     ds, dx
+         mov     es, dx
+
+         mov     eax, esp                    ;eax = 进程表起始地址
+
+         inc     dword [k_reenter]           ;k_reenter++;
+         cmp     dword [k_reenter], 0        ;if(k_reenter ==0)
+         jne     .1                          ;{
+         mov     esp, StackTop               ;  mov esp, StackTop <--切换到内核栈
+         push    restart                     ;  push restart
+         jmp     [eax + RETADR - P_STACKBASE];  return;
+   .1:                                         ;} else { 已经在内核栈，不需要再切换
+         push    restart_reenter             ;  push restart_reenter
+         jmp     [eax + RETADR - P_STACKBASE];  return;
+                                             ;}
+   ```
