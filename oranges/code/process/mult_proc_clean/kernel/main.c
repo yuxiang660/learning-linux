@@ -61,7 +61,7 @@ PUBLIC int kernel_main()
 		selector_ldt += 1 << 3;
 	}
 
-	k_reenter = 0;
+	k_reenter = 0;	//不同于前面的程序(前面是-1)，因为restart()函数会先将k_reenter减一，这样进入中断函数加1后就变为0了
 
 	p_proc_ready	= proc_table;
 

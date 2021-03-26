@@ -1289,3 +1289,8 @@ PUBLIC void clock_handler(int irq)
          jmp     [eax + RETADR - P_STACKBASE];  return;
                                              ;}
    ```
+* 由于中断程序屏蔽了当前中断，所以可重入标记`k_reenter`值都是零，并不会打印`!`符号
+* 三个进程切换的运行结果如下<br>
+   ![mult_proc_clean_result](./pictures/mult_proc_clean_result.png)
+   * 为什么ABC打印的顺序不一致？
+      * 虽然中断程序切换顺序都是按"A->B->C->A->B->C->A..."这样的顺序切换的，但是有可能切换过去的时候程序A还在delay，等下一个中断到来时，delay还没有结束，所以打印字符就延时到下一次切换了
