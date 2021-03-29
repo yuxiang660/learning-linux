@@ -1294,3 +1294,7 @@ PUBLIC void clock_handler(int irq)
    ![mult_proc_clean_result](./pictures/mult_proc_clean_result.png)
    * 为什么ABC打印的顺序不一致？
       * 虽然中断程序切换顺序都是按"A->B->C->A->B->C->A..."这样的顺序切换的，但是有可能切换过去的时候程序A还在delay，等下一个中断到来时，delay还没有结束，所以打印字符就延时到下一次切换了
+* 程序流程如下<br>
+![orange_process](./pictures/orange_process.png)
+## 系统调用
+
