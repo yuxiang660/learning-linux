@@ -3,6 +3,10 @@
       "*.qel": "tcl",
       "*.regtest": "shellscript",
       "*.cust": "makefile",
-      "global.h": "c"
+      "global.h": "c",
+      "array": "cpp",
+      "string_view": "cpp",
+      "initializer_list": "cpp",
+      "utility": "cpp"
    }
 }
