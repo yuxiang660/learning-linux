@@ -1296,5 +1296,39 @@ PUBLIC void clock_handler(int irq)
       * 虽然中断程序切换顺序都是按"A->B->C->A->B->C->A..."这样的顺序切换的，但是有可能切换过去的时候程序A还在delay，等下一个中断到来时，delay还没有结束，所以打印字符就延时到下一次切换了
 * 程序流程如下<br>
 ![orange_process](./pictures/orange_process.png)
-## 系统调用
 
+## 系统调用
+系统调用需要解决两个问题(参考[代码](./code/sys_call))：
+* 如何通过一个中断向量，执行不同的系统函数？
+   * 建立一张系统调用表，通过eax传递用户要调用的系统函数的在系统调用表中的索引，需要确保eax在使用前保持不变。
+* 如何得到系统调用的返回值？
+   * C函数的int类型返回值，在函数结束后，存于eax。因此，可在函数结束时，将eax的值放在进程表中eax的位置，以便进程被恢复时eax中装的是正确的返回值。
+
+`sys_call`的实现：<br>
+```nasm
+sys_call:
+   call    save
+   sti
+   call    [sys_call_table + eax * 4]
+   mov     [esi + EAXREG - P_STACKBASE], eax
+   cli
+   ret
+```
+
+往IDT中添加系统调用中断门：<br>
+```c
+init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, PRIVILEGE_USER);
+```
+
+往`sys_call_table`中添加系统调用：<br>
+```c
+PUBLIC system_call sys_call_table[NR_SYS_CALL] = {sys_get_ticks};
+```
+
+用户调用：<br>
+```nasm
+get_ticks:
+	mov	eax, _NR_get_ticks   ;_NR_get_ticks等于零
+	int	INT_VECTOR_SYS_CALL
+	ret
+```
