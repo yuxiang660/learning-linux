@@ -1426,4 +1426,46 @@ Minix只有3个系统调用：send、receive和sendrec，并以此为基础建�
       enable_irq(KEYBOARD_IRQ);                       /*开键盘中断*/
    }
    ```
-* 从
+* 键盘中断处理函数
+   * 从8042的0x60端口读取扫描码
+      * `in_byte(0x60)`可读取8位数据
+      * 每次按键都会产生一个Make Code(按下或保持)和一个Break Code(弹起)，一共产生2次中断
+      * 下面的代码会打印十六进制数字，一次按键打印两个8位十六进制的数字，如：按下a键，会出现:`0x1E0x9E`
+      ```c
+      PUBLIC void keyboard_handler(int irq)
+      {
+         u8 scan_code = in_byte(KB_DATA);
+         disp_int(scan_code);
+      }
+      ```
+      * 扫描码总共有三套，分别是：
+         * Scan code set 1 (8042编码)
+            * [编码表](http://users.utcluj.ro/~baruch/sie/labor/PS2/Scan_Codes_Set_1.htm)中，`0x1E`对应的就是按键a的Make Code
+         * Scan code set 2
+         * Scan code set 3
+   * 为了让中断函数尽量简单，将读取的扫描码存入列表`kb_in`，在中断函数之外处理
+      ```c
+      PUBLIC void keyboard_handler(int irq)
+      {
+         u8 scan_code = in_byte(KB_DATA);
+
+         if (kb_in.count < KB_IN_BYTES) {
+            *(kb_in.p_head) = scan_code;
+            kb_in.p_head++;
+            if (kb_in.p_head == kb_in.buf + KB_IN_BYTES) {
+               kb_in.p_head = kb_in.buf;
+            }
+            kb_in.count++;
+         }
+      }
+      ```
+* 通过任务`task_tty`解析键盘列表中的扫描码，并打印在屏幕上
+   ```c
+   PUBLIC void task_tty()
+   {
+      while (1) {
+         keyboard_read();
+      }
+   }
+   ```
+   * 解析过程是通过[keymap](./code/io/keyboard/include/keymap.h)实现的
