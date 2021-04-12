@@ -1336,4 +1336,63 @@ PUBLIC void clock_handler(int irq)
 ### Minix的系统调用
 Minix只有3个系统调用：send、receive和sendrec，并以此为基础建立了一套消息机制，需要系统支持的功能都是通过这套消息机制来实现的。所以，很显然Minix是微内核。上面的例子中，`get_ticks`直接用系统调用来实现，看上去与Minix不同，更像Linux的宏内核的样子。
 
+## 进程调度
+通过修改进程调度函数，并在进程表中为每个进程添加优先级标志，可实现简易的进程调度。
+* 在进程表中添加`ticks`和`priority`
+   ```c
+   typedef struct s_proc {
+      STACK_FRAME regs;          /* process registers saved in stack frame */
 
+      u16 ldt_sel;               /* gdt selector giving ldt base and limit */
+      DESCRIPTOR ldts[LDT_SIZE]; /* local descriptors for code and data */
+
+      int ticks;                 /* remained ticks */
+      int priority;
+
+      u32 pid;                   /* process id passed in from MM */
+      char p_name[16];           /* name of the process */
+   }PROCESS;
+   ```
+* 修改调度函数
+   ```c
+   // clock.c
+   PUBLIC void clock_handler(int irq)
+   {
+      ticks++;
+      p_proc_ready->ticks--;
+
+      if (k_reenter != 0) {
+         return;
+      }
+
+      if (p_proc_ready->ticks > 0) {
+         return;
+      }
+
+      schedule();
+
+   }
+   // proc.c
+   PUBLIC void schedule()
+   {
+      PROCESS* p;
+      int	 greatest_ticks = 0;
+
+      while (!greatest_ticks) {
+         for (p = proc_table; p < proc_table+NR_TASKS; p++) {
+            if (p->ticks > greatest_ticks) {
+               greatest_ticks = p->ticks;
+               p_proc_ready = p;
+            }
+         }
+
+         if (!greatest_ticks) {
+            for (p = proc_table; p < proc_table+NR_TASKS; p++) {
+               p->ticks = p->priority;
+            }
+         }
+      }
+   }
+   ```
+* 实验结果如下<br>
+   ![scheduler_results](./pictures/scheduler_results.png)
