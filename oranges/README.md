@@ -1399,4 +1399,31 @@ Minix只有3个系统调用：send、receive和sendrec，并以此为基础建�
 
 # 输入/输出系统
 
+## 键盘
 
+### 键盘是如何工作的？
+![keyboard_control](./pictures/keyboard_control.png)
+* 键盘编码器
+   * 位于键盘中
+   * 用于监视键盘的输入，并把适当的数据传送给计算机
+* 键盘控制器
+   * 位于计算机主板上
+   * 用于接收和解码来自键盘的数据，并于8259A进行通信
+
+敲击键盘有两方面的含义：动作和内容。动作可分为三类：按下、保持按住的状态以及放开；内容则是键盘上不同的键。因此，8048的编码，既要反映按键的动作，又要反映按键的内容。
+
+### 如何读取键盘按键并显示按键内容？
+[代码-keyboard](./code/io/keyboard)实现了对键盘按键内容的显示，实验结果如下：<br>
+![keyboard_result](./pictures/keyboard_result.png)
+
+为了实现对键盘的支持，主要需要做以下的事情：
+* 配置键盘中断
+   * 8259A的IRQ1对应的是键盘，因此修改中断向量表中IRQ1对应的处理函数为`keyboard_handler`，并开启键盘中断
+   ```c
+   PUBLIC void init_keyboard()
+   {
+      put_irq_handler(KEYBOARD_IRQ, keyboard_handler);/*设定键盘中断处理程序*/
+      enable_irq(KEYBOARD_IRQ);                       /*开键盘中断*/
+   }
+   ```
+* 从
