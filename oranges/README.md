@@ -1482,3 +1482,18 @@ Minix只有3个系统调用：send、receive和sendrec，并以此为基础建�
    ![disp_2bytes](./pictures/disp_2bytes.png)
 * 字符属性位颜色详解<br>
    ![disp_color](./pictures/disp_color.png)
+* VGA寄存器<br>
+   ![vga_registers](./pictures/vga_registers.png)
+* CRT Controller Data Registers<br>
+   ![crt_data_registers](./pictures/crt_data_registers.png)
+   * 例子[cursor](./code/io/cursor)就诠释了如何利用VGA寄存器，控制光标的位置，其主要代码如下：
+   ```c
+   disable_int();
+   out_byte(CRTC_ADDR_REG, CURSOR_H);
+   out_byte(CRTC_DATA_REG, ((disp_pos/2)>>8)&0xFF);
+   out_byte(CRTC_ADDR_REG, CURSOR_L);
+   out_byte(CRTC_DATA_REG, (disp_pos/2)&0xFF);
+   enable_int();
+   ```
+   * 此例子的运行结果如下：<br>
+      ![cursor_result](./pictures/cursor_result.png)
