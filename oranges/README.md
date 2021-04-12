@@ -1396,3 +1396,7 @@ Minix只有3个系统调用：send、receive和sendrec，并以此为基础建�
    ```
 * 实验结果如下<br>
    ![scheduler_results](./pictures/scheduler_results.png)
+
+# 输入/输出系统
+
+
