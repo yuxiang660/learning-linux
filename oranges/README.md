@@ -1469,3 +1469,16 @@ Minix只有3个系统调用：send、receive和sendrec，并以此为基础建�
    }
    ```
    * 解析过程是通过[keymap](./code/io/keyboard/include/keymap.h)实现的
+
+## 显示器
+
+### 初识TTY
+![tty](./pictures/tty.png)
+
+对于不同的TTY，我们可以理解成上图的样式。虽然不同的TTY对应的输入设备是同一个键盘，但输出却好比是在不同的显示器上，因为不同的TTY对应的屏幕画面可能是迥然不同的。实际上，我们当然是在使用同一个显示器，画面的不同只不过是因为显示了显存的不同位置罢了。那么，如何在切换CONSOLE的瞬间，让屏幕显示显存中某个位置的内容？
+
+### 基本概念
+* 屏幕上每个字符对应的2字节<br>
+   ![disp_2bytes](./pictures/disp_2bytes.png)
+* 字符属性位颜色详解<br>
+   ![disp_color](./pictures/disp_color.png)
