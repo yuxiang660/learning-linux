@@ -1304,31 +1304,36 @@ PUBLIC void clock_handler(int irq)
 * 如何得到系统调用的返回值？
    * C函数的int类型返回值，在函数结束后，存于eax。因此，可在函数结束时，将eax的值放在进程表中eax的位置，以便进程被恢复时eax中装的是正确的返回值。
 
-`sys_call`的实现：<br>
-```nasm
-sys_call:
-   call    save
-   sti
-   call    [sys_call_table + eax * 4]
-   mov     [esi + EAXREG - P_STACKBASE], eax
-   cli
-   ret
-```
+### 如何实现简单的系统调用？
+* `sys_call`的实现
+   ```nasm
+   sys_call:
+      call    save
+      sti
+      call    [sys_call_table + eax * 4]
+      mov     [esi + EAXREG - P_STACKBASE], eax
+      cli
+      ret
+   ```
+* 往IDT中添加系统调用中断门
+   ```c
+   init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, PRIVILEGE_USER);
+   ```
+* 往`sys_call_table`中添加系统调用
+   ```c
+   PUBLIC system_call sys_call_table[NR_SYS_CALL] = {sys_get_ticks};
+   ```
+* 用户调用
+   ```nasm
+   get_ticks:
+      mov	eax, _NR_get_ticks   ;_NR_get_ticks等于零
+      int	INT_VECTOR_SYS_CALL
+      ret
+   ```
+* 实验结果<br>
+   ![sys_call_results](./pictures/sys_call_results.png)
 
-往IDT中添加系统调用中断门：<br>
-```c
-init_idt_desc(INT_VECTOR_SYS_CALL, DA_386IGate, sys_call, PRIVILEGE_USER);
-```
+### Minix的系统调用
+Minix只有3个系统调用：send、receive和sendrec，并以此为基础建立了一套消息机制，需要系统支持的功能都是通过这套消息机制来实现的。所以，很显然Minix是微内核。上面的例子中，`get_ticks`直接用系统调用来实现，看上去与Minix不同，更像Linux的宏内核的样子。
 
-往`sys_call_table`中添加系统调用：<br>
-```c
-PUBLIC system_call sys_call_table[NR_SYS_CALL] = {sys_get_ticks};
-```
 
-用户调用：<br>
-```nasm
-get_ticks:
-	mov	eax, _NR_get_ticks   ;_NR_get_ticks等于零
-	int	INT_VECTOR_SYS_CALL
-	ret
-```
