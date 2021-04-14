@@ -6,7 +6,7 @@ run:
 run_lcd:
 	qemu-system-arm -sd vexpress.img -M vexpress-a9 -m 512M -kernel zImage -dtb vexpress-v2p-ca9.dtb  -append "init=/linuxrc root=/dev/mmcblk0p1 rw rootwait" -net nic -net user
 
-IMAGE_PATH := /home/yuxiangw/GitHub/linux/extra
+IMAGE_PATH := ../0_kernel_link/extra
 
 copy:
 	cp ${IMAGE_PATH}/zImage . && cp ${IMAGE_PATH}/vexpress.img .
