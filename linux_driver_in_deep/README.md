@@ -45,7 +45,7 @@
    vexpress-a15         ARM Versatile Express for Cortex-A15
    vexpress-a9          ARM Versatile Express for Cortex-A9
    ```
-* 从原书光盘中拷贝相关文件
+* 从上面内核编译的结果中，拷贝相关文件用于QEMU启动
    * [zImage](./code/env_arm/zImage)：linux kernel(v4.0-rc1)镜像
    * [vexpress.img](./code/env_arm/vexpress.img): 虚拟SD卡，将作为根文件系统的存放接指，它能以loop的形式被挂载，如挂载到"img"文件夹上：
       * `sudo mount -o loop,offset=$((2048*512)) vexpress.img img`
