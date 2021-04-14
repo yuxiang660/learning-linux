@@ -4,6 +4,31 @@
 * 《深入Linux设备驱动程序内核机制》(陈学松) - 2
 * 《Linux设备驱动开发详解：基于最新的Linux 4.0内核》(宋宝华) - 3
 
+# 搭建ARM-QEMU开发环境
+此文的开发环境参考了《Linux设备驱动开发详解：基于最新的Linux 4.0内核》的开发环境：QEMU模拟的vexpress Cortex-A9SMP四核处理器开发板。
+
+## 运行vexpress
+* 安装QEMU
+   * 在搜索引擎中寻找安装步骤，目的是使系统支持`qemu-system-arm`命令，如：`sudo apt update && sudo apt-get install qemu-system`
+   * 查看支持的ARM硬件种类：`qemu-system-arm -M help`
+   ```bash
+   vexpress-a15         ARM Versatile Express for Cortex-A15
+   vexpress-a9          ARM Versatile Express for Cortex-A9
+   ```
+* 从原书光盘中拷贝相关文件
+   * [zImage](./code/env_arm/zImage)：linux kernel(v4.0-rc1)镜像
+   * [vexpress.img](./code/env_arm/vexpress.img): 虚拟SD卡，将作为根文件系统的存放接指，它能以loop的形式被挂载，如挂载到"img"文件夹上：
+      * `sudo mount -o loop,offset=$((2048*512)) vexpress.img img`
+   * [vexpress-v2p-ca9.dtb](./code/env_arm/vexpress-v2p-ca9.dtb)
+      * vexpress-a9的设备树文件
+      * A "dtb" file contains a Device Tree Blob (or Binary)(nice description here). It's the new(er) way to pass hardware information about the board to the Linux kernel.
+* 运行vexpress
+   * [Makefile](./code/env_arm/Makefile)指定了两种启动方式，一个会在当前窗口打开，另一个会新启一个QEMU的窗口
+   * 运行结果如下：<br>
+      ![vexpress_result](./pictures/vexpress_result.png)
+
+
+
 # Linux设备驱动概述及开发环境构建 - 3
 ## 无操作系统是的设备驱动
 * 无操作系统时，设备驱动和应用软件，硬件的合理关系：<br>
