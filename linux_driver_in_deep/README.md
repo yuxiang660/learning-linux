@@ -7,6 +7,36 @@
 # 搭建ARM-QEMU开发环境
 此文的开发环境参考了《Linux设备驱动开发详解：基于最新的Linux 4.0内核》的开发环境：QEMU模拟的vexpress Cortex-A9SMP四核处理器开发板。
 
+## 安装交叉编译器"arm-linux-gnueabihf-gcc"
+由于《Linux设备驱动开发详解》是基于4.0-rc1内核版本的，因此交叉编译器的版本也不能太高。交叉编译器安装后，能得到如下结果：<br>
+![gnueabihf_gcc](./pictures/gnueabihf_gcc.png)
+
+### 如何在Ubuntu20上安装"arm-linux-gnueabihf-gcc-4.8"?
+可[参考链接](https://askubuntu.com/questions/1235819/ubuntu-20-04-gcc-version-lower-than-gcc-7)，步骤如下：
+* 添加gcc-4.8的源
+   * `sudo vim /etc/apt/sources.list`
+      ```bash
+      deb http://dk.archive.ubuntu.com/ubuntu/ xenial main
+      deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe
+      ```
+* 安装"arm-linux-gnueabihf-gcc-4.8"
+   * `sudo apt update`
+   * `sudo apt install gcc-4.8-arm-linux-gnueabihf-base gcc-4.8-arm-linux-gnueabihf -y`
+* 修改软链接"arm-linux-gnueabihf-gcc"
+   * `sudo ln -s /usr/bin/arm-linux-gnueabihf-gcc-4.8 /usr/bin/arm-linux-gnueabihf-gcc`
+
+## 编译vexpress的内核
+* 下载kernel代码
+   * `git clone https://github.com/torvalds/linux.git`
+* checkout "v4.0-rc1" kernel tag
+   * `git checkout v4.0-rc1`
+* 编译-[build.sh](./code/env_arm/build.sh)
+   * 编译内核 - zImage
+   * 编译模块 - modules
+   * 编译设备树 - dtbs
+* 更新模块并安装 - [module.sh](./code/env_arm/module.sh)
+   * 安装到根文件系统"vexpress.img"，此文件作为虚拟SD被QEMU模拟的vexpress启用
+
 ## 运行vexpress
 * 安装QEMU
    * 在搜索引擎中寻找安装步骤，目的是使系统支持`qemu-system-arm`命令，如：`sudo apt update && sudo apt-get install qemu-system`
