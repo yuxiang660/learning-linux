@@ -62,3 +62,9 @@ main_*
 *.obj
 *.OBJ
 *.lst
+
+# module
+.*.cmd
+*.ko
+*.symvers
+*.order
