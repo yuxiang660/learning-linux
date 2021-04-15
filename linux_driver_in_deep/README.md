@@ -57,7 +57,32 @@
    * 运行结果如下：<br>
       ![vexpress_result](./pictures/vexpress_result.png)
 
+## 编译第三方驱动
+目的：在ubuntu20上基于[Makefile](./code/hello/Makefile)编译驱动[hello.c](./code/hello/hello.c)
 
+### 如何基于kbuild编译第三方驱动?
+[kbuild](https://www.kernel.org/doc/html/latest/kbuild/modules.html)是linux内核的编译系统，所有内核的目标都通过kbuild得到。在编译第三方驱动前，需要先编译好内核，以保证相关配置文件已经准备好。Ubuntu20在`/lib/modules/<uname -r>/build`目录下已经有编译好的内核。因此，可通过以下命令编译第三方驱动。
+```bash
+make -C /lib/modules/`uname -r`/build M=$(PWD) modules
+```
+当然，也可以自己编译内核，让后基于自己编译的内核编译驱动，具体可参考[Makefile](./code/hello/Makefile)。
+
+### 如何编译Ubuntu20兼容的内核？
+前面我们编译了ARM的内核，同样我们可以编译x86的内核，以兼容Ubuntu系统。
+* 查看Ubuntu20的内核版本
+   * `uname -r`: "5.8.0-43-generic"
+* checkout对应版本的内核
+   * `git checkout v5.8`
+* 通过以下脚本编译x86内核
+   ```bash
+   export ARCH=x86
+   export EXTRADIR=${PWD}/extra
+   make x86_64_defconfig
+   make bzImage -j8
+   make modules -j8
+   cp arch/x86/boot/bzImage extra/
+   cp .config extra/
+   ```
 
 # Linux设备驱动概述及开发环境构建 - 3
 ## 无操作系统是的设备驱动

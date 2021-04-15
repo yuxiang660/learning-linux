@@ -9,7 +9,13 @@ obj-m += hello.o
 build: kernel_modules
 
 kernel_modules:
-	make -C $(KERNEL_PATH) M=$(CURDIR) modules
+	make -C /lib/modules/`uname -r`/build M=$(PWD) modules
 
 clean:
+	make -C /lib/modules/`uname -r`/build M=$(PWD) clean
+
+local_kernel_modules:
+	make -C $(KERNEL_PATH) M=$(CURDIR) modules
+
+local_clean:
 	make -C $(KERNEL_PATH) M=$(CURDIR) clean
