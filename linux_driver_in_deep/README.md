@@ -390,3 +390,12 @@ obj-$(CONFIG_TTY_PRINTK)   += ttyprintk.o
 * 目录层次的迭代
    * 例子：`obj-$(CONFIG_EXT2_FS) += ext2/`
       * 当CONFIG_EXT2_FS的值是y或m时，kbuild会把ext2目录也进行编译，寻找此文件夹下的Makefile。
+
+### Linux内核houhou
+![linux_boot](./pictures/linux_boot.png)
+
+* SoC厂商的bootrom引导Linux的bootloader
+* bootloader(如：U-Boot)引导内核镜像(如：zImage)，此过程可能会需要dtb设备树信息
+* 内核镜像自行解压，并被加载如内存后，唤醒其他CPU加载内核
+* 内核启动时会调用用户空间的init程序，如:busybox init, SysVinit, systemd
+* 最终整个系统启动，形成一个进程树
