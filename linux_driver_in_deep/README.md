@@ -51,6 +51,7 @@
       * `sudo mount -o loop,offset=$((2048*512)) vexpress.img img`
    * [vexpress-v2p-ca9.dtb](./code/env_arm/vexpress-v2p-ca9.dtb)
       * vexpress-a9的设备树文件
+      * 什么是设备树DTS，可参考此[文档](https://e-mailky.github.io/2019-01-14-dts-1)
       * A "dtb" file contains a Device Tree Blob (or Binary)(nice description here). It's the new(er) way to pass hardware information about the board to the Linux kernel.
 * 运行vexpress
    * [Makefile](./code/env_arm/Makefile)指定了两种启动方式，一个会在当前窗口打开，另一个会新启一个QEMU的窗口
@@ -256,5 +257,95 @@ CPLD(复杂可编程逻辑器件)由完全可编程的与或门阵列以及宏�
 * 快速通道
    * 用于内部信号的互连
 
-## 硬件时序分析
+# Linux内核及内核编程
 
+## Linux内核的组成
+
+### Linux内核源代码的目录结构
+* arch
+   * 包含和硬件体系结构相关的代码，存放各平台对Linux内核的进程调度、内存管理、中断等的支持
+* block
+   * 块设备驱动程序I/O调度
+* crypto
+   * 加密和散列算法，还有一些压缩和CRC校验算法
+* drivers
+   * 每个不同的驱动占用一个子目录，如char、block、net等
+* fs (操作系统-永久化)
+   * 各种文件系统，如EXT、FAT等
+* include
+   * 与系统相关的头文件放置在include/linux子目录下
+* init
+   * 内核初始化代码，如`start_kernel()`就位于init/main.c
+* ipc (操作系统-并发)
+   * 进程间通信的代码
+* kernel (操作系统-虚拟化CPU)
+   * 内核最核心的部分，包括进程调度、定时器等，而和平台相关的部分放在arch/*/kernel目录下
+* lib
+   * 库文件代码
+* mm (操作系统-虚拟化内存)
+   * 内存管理代码，和平台相关的放在arch/*/mm目录下
+* net
+   * 实现各种常见网络协议
+* script
+   * 用于配置内核的脚本文件
+* security
+   * SELinux的模块
+* sound
+   * ALSA、OSS音频设备的驱动核心代码和常用设备驱动
+* usr
+   * 实现用于打包和压缩的cpio等
+
+内核一般要做到drivers与arch的软件架构分离，驱动中不包含板级信息，让驱动跨平台。同时内核的通用部分(如kernel、fs、ipc、net等)则与具体的硬件(arch和drivers)剥离。
+
+### Linux内核的组成部分
+![linux_5_part](./pictures/linux_5_part.png)
+
+Linux内核主要由五个子系统组成：
+* 进程调度(SCHED)
+   * 其他子系统都依赖它
+* 内存管理(MM)<br>
+   ![mm](./pictures/mm.png)
+   * 网络接口不直接依赖内存管理
+* 虚拟文件系统(VFS)<br>
+   ![vfs](./pictures/vfs.png)
+   * 为上层的应用程序提供了统一的vfs_read()、vfs_write()等接口
+   * 并调用具体底层文件系统或者设备驱动中实现的`file_operations`结构体的成员函数
+   * 利用内存管理支持RAMDISK设备，利用网络接口支持网络文件系统NFS
+* 网络接口(NET)<br>
+   ![net](./pictures/net.png)
+   * 网络协议负责实现每一种可能的网络传输协议，如：Internet、NFC、CAN等协议
+   * 网络驱动程序负责与硬件设备通信，每种硬件设备都有相应的设备驱动程序
+* 进程间通信(IPC)
+
+### Linux内核的编译及加载
+
+配置内核的方法有：
+* `make config` - 基于文本的最为传统的配置界面
+* `make menuconfig` - 基于文本菜单的配置界面
+* `make xconfig` - 要求QT被安装
+* `make gconfig` - 要求GTK+被安装
+
+如果想使用默认配置，也可以通过`arch/xxx/configs/xxx_defconfig`中的默认配置，只需要运行`make ARCH=xxx xxx_defconfig`即可。例如`make ARCH=arm vexpress_defconfig`就配置了vexpress-arm板。内核配置的最终会在根目录下产生一个`.config`文件，用于内核编译。
+
+编译ARM内核和模块的方法是：
+* `make ARCH=arm zImage`
+* `make ARCH=arm modules`
+
+编译完后会出现以下文件：
+* 根目录下会得到未压缩的内核映像vmlinux和内核符号表文件System.map
+* 在arch/arm/boot目录下会得到压缩的内核映像zImage
+* 在内核各对应目录内得到选中的内核模块
+
+Linux内核的配置系统由以下3个部分组成：
+* Makefile
+   * 分布在Linux内核源代码中，定义Linux内核的编译规则
+* 配置文件Kconfig
+   * 给用户提供配置选择的功能
+* 配置工具
+   * 包括配置命令解释器和配置用户界面，都是脚本语言写的
+
+### 如何在Linux内核中增加程序?
+增加Linux内核程序需要：
+* 将编写的源代码复制到Linux内核源代码的相应目录中
+* 在目录的Kconfig文件中增加关于新源代码对应项目的编译配置选项
+* 在目录的Makefile文件中增加对新源代码的编译条目
