@@ -347,5 +347,46 @@ Linux内核的配置系统由以下3个部分组成：
 ### 如何在Linux内核中增加程序?
 增加Linux内核程序需要：
 * 将编写的源代码复制到Linux内核源代码的相应目录中
-* 在目录的Kconfig文件中增加关于新源代码对应项目的编译配置选项
-* 在目录的Makefile文件中增加对新源代码的编译条目
+* 在目录的`Kconfig`文件中增加关于新源代码对应项目的编译配置选项
+* 在目录的`Makefile`文件中增加对新源代码的编译条目
+
+### Kconfig
+`Kconfig`用于配置，定义相关变量给`Makefile`编译。下面是`TTY_PRINTK`的一部分配置：
+```
+config TTY_PRINTK
+	tristate "TTY driver to output user messages via printk"
+	depends on EXPERT && TTY
+	default n
+	help
+	  If you say Y here, the support for writing user messages (i.e.
+	  console messages) via printk is available.
+```
+其中，最主要的是`tristate`三态配置项：
+* 可编译入内核 - y
+* 可不编译 - n
+* 可编译为内核模块 - m
+
+这三个值会在Makefile中以`CONFiG_TTY_PRINTK`变量体现：
+```
+obj-$(CONFIG_TTY_PRINTK)   += ttyprintk.o
+```
+
+### Makefile
+内核的编译系统kbuild的Makefile有以下几种类型的目标：
+* 单文件目标
+   * 常见例子： `obj-$(CONFIG_FOO) += foo.o`
+   * `obj-y`表示该文件编译并链接进内核
+   * `obj-m`表示该文件要作为模块编译，生成xxx.ko
+   * `obj-n`表示目标不会被编译
+* 多文件模块目标
+   * `模块名-y`来定义模块的组成文件，
+   * 常见例子：
+      ```
+      obj-$(CONfiG_EXT2_FS) += ext2.o
+      ext2-y := balloc.o dir.o
+      ext2-$(CONfiG_EXT2_FS_XATTR) += xattr.o xattr_user.o
+      ```
+      * 上例中，模块名为ext2，由balloc.o, dir.o等多个文件生成ext2.o直至ext2.ko，并且是否包括xattr.o等取决于内核配置文件
+* 目录层次的迭代
+   * 例子：`obj-$(CONFIG_EXT2_FS) += ext2/`
+      * 当CONFIG_EXT2_FS的值是y或m时，kbuild会把ext2目录也进行编译，寻找此文件夹下的Makefile。
