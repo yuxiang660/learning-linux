@@ -15,6 +15,7 @@ make -C /lib/modules/`uname -r`/build M=$(PWD) modules
 当然，也可以自己编译内核，让后基于自己编译的内核编译驱动，具体可参考[Makefile](./code/hello/Makefile)。
 
 ## 编译运行hello驱动
+* 进入[hello目录](./code/hello)
 * 编译`make`
    * 输出hello.ko
 * 加载hello驱动
@@ -442,3 +443,6 @@ Linux模块具有这样的特点：
       ```
 * 加载模块：
    * `sudo insmod ./hello.ko`
+   * 可用dmesg查看加载信息
+* 卸载模块：
+   * `sudo rmmod ./hello.ko`
