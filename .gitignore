@@ -68,3 +68,4 @@ main_*
 *.ko
 *.symvers
 *.order
+*.mod.c

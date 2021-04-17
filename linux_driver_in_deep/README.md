@@ -4,6 +4,44 @@
 * 《深入Linux设备驱动程序内核机制》(陈学松) - 2
 * 《Linux设备驱动开发详解：基于最新的Linux 4.0内核》(宋宝华) - 3
 
+# 编译运行Linux驱动
+目的：在ubuntu20上基于[Makefile](./code/hello/Makefile)编译驱动[hello.c](./code/hello/hello.c)
+
+### 如何基于kbuild编译第三方驱动?
+[kbuild](https://www.kernel.org/doc/html/latest/kbuild/modules.html)是linux内核的编译系统，所有内核的目标都通过kbuild得到。在编译第三方驱动前，需要先编译好内核，以保证相关配置文件已经准备好。Ubuntu20在`/lib/modules/<uname -r>/build`目录下已经有编译好的内核。因此，可通过以下命令编译第三方驱动。
+```bash
+make -C /lib/modules/`uname -r`/build M=$(PWD) modules
+```
+当然，也可以自己编译内核，让后基于自己编译的内核编译驱动，具体可参考[Makefile](./code/hello/Makefile)。
+
+## 编译运行hello驱动
+* 编译`make`
+   * 输出hello.ko
+* 加载hello驱动
+   * `sudo insmod hello.ko`
+   * 查看加载信息：`dmesg`
+      * 在最后出现了：`[202496.365080] Hello World enter`
+* 卸载hello驱动
+   * `sudo rmmod hello.ko`
+   * 可能是由于虚拟机的原因，卸载的信息会在下一次加载hello驱动的时候，才出现在dmesg中
+
+### 如何编译Ubuntu20兼容的内核？
+前面我们编译了ARM的内核，同样我们可以编译x86的内核，以兼容Ubuntu系统。
+* 查看Ubuntu20的内核版本
+   * `uname -r`: "5.8.0-43-generic"
+* checkout对应版本的内核
+   * `git checkout v5.8`
+* 通过以下脚本编译x86内核
+   ```bash
+   export ARCH=x86
+   export EXTRADIR=${PWD}/extra
+   make x86_64_defconfig
+   make bzImage -j8
+   make modules -j8
+   cp arch/x86/boot/bzImage extra/
+   cp .config extra/
+   ```
+
 # 搭建ARM-QEMU开发环境
 此文的开发环境参考了《Linux设备驱动开发详解：基于最新的Linux 4.0内核》的开发环境：QEMU模拟的vexpress Cortex-A9SMP四核处理器开发板。
 
@@ -57,33 +95,6 @@
    * [Makefile](./code/env_arm/Makefile)指定了两种启动方式，一个会在当前窗口打开，另一个会新启一个QEMU的窗口
    * 运行结果如下：<br>
       ![vexpress_result](./pictures/vexpress_result.png)
-
-## 编译第三方驱动
-目的：在ubuntu20上基于[Makefile](./code/hello/Makefile)编译驱动[hello.c](./code/hello/hello.c)
-
-### 如何基于kbuild编译第三方驱动?
-[kbuild](https://www.kernel.org/doc/html/latest/kbuild/modules.html)是linux内核的编译系统，所有内核的目标都通过kbuild得到。在编译第三方驱动前，需要先编译好内核，以保证相关配置文件已经准备好。Ubuntu20在`/lib/modules/<uname -r>/build`目录下已经有编译好的内核。因此，可通过以下命令编译第三方驱动。
-```bash
-make -C /lib/modules/`uname -r`/build M=$(PWD) modules
-```
-当然，也可以自己编译内核，让后基于自己编译的内核编译驱动，具体可参考[Makefile](./code/hello/Makefile)。
-
-### 如何编译Ubuntu20兼容的内核？
-前面我们编译了ARM的内核，同样我们可以编译x86的内核，以兼容Ubuntu系统。
-* 查看Ubuntu20的内核版本
-   * `uname -r`: "5.8.0-43-generic"
-* checkout对应版本的内核
-   * `git checkout v5.8`
-* 通过以下脚本编译x86内核
-   ```bash
-   export ARCH=x86
-   export EXTRADIR=${PWD}/extra
-   make x86_64_defconfig
-   make bzImage -j8
-   make modules -j8
-   cp arch/x86/boot/bzImage extra/
-   cp .config extra/
-   ```
 
 # Linux设备驱动概述[3]
 ## 无操作系统是的设备驱动
@@ -399,3 +410,35 @@ obj-$(CONFIG_TTY_PRINTK)   += ttyprintk.o
 * 内核镜像自行解压，并被加载如内存后，唤醒其他CPU加载内核
 * 内核启动时会调用用户空间的init程序，如:busybox init, SysVinit, systemd
 * 最终整个系统启动，形成一个进程树
+
+# Linux内核模块
+
+## Linux内核模块简介
+Linux模块具有这样的特点：
+* 模块本身不被编译入内核映像，从而控制了内核的大小
+* 模块一旦被加载，它就和内核中的其他部分完全一样
+
+模块[Hello World例子](。/code/hello/hello.c)包含：
+* 内核模块加载函数`module_init`
+* 内核模块卸载函数`module_exit`
+* 对GPL v2许可权限的声明以及一些描述信息
+
+模块的编译、加载与卸载：
+* 编译模块
+   * `make -C /lib/modules/`uname -r`/build M=$(PWD) modules`
+   * 编译输出：`hello.ko`
+   * 打印模块信息：`modinfo hello.ko`，输出：
+      ```
+      filename:       hello.ko
+      alias:          a simplest module
+      description:    A simple Hello World Module
+      license:        GPL v2
+      author:         Barry Song <21cnbao@gmail.com>
+      srcversion:     081230411494509792BD4A3
+      depends:        
+      retpoline:      Y
+      name:           hello
+      vermagic:       5.8.0-43-generic SMP mod_unload
+      ```
+* 加载模块：
+   * `sudo insmod ./hello.ko`
