@@ -443,6 +443,20 @@ Linux模块具有这样的特点：
       ```
 * 加载模块：
    * `sudo insmod ./hello.ko`
-   * 可用dmesg查看加载信息
+   * 可通过dmesg查看加载信息
+   * 可通过lsmod查看所有已经加载的模块
 * 卸载模块：
    * `sudo rmmod ./hello.ko`
+
+## 模块参数
+我们可以用“module_param(参数名, 参数类型, 参数读写权限)”为模块定义一个参数，例如下面的代码定义了1个整型参数和1个字符指针参数：
+```
+static char *book_name = "dissecting Linux Device Driver";
+module_param(book_name, charp, S_IRUGO);
+static int book_num = 4000;
+module_param(book_num, int, S_IRUGO);
+```
+参数的类型可以是：byte、 short、 ushort、 int、 uint、 long、 ulong、 charp（字符指针）、 bool或invbool（布
+尔的反），在模块被编译时会将module_param中声明的类型与变量定义的类型进行比较，判断是否一致。
+
+以[book](./code/param/book.c)驱动为例，加载完此驱动后，可在/sys/module/book/parameters目录下生成一系列以参数名命名的文件节点，这些文件的权限值就是传入`module_param()`的“参数读写权限”，而文件的内容为参数的值。
