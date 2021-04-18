@@ -597,3 +597,99 @@ SUBSYSTEM="usb",ATTR{serial}="HXOLL0012202323480",NAME="lp_epson",SYMLINK+="prin
 ```
 该规则中的匹配项目有SUBSYSTEM和ATTR，赋值项目为NAME和SYMLINK，它意味着当一台USB打印机的序列号为“HXOLL0012202323480”时，创建/dev/lp_epson文件，并同时创建一个符号链接/dev/printers/epson_styles，从而固定了设备名。
 
+
+# 字符设备驱动
+## Linux字符设备驱动结构
+### cdev结构体
+```c
+struct cdev {
+   struct kobject kobj; /* 内嵌的kobject对象 */
+   struct module* owner; /* 所属模块*/
+   struct file_operations* ops; /* 文件操作结构体*/
+   struct list_head list;
+   dev_t dev; /* 设备号, 12位为主设备号，20位为次设备号 */
+   unsigned int count;
+};
+```
+其中，`file_operations`定义了字符设备驱动提供给虚拟文件系统的接口函数。
+
+Linux内核提供了一组函数以用于操作cdev结构体：
+```c
+void cdev_init(struct cdev *, struct file_operations *);
+struct cdev *cdev_alloc(void);
+void cdev_put(struct cdev *p);
+int cdev_add(struct cdev *, dev_t, unsigned);
+void cdev_del(struct cdev *);
+```
+
+* `cdev_init()`函数用于初始化cdev的成员，并建立cdev和file_operations之间的连接，其源代码如下：
+   ```c
+   void cdev_init(struct cdev *cdev, struct file_operations *fops)
+   {
+      memset(cdev, 0, sizeof *cdev);
+      INIT_LIST_HEAD(&cdev->list);
+      kobject_init(&cdev->kobj, &ktype_cdev_default);
+      cdev->ops = fops; /* 将传入的文件操作结构体指针赋值给cdev的ops*/
+   }
+   ```
+* `cdev_alloc()`函数用于动态申请一个cdev内存，其代码如下：
+   ```c
+   struct cdev *cdev_alloc(void)
+   {
+      struct cdev *p = kzalloc(sizeof(struct cdev), GFP_KERNEL);
+      if (p) {
+         INIT_LIST_HEAD(&p->list);
+         kobject_init(&p->kobj, &ktype_cdev_dynamic);
+      }
+      return p;
+   }
+   ```
+* `cdev_add()`函数和`cdev_del()`函数分别向系统添加和删除一个cdev，完成字符设备的注册和注销。对`cdev_add()`的调用通常发生在字符设备驱动模块加载函数中，而对`cdev_del()`函数的调用则通常发生在字符设备驱动模块卸载函数中。
+
+### 分配和释放设备号
+在调用`cdev_add()`函数向系统注册设备之前，应首先调用`register_chrdev_region()`或`alloc_chrdev_region()`函数向系统申请设备号，函数原型如下：
+```c
+int register_chrdev_region(dev_t from, unsigned count, const char *name);
+int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count, const char *name); //优点在于会自动避开设备号重复的冲突
+```
+
+相应地，在调用`cdev_del()`函数从系统注销字符设备之后，`unregister_chrdev_region()`应该被调用以释放原先申请的设备号，函数原型如下：
+```c
+void unregister_chrdev_region(dev_t from, unsigned count);
+```
+
+### file_operations结构体
+`file_operations`结构体中的成员函数是字符设备驱动程序设计的主体内容，这些函数实际会在应用程序进行Linux的open()、write()、read()、close()等系统调用时最终被内核调用，其定于如下：
+```c
+struct file_operations {
+   struct module *owner;
+   loff_t (*llseek) (struct file *, loff_t, int);
+   ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+   ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+   ssize_t (*aio_read) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+   ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+   int (*iterate) (struct file *, struct dir_context *);
+   unsigned int (*poll) (struct file *, struct poll_table_struct *);
+   long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+   long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+   int (*mmap) (struct file *, struct vm_area_struct *);
+   int (*open) (struct inode *, struct file *);
+   int (*flush) (struct file *, fl_owner_t id);
+   int (*release) (struct inode *, struct file *);
+   int (*fsync) (struct file *, loff_t, loff_t, int datasync);
+   int (*aio_fsync) (struct kiocb *, int datasync);
+   int (*fasync) (int, struct file *, int);
+   int (*lock) (struct file *, int, struct file_lock *);
+   ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+   unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long,
+unsigned long, unsigned long);
+   int (*check_flags)(int);
+   int (*flock) (struct file *, int, struct file_lock *);
+   ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+   ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+   int (*setlease)(struct file *, long, struct file_lock **);
+   long (*fallocate)(struct file *file, int mode, loff_t offset,
+   loff_t len);
+   int (*show_fdinfo)(struct seq_file *m, struct file *f);
+   ;
+```
