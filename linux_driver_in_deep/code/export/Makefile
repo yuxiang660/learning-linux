@@ -1,4 +1,4 @@
-MODULE_NAME := book
+MODULE_NAME := export_symb
 
 # Kernel modules
 obj-m += $(MODULE_NAME).o
@@ -15,10 +15,13 @@ clean:
 	make -C /lib/modules/`uname -r`/build M=$(PWD) clean
 
 install:
-	sudo insmod $(MODULE_NAME).ko book_name='good_book' book_num=1000
+	sudo insmod $(MODULE_NAME).ko
 
 uninstall:
 	sudo rmmod $(MODULE_NAME)
+
+show:
+	cat /proc/kallsyms | grep "add_integar\|sub_integar"
 
 
 

@@ -460,3 +460,21 @@ module_param(book_num, int, S_IRUGO);
 尔的反），在模块被编译时会将module_param中声明的类型与变量定义的类型进行比较，判断是否一致。
 
 以[book](./code/param/book.c)驱动为例，加载完此驱动后，可在/sys/module/book/parameters目录下生成一系列以参数名命名的文件节点，这些文件的权限值就是传入`module_param()`的“参数读写权限”，而文件的内容为参数的值。
+
+## 导出符号
+模块可以使用如下宏导出符号到内核符号表中，如例子[export_symb](./code/export/export_symb.c)所示：
+```c
+EXPORT_SYMBOL(符号名);
+EXPORT_SYMBOL_GPL(符号名); //只适用于包含GPL许可权的模块
+```
+
+## 模块声明与描述
+模块可以使用如下宏声明模块的作者、描述、版权、设备表和别名等信息：
+```c
+MODULE_AUTHOR(author);
+MODULE_DESCRIPTION(description);
+MODULE_VERSION(version_string);
+MODULE_DEVICE_TABLE(table_info);
+MODULE_ALIAS(alternate_name);
+```
+
