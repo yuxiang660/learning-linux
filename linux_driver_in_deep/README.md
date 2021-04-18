@@ -556,5 +556,44 @@ devfs与udev最大的区别在于：
 * udev的设计者认为Linux应该在设备被发现的时候加载驱动模块，而不是当它被访问的时候。系统中所有的设备都应该产生热插拔事件并加载恰当的驱动
 
 ### sysfs文件系统与Linux设备模型
-Linux2.6以后的内核引入了sysfs文件系统，其时一个虚拟的文件系统，被看成时与proc同类别的文件系统。它可以产生一个包括所有系统硬件的层级视图，与提供进程和状态信息的proc文件系统十分类似。
+Linux2.6以后的内核引入了sysfs文件系统，其时一个虚拟的文件系统，被看成时与proc同类别的文件系统。它可以产生一个包括所有系统硬件的层级视图，与提供进程和状态信息的proc、devfs文件系统十分类似。
+
+sysfs把连接在系统上的设备和总线组织成为一个分级的文件，他们可以由用户空间存取，向用户空间导出内核数据结构以及他们的属性。sysfs的一个目的就是展示设备驱动模型中各组件的层次关系，其顶级目录包括
+* block
+   * 包含所有的块设备
+* bus
+   * 包含系统中所有的总线类型
+   * 其pci等子目录下，又会分出drivers和devices目录
+      * devices目录中的文件是对/sys/devices目录中文件的符号连接
+* devices
+   * 包含系统所有的设备，并根据设备挂接的总线类型组织成层次结构
+* class
+   * 包含系统中的设备类型(如网卡设备、声卡设备、输入设备等)
+   * 其目录下也包含许多/sys/devices下文件的链接
+* module
+   * 包含设备驱动信息，lsmod所打印的加载了的驱动，都可以在这个文件夹中找到
+
+![sys_bus_devices_class](./pictures/sys_bus_devices_class.png)
+
+上图显示了Linux设备模型与设备、驱动、总线和类的对应关系。在Linux内核中分别表示为(代码参见：include/linux/device.h)：
+* `bus_type` - 总线
+* `device_driver` - 驱动
+   * 包含`bus_type`指针
+* `device` - 设备
+   * 包含`bus_type`指针
+
+在Linux内核中，设备和驱动时分开注册的。每个设备和驱动涌入内核的时候，都会去寻找自己的另一半，而正是bus_type的`match()`成员函数将两者捆绑在一起。一段设备和驱动配对成功，xxx_driver的`probe()`就被执行(xxx是总线名，如platform, pci等)。
+
+总线、驱动和设备都会落实为sysfs中的一个目录。各个attribute则落实为sysfs的1个文件，attribute会伴随着`show()`和`store()`这两个函数，分别用于读写该attribute对应的sysfs文件。
+
+### udev的工作过程
+udev的工作过程如下：
+* 当内核检测到系统中出现了新设备后，内核会通过netlink套接字发送uevent
+* udev获取内核发送的信息，进行规则的匹配。匹配的事务包括SUBSYSTEM、ACTION、attribute、内核提供的名称以及其他环境变量
+
+一个简单的例子可以看出udev和devfs在命名方面的差异。如果系统中有两个USB打印机，一个可能被称为/dev/usb/lp0，另一个便是/dev/usb/lp1。但是到底哪个文件对应哪个打印机是无法确定的，lp0、lp1和实际的设备没有一一对应的关系，映射关系会因为设备发现的顺序、打印机本身关闭等而不确定。因此，理想的方式是两个打印机应该采用基于它们的序列号或者其他标识信息的办法来进行确定的映射，devfs无法做到这一点，udev却可以做到。使用如下规则：
+```
+SUBSYSTEM="usb",ATTR{serial}="HXOLL0012202323480",NAME="lp_epson",SYMLINK+="printers/epson_stylus"
+```
+该规则中的匹配项目有SUBSYSTEM和ATTR，赋值项目为NAME和SYMLINK，它意味着当一台USB打印机的序列号为“HXOLL0012202323480”时，创建/dev/lp_epson文件，并同时创建一个符号链接/dev/printers/epson_styles，从而固定了设备名。
 
