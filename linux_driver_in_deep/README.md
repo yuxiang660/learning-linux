@@ -523,3 +523,38 @@ MODULE_ALIAS(alternate_name);
       * `file_operations`的实现位于文件系统内，文件系统会把针对文件的读写转换为针对块设备原始扇区的读写
       * ext2、fat、Btrfs等文件系统中会实现针对VFS的`file_operations`成员函数，设备驱动层将看不到file_operations的存在。在设备驱动程序的设计中，一般而言，会关心file和inode这两个结构体。相当于设备驱动层和VFS层中间加了一个文件系统层。
 
+## 设备文件系统devfs
+devfs(设备文件系统)是由Linux2.4内核引入的，它的出现使得设备驱动程序能自主地管理自己的设备文件，其有以下优点：
+* 可以通过程序在设备初始化时在/dev目录下创建设备文件，卸载设备时将它删除
+* 设备驱动程序可以指定设备名、所有者和权限位，用户空间程序仍可以修改所有者和权限位
+* 不再需要为设备驱动程序分配主设备号以及处理次设备号，在程序中可以直接给`register_chrdev()`传递0主设备号以获得可用的主设备号，并在`devfs_register()`中指定次设备号
+
+驱动程序调用下面这些函数来进行设备文件的创建和撤销工作：
+```c
+/* 创建设备目录 */
+devfs_handle_t devfs_mk_dir(devfs_handle_t dir, const char *name, void *info);
+/* 创建设备文件 */
+devfs_handle_t devfs_register(devfs_handle_t dir, const char *name, unsigned int flags, unsigned int major, unsigned int minor, umode_t mode, void *ops, void *info);
+/* 撤销设备文件 */
+void devfs_unregister(devfs_handle_t de);
+```
+
+## udev用户空间设备管理
+### udev与devfs的区别
+在Linux2.6中，用udev取代了devfs，原因是：
+* devfs所做的工作被确信可以在用户态来完成
+* devfs存在一些无法修复的bug
+
+udev完全在用户态工作，利用设备加入或移除时内核所发送的热插拔事件(Hotplug Event)来工作。
+* 在热插拔时，设备的详细信息会由内核通过`netlink`套接字发送出来，发出的事件叫`uevent`。
+* udev的设备命名策略、权限控制和事件处理都是在用户态下完成的，它利用从内核收到的信息来进行创建设备文件节点等工作
+
+对于冷插拔的设备(开机前就存在)，Linux内核提供了sysfs下面一个uevent节点，可以往该节点写一个“add”，导致内核重新发送netlink，之后udev就可以收到冷插拔的netlink消息了。
+
+devfs与udev最大的区别在于：
+* 当一个并不存在的/dev节点被打开时，devfs会自动加载对应的驱动，而udev不这么做
+* udev的设计者认为Linux应该在设备被发现的时候加载驱动模块，而不是当它被访问的时候。系统中所有的设备都应该产生热插拔事件并加载恰当的驱动
+
+### sysfs文件系统与Linux设备模型
+Linux2.6以后的内核引入了sysfs文件系统，其时一个虚拟的文件系统，被看成时与proc同类别的文件系统。它可以产生一个包括所有系统硬件的层级视图，与提供进程和状态信息的proc文件系统十分类似。
+

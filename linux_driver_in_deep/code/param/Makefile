@@ -20,5 +20,8 @@ install:
 uninstall:
 	sudo rmmod $(MODULE_NAME)
 
+show:
+	ls /sys/module/$(MODULE_NAME)
+
 
 
