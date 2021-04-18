@@ -478,3 +478,48 @@ MODULE_DEVICE_TABLE(table_info);
 MODULE_ALIAS(alternate_name);
 ```
 
+# Linux文件系统与设备文件
+
+## Linux文件系统
+* /bin
+   * 基本命令
+* /sbin
+   * 系统命令，如modprobe、hwclock、ifconfig等，大多是设计系统管理的命令
+* /dev
+   * 设备文件存储目录，应用程序通过对这些文件的读写和控制以访问实际的设备
+* /etc
+   * 系统配置文件的所在地，一些服务器的配置文件也在这里，如用户账号及密码配置文件。busybox的启动脚本也存放在该目录
+* /lib
+   * 系统库文件存放目录
+* /mnt
+   * /mnt这个目录一般是用于存放挂载存储设备的挂载目录，比如含有cdrom等目录
+* /opt
+   * opt是可选的意思，有些软件包会被安装在这里
+* /proc
+   * 操作系统运行时，进程及内核信息(比如CPU、硬盘分区、内存信息等)存放在这里。/proc目录为伪文件系统proc的挂载目录，proc并不是真正的文件系统，它存在于内存之中
+* /tmp
+   * 存放临时文件
+* /usr
+   * 这个是系统存放程序的目录，比如用户命令、用户库等
+* /var
+   * var表示变化的意思，这个目录的内容进程变动，如/var/log目录被用来存放系统日志
+* /sys
+   * Linux2.6以后的内核所支持的sysfs文件系统被映射在此目录上。Linux设备驱动模型中的总线、驱动和设备都可以在sysfs文件系统中找到对应的节点。当内核检测到在系统中出现了新设备后，内核会在sysfs文件系统中为该新设备生成一项新的记录。
+
+### Linux文件系统与设备驱动
+![fs_and_driver](./pictures/fs_and_driver.png)
+
+上图是Linux中虚拟文件系统VFS、磁盘文件系统及一般的设备文件与设备驱动之间的关系。
+* 应用程序和VFS之间的接口是系统调用
+* VFS与文件系统以及设备文件之间的接口是`file_operations`结构体成员函数，这个结构体包含对文件进行打开、关闭、读写、控制的一系列成员函数，关系如下图：<br>
+   * ![vfs_and_driver](./pictures/vfs_and_driver.png)
+* 字符设备
+   * 由于字符设备的上层没有类似于磁盘的ext2等文件系统，所以字符设备的`file_operations`成员函数就之恶杰由设备驱动提供了
+* 块设备的两种访问方法
+   * 不通过文件系统直接访问裸设备
+      * Linux内核实现了统一的`def_blk_fops`这一`file_operations`，源码位于"fs/block_dev.c"
+      * 当我们运行类似于`dd if=/dev/sdb1 of=sdb1.img`的命令把整个/dev/sdb1裸分区复制到sdb1.img的时候，就是利用`def_blk_fops`完成的
+   * 通过文件系统来访问设备
+      * `file_operations`的实现位于文件系统内，文件系统会把针对文件的读写转换为针对块设备原始扇区的读写
+      * ext2、fat、Btrfs等文件系统中会实现针对VFS的`file_operations`成员函数，设备驱动层将看不到file_operations的存在。在设备驱动程序的设计中，一般而言，会关心file和inode这两个结构体。相当于设备驱动层和VFS层中间加了一个文件系统层。
+
