@@ -150,4 +150,20 @@ Applications that were economically infeasible suddenly become practical:
 * 为了发挥并行硬件的速度，程序员必须将应用划分为每个核上有大致相同数量的任务，并同时完成。还要尽可能减小调度的开销，以不至于浪费并行性能
    * 挑战包括：调度、负载平衡、通信以及同步等开销
 
+# 指令：计算机的语言
+## 引言
+ISA (instruction set architecture) is an abstract interface between the hardware and the lowest-level software that encompasses all the information necessary to write a machine language program that will run correctly.
+
+指令集的两种形式：
+* 人们编程书写的形式
+* 计算机所能识别的形式
+
+instruction set
+   * The vocabulary of commands understood by a given architecture.
+
+### 为什么指令集种类繁多，但是差异性却很小？
+* 因为所有计算机都是基于基本原理相似的硬件技术所构建的
+* 因为
+
+
 
