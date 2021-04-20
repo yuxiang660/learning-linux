@@ -410,7 +410,7 @@ obj-$(CONFIG_TTY_PRINTK)   += ttyprintk.o
    * 例子：`obj-$(CONFIG_EXT2_FS) += ext2/`
       * 当CONFIG_EXT2_FS的值是y或m时，kbuild会把ext2目录也进行编译，寻找此文件夹下的Makefile。
 
-### Linux内核houhou
+### Linux内核
 ![linux_boot](./pictures/linux_boot.png)
 
 * SoC厂商的bootrom引导Linux的bootloader
@@ -702,3 +702,5 @@ unsigned long, unsigned long);
 ```
 * `unlocked_ioctl()`提供设备相关控制命令的实现(既不是读操作，也不是写操作)，当调用成功时，返回给调用程序一个非负值。它与用户空间应用程序调用`int fcntl(int fd, int cmd, .../*arg*/)`和`int ioctl(int d, int request, ...)`对应
 * `mmap()`函数将设备内存映射到进程的虚拟地址空间中，如果设备驱动未实现此函数，用户进行mmap()系统调用时将获得-ENODEV返回值。这个函数对于缓冲等设备特别有意义，帧缓冲被映射到用户空间后，应用程序可以直接访问它而无需在内核和应用间进行内存复制。它与用户空间应用程序中的`void* mmap(void* addr, size_t length, int prot, int flags, int fd, off_t offset)`函数对应。
+* `poll()`函数一般用于询问设备是否可被非阻塞地立即读写。当询问的条件未触发时，用户空间进行`select()`和`poll()`系统调用将引起进程的阻塞。
+* `aio_read()`和`aio_write()`函数分别对与文件描述符对应的设备进行异步读、写操作。设备实现这两个函数后，用户空间可以对该设备文件描述符执行`SYS_io_setup`、`SYS_io_submit`、`SYS_io_getevents`、`SYS_io_destroy`等系统调用进行读写。
