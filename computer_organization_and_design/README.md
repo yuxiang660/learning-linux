@@ -257,4 +257,36 @@ RISC-V的指令格式类型：
 
 ![risc_v_inst_encoding](./pictures/risc_v_inst_encoding.png)
 
+![risc_v_inst_examples](./pictures/risc_v_inst_examples.png)
+
+## 逻辑操作
+* 逻辑位移
+   * 立即数逻辑位移采用I型指令格式，以`slli x11, x19, 4 // reg x11 = reg x19 << 4 bits`为例：<br>
+      ![slli](./pictures/slli.png)
+      * 由于最大移位数不会超过63，因此I型指令格式中的immediate字段的低6位被使用，而高6位被用作funct6使用
+
+## 决策指令
+RISC-V有两种决策指令：
+* `beq rs1, rs2, L1`
+   * 如果rs1等于rs2，就跳转到L1
+   * beq就是branch if equal
+* `bne rs1, rs2, L1`
+   * 如果rs1不等于rs2，就跳转到L1
+
+### 循环
+无论是二选一的if语句，还是循环迭代语句，决策都起着重要作用。
+
+* 基本块
+   * 没有分支(可能出现在末尾者除外)并且没有分支目标/分支标签(可能出现在开始者除外)的指令序列
+   * 编译最初阶段的任务之一就是将程序分解为若干基本块
+
+RISC-V指令和ARM指令对条件判断的不同：
+* RISC-V采用`beq`, `bne`, `blt`(branch if less than), `bge`, `bltu`(for unsigned), `bgeu`等不同指令进行条件判断
+* ARM通过标志位来表示比较条件的结果，通过标志位，判断分支运行
+   * 此方式的缺点是，当许多指令需要设置标志位时，会存在竞争，从而阻碍了流水线的执行
+
+### case/switch语句
+实现switch语句的两种方法：
+* 将switch语句转化位if-then-else语句嵌套
+* 将多个指令序列分支的地址编码为一张表，即转移地址表(jump address table)
 
