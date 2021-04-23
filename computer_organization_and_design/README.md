@@ -290,3 +290,73 @@ RISC-V指令和ARM指令对条件判断的不同：
 * 将switch语句转化位if-then-else语句嵌套
 * 将多个指令序列分支的地址编码为一张表，即转移地址表(jump address table)
 
+## 计算机硬件对过程的支持
+RISC-V在为过程调用分配寄存器时遵循以下约定：
+* x10-x17：用于传递参数，或返回值的8个参数/值寄存器
+* x1：用于返回起始点的返回地址寄存器
+* x5-x7和x28-x31：这些寄存器在函数调用过程中，不需要由被调用者负责
+* x8-x9和x18-x27：这些寄存器在函数调用过程中，必须由被调用者负责恢复
+
+RISC-V汇编提供了两条无条件跳转指令，实现了caller和callee的动作：
+* `jal` - 跳转和链接指令(jump-and-link instruction)
+   * 用于在跳转的同时，将返回地址存于某寄存器(通常是x1)中，如：
+      * `jal x1, ProcedureAddress // x1 = PC + 4, go to PC + ProcedureAddress`
+* `jalr` - 寄存器跳转和链接指令(jump-and-link register instruction)
+   * 用于跳转到存于寄存器(通常是x1寄存器)中的地址
+      * `jal x0, 0(x1) // x0 = PC + 4, go to x1+0`
+
+### 什么是PC寄存器？
+PC(程序计数器，program counter)寄存器存储的是当前执行指令的地址，因此PC寄存器也称为指令地址寄存器(instruction address register)。`jal`指令实际上是将PC+4保存在寄存器x1中，因为一条RISC-V的长度是4bytes。
+
+### 为什么要引入栈寄存器？
+两个主要原因：
+* 编译器的函数调用需要更多空间传递参数
+* 函数调用返回的时候，需要信息用于恢复调用前的现场
+
+### 如何在过程调用中保存寄存器的值？
+RISC-V用寄存器x2存放栈指针(64-bits)，x2寄存器也称sp。一次操作，栈指针增加或减少双字(因为一个寄存器需要64-bits存储)。通过约定，RISC-V在函数调用中，被调用者只需要负责一部分寄存器的恢复。过程调用时，对寄存器保存的规则如下图所示：<br>
+![registers_preserve](./pictures/registers_preserve.png)
+* 只需要保证被调用者不在sp以上进行写操作，sp以上的栈就可以得到保存
+* sp本身的保存时通过按被调用者将减去值的相同数量重新加上来实现的
+* 其他寄存器则通过将他们保存到栈再从栈中恢复它们来进行保存
+
+### 如何用RISC-V汇编实现函数嵌套？
+下面将一个嵌套函数的C语言转换成汇编形式：
+```c
+long long int fact(long long int n)
+{
+   if (n < 1) return 1;
+   else return (n * fact(n-1));
+}
+```
+在发生函数调用时，我们需要利用栈保持`fact`函数的参数和返回地址，RISC-V汇编形式如下：
+```asm
+fact:
+   // 1. 进入fact函数时，先保存返回地址寄存器x1和参数寄存器x10
+   addi sp, sp, -16  // adjust stack for 2 items
+   sd x1, 8(sp)      // save the return address
+   sd x10, 0(sp)     // save argument n
+   // 2. 对参数n进行分支判断
+   addi x5, x10, -1  // x5 = n - 1
+   bge x5, x0, L1    // if (n - 1) >= 0, go to L1
+   // 3. 分支1：直接返回，通过寄存器x10保存返回值
+   addi x10, x0, 1   // return 1
+   addi sp, sp, 16   // pop 2 items off stack
+   jalr              // return to caller
+L1:
+   // 4. 分支2：更改参数寄存器x10的之后，调用fact(n-1)
+   addi x10, x10, -1 // n >= 1: argument gets (n-1)
+   jalx1, fact       // call fact with (n - 1)
+   // 5. fact(n-1)调用返回后，用寄存器x6保存fact(n-1)的返回值
+   addi x6, x10, 0   // return from jal: move result of fact(n-1) to x6
+   // 6. 从栈中弹出最近一次调用者的参数到寄存器x10和返回地址到寄存器x1
+   ld x10, 0(sp)     // restore argument n
+   ld x1, 8(sp)      // restore the return address
+   add sp, sp, 16    // adjust stack pointer to pop 2 items
+   // 7. 将n*fact(n-1)的值存入寄存器x10
+   mul x10, x10, x6  // return n * fact(n-1)
+   // 8. 返回到调用者
+   jalr x0, 0(x1)    // return to the caller
+```
+
+
