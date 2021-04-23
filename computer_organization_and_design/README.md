@@ -151,6 +151,8 @@ Applications that were economically infeasible suddenly become practical:
    * 挑战包括：调度、负载平衡、通信以及同步等开销
 
 # 指令：计算机的语言
+本章的目的：讲解符合“设备简单性”原则的一种指令集，介绍它怎样用硬件表示，以及它和高级编程语言之间的关系。
+
 ## 引言
 ISA (instruction set architecture) is an abstract interface between the hardware and the lowest-level software that encompasses all the information necessary to write a machine language program that will run correctly.
 
@@ -163,7 +165,96 @@ instruction set
 
 ### 为什么指令集种类繁多，但是差异性却很小？
 * 因为所有计算机都是基于基本原理相似的硬件技术所构建的
-* 因为
+* 因为所有计算机都必须提供一些基础操作
 
+### 什么是存储程序概念？
+存储程序概念(stored-program concept), 即多种类型的指令和数据均以数字形式存储于存储器中的概念，存储程序型计算机即源于此。
+
+### 指令集的组成部分
+* 操作数
+   * 寄存器(registers)
+   * 存储器字(memory words)
+* 汇编语言
+   * 算术
+      * 加法
+      * 减法
+      * 立即数加法
+   * 数据传送
+      * 在存储器和寄存器之间移动数据的命令
+      * 立即数传输到寄存器
+   * 逻辑
+      * 与或非
+      * 逻辑左移、右移
+   * 条件分支
+   * 无条件跳转
+
+下图使RISC-V的指令集：<br>
+![risc_v_isa](./pictures/risc_v_isa.png)
+
+## 硬件设计原则
+硬件设计三条基本原则：
+* 简单源于规整
+   * 硬件算术操作体现了简单性
+* 越小越快
+   * 寄存器个数的限制，体现了此原则，大量的就差年起可能会使时钟周期变长
+* 优秀的设计需要适宜的折中方案
+   * 例如，即希望所有指令长度相同，又系统具有统一的指令格式，会因为指令长度不够而产生冲突。
+
+## 计算机硬件的操作数
+### 存储器操作数
+由于RISC-V(或者MIPS)的算术运算指令只对寄存器进行操作，因此必须包含在存储器和寄存器之间传送数据的指令。这些指令叫做数据传送指令(data transfer instruction)。
+
+### 常数或立即数操作数
+常数操作数出现频率高，而且相对于从存储器中取常数，包含常数的算术运算指令执行速率快很多，并且能效较低。
+
+## 计算机中指令的表示
+指令在计算机内部是以若干或高或低的电信号的序列表示的，并且形式上和数的表示相同。
+
+### 指令格式(instruction format)
+指令的布局形式叫指令格式，以RISC-V的`add x9, x20, x21`为例，其指令格式如下：
+* 十进制表示<br>
+   ![add_format1](./pictures/add_format1.png)
+* 二进制表示<br>
+   ![add_format2](./pictures/add_format2.png)
+   * 由上图可知，这是一条32位指令，RISC-V的指令长度都是32位的
+
+指令的数字形式称为机器语言(machine language)，这样的指令序列叫机器码(machine code)。
+
+### RISC-V字段
+![add_format](./pictures/add_format.png)
+* opcode
+   * 指令的基本操作，通常称为操作码(opcode)
+* rd
+   * register destination
+   * 用于存放操作结果的目的寄存器
+* funct3/funct7
+   * 一般称为功能码(function code)，用于指明opcode字段中操作的特定变式
+   * funct3占3-bits
+   * funct7占7-bits
+* rs1/rs2
+   * register source
+   * 源操作数寄存器
+
+### 如何解决指令长度和指令格式的冲突？
+由于指令长度无法满足有些指令功能，为了保持所有的指令长度相同，不同类型的指令采用了不同的指令格式。
+
+RISC-V的指令格式类型：
+* R型<br>
+   ![add_format](./pictures/add_format.png)
+   * 用于寄存器操作
+* I型<br>
+   ![add_format_i_type](./pictures/add_format_i_type.png)
+   * 用于立即数操作，如：数据传送指令，或立即数加法addi等
+   * 以`ld x9, 64(x22) // Temporary reg x9 gets A[8]`指令为例：
+      * 22(寄存器x22)存放于rs1字段
+      * 64存放于immediate字段
+      * 9(寄存器x9)存放于rd字段
+* S型<br>
+   ![add_format_s_type](./pictures/add_format_s_type.png)
+   * 用于双字数据传输至存储器的指令，如:`sd x5,40(x6)`
+      * 目标地址是通过immediate字段和rs2得到的
+      * 之所以讲immediate拆分成两处，是为了尽量保持三种指令格式其他字段位置的统一
+
+![risc_v_inst_encoding](./pictures/risc_v_inst_encoding.png)
 
 
