@@ -255,9 +255,12 @@ RISC-V的指令格式类型：
       * 目标地址是通过immediate字段和rs2得到的
       * 之所以讲immediate拆分成两处，是为了尽量保持三种指令格式其他字段位置的统一
 
+除了上面的三种指令类型，RISC-V还有SB型，UJ型和U型，它们的格式如下图所示：<br>
 ![risc_v_inst_encoding](./pictures/risc_v_inst_encoding.png)
 
-![risc_v_inst_examples](./pictures/risc_v_inst_examples.png)
+不同指令格式对应的指令内容如下表所示：<br>
+![risc_v_inst_encoding_all](./pictures/risc_v_inst_encoding_all.png)
+
 
 ## 逻辑操作
 * 逻辑位移
@@ -397,4 +400,37 @@ PC相对寻址是一种寻址方式，它将PC和指令种的常数相加作为�
    * `jalr`将低12位加到临时寄存器中，并以此临时寄存器的值作为地址，进行跳转
 
 ### 寻址模式总结
+![risc_v_addressing_mode](./pictures/risc_v_addressing_mode.png)
+* 上图中，各模式的操作数是蓝色部分
+* 一种操作可能可以使用多种寻址模式，例如，加法可以使用立即数寻址(addi)和寄存器寻址(add)
+
+寻址模式是根据对操作数和/或地址的使用不同加以区分的多种寻址方式的一种。
+* 立即数寻址(Immediate addressing)
+   * 操作数是位于指令自身中的常数
+* 寄存器寻址(Register addressing)
+   * 操作数在寄存器中
+* 基址寻址(Base addressing)
+   * 操作数在内存中，其地址是指令中基址寄存器和常数的和
+* PC相对寻址(PC-relative addressing)
+   * 操作数在内存中，其地址是PC和指令中常数的和
+
+### 机器语言解码
+有时候必须通过逆向工程将机器语言恢复到最初的汇编语言，比如检查“核心转储”(core dump)时。下面举例RISC-V的逆向过程。
+
+下面这条机器指令对应的汇编语言语句是什么？
+* `00578833`(hex)
+
+解答过程如下：
+* 将16进制的机器指令转换成32位二进制
+   * `0000_0000_0101_0111_1000_1000_0011_0011`
+* 确定opcode
+   * 7-bit opcode是`0110011`<br>
+      ![risc_v_inst_encoding_all](./pictures/risc_v_inst_encoding_all.png)
+      * 通过上表可知，`0110011` opcode对应的是R型指令格式
+   * 因此，我们按照R型指令格式推出其他各位的值，如下：<br>
+      ![reverse_engineer_example](./pictures/reverse_engineer_example.png)
+      * `funct7`和`funct3`都是零，所以此指令是`add`
+      * 同样可知此指令用到了寄存器x5,x15,x16
+* 查表后可确定指令的意义是
+   * `add x16,x15,x5`
 
