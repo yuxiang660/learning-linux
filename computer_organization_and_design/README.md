@@ -601,4 +601,29 @@ void sort(int v[], int n)
 * 完整的sort过程<br>
    ![sort_assembly](./pictures/sort_assembly.png)
 
+## 数组与指针
+对比两种清除内存发方法：
+```c
+void clear1(long long int array[], size_t int size)
+{
+   size_t i;
+   for (i = 0; i < size; i++)
+      array[i] = 0;
+}
+void clear2(long long int *array, size_t int size)
+{
+   long long int *p;
+   for (p = &array[0]; p < &array[size]; p = p + 1)
+      *p = 0;
+}
+```
+两者汇编代码的区别：
+![array_pointer](./pictures/array_pointer.png)
+* 数组版本比指针版本多了“乘”和“加”操作
+* 指针版本还把一些操作拿到了循环外面，从而提高了效率
+
+## 高级内容：编译C语言和解释Java语言
+
+### 编译C语言
+
 
