@@ -496,3 +496,109 @@ PC相对寻址是一种寻址方式，它将PC和指令种的常数相加作为�
 * 即时编译器(Just in time complier)
    * 为了既保持可移植性(解释器的优点)又提高执行速度(解释器的缺点)，Java通过即时编译器实现程序执行的同时可以进行翻译。通过记录运行的程序来找到称为“热点”的方法，直接编译成宿主机的指令序列，编译过的部分保存起来以便下次程序运行时调用。
 
+## 以一个C排序程序作为完整的例子
+
+### swap过程
+C代码如下：
+```c
+void swap(ling long int v[], size_t k)
+{
+   long long int temp;
+   temp = v[k];
+   v[k] = v[k+1];
+   v[k+1] = temp;
+}
+```
+按以下步骤把它从C程序手动翻译为汇编程序：
+* 为程序变量分配寄存器
+   * 在RISC-V中，实现参数传递通常使用寄存器x10~x17，这里只有两个参数，所以可用寄存器x10和x11
+   * `swap`过程中还有一个temp临时变量，可从x5~x7中选择一个寄存器，这里选x5
+* 为过程体生成汇编代码
+   * 将下面三个语句转换成汇编：
+   ```c
+   temp = v[k];
+   v[k] = v[k+1];
+   v[k+1] = temp;
+   ```
+      * RISC-V内存是64位的，因此地址要乘以8
+      ```asm
+      swap:
+         slli x6, x11, 3 // reg x6 = k * 8
+         add x6, x10, x6 // reg x6 = v + (k * 8)
+         ld x5, 0(x6) // reg x5 (temp) = v[k]
+         ld x7, 8(x6) // reg x7 = v[k + 1]
+                     // refers to next element of v
+         sd x7, 0(x6) // v[k] = reg x7
+         sd x5, 8(x6) // v[k+1] = reg x5 (temp)
+         jal rx0, 0(x1) // return to calling routine
+      ```
+* 保存过程调用间的寄存器
+   * 由于`swap`是一个叶过程，并没有需要保留的东西
+
+### sort过程
+C代码如下：
+```c
+void sort(int v[], int n)
+{
+   int i, j;
+   for (i = 0; i < n; i++) {
+      for (j = i - 1; j >= 0 && v[j] > v[j+1]; j--)  {
+         swap(v, j);
+      }
+   }
+}
+```
+* sort的寄存器分配
+   * v和n分配参数寄存器x10和x11
+   * i和j分配分配寄存器x19和x20，需要保存
+* 为sort过程体生成代码
+   * 针对for循环`for (i = 0; i < n; i++)`:
+      ```asm
+         li x19, 0            // i = 0
+         
+      for1tst:
+         bge x19, x11, exit1  // go to xit1 if x19 >= x1
+         ...                  // body in loop
+         addi x19, x19, 1     // i++
+         j for1ts
+      exit1:
+      ```
+   * 针对for循环`for (j = i - 1; j >= 0 && v[j] > v[j+1]; j--)`:
+      ```asm
+         addi x20, x19, -1    // j = i - 1
+      for2tst:
+         blt x20, x0, exit2   // go to exit2 if x20 < 0 (j < 0)
+         slli x5, x20, 3      // reg x5 = j * 8
+         add x5, x10, x5      // reg x5 = v + (j * 8)
+         ld x6, 0(x5)         // reg x6 = v[j]
+         ld x7, 8(x5)         // reg x7 = v[j + 1]
+         ble x6, x7, exit2 // go to exit2 if x6 ≤ x7
+         ...
+         (body of second for loop)
+         ...
+         addi x20, x20, -1    // j -= 1
+         j for2tst            // branch to test of inner loop
+      exit2:
+      ```
+* sort中的过程调用
+   * `jal swap`
+* sort中过程调用时的参数传递
+   * 可将已用的x10和x11拷贝到其他寄存器，再调用`swap`，这样比利用栈保存更快
+      ```asm
+      mv x21, x10 // copy parameter x10 into x21
+      mv x22, x11
+      ```
+* 在sort中保留寄存器
+   * 因为sort是一个过程并且它要递归使用，所以需要用寄存器x1保存返回地址。同时，sort又用到了“callee-saved”寄存器x19,x20,x21和x22，因此需要用栈进行保存：
+      ```
+      addi sp, sp, -40 // make room on stack for 5 regs
+      sd x1, 32(sp) // save x1 on stack
+      sd x22, 24(sp) // save x22 on stack
+      sd x21, 16(sp) // save x21 on stack
+      sd x20, 8(sp) // save x20 on stack
+      sd x19, 0(sp) // save x19 on stack
+      ```
+* 完整的sort过程<br>
+   ![sort_assembly](./pictures/sort_assembly.png)
+
+
