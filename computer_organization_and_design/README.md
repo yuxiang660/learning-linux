@@ -625,5 +625,13 @@ void clear2(long long int *array, size_t int size)
 ## 高级内容：编译C语言和解释Java语言
 
 ### 编译C语言
+![modern_compiler](./pictures/modern_compiler.png)
+下面用C语言的while语句来诠释C语言编译器的工作过程：
+```c
+while (save[i] == k)
+   i += 1;
+```
 
-
+#### 前端
+前端大致分为四个阶段：
+* 
