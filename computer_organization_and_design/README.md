@@ -634,4 +634,9 @@ while (save[i] == k)
 
 #### 前端
 前端大致分为四个阶段：
-* 
+* Scanning/Lexical Analyzer/词法分析
+   * 目的：将字符序列转换为标记(token)序列
+   * 标记包括关键字，运算符，变量名等，如上面的w
+* Parsing/Syntax Analyzer/语法分析
+* Semantic Analyzer/语义分析
+* Generation of the intermediate representation(IR)/中间表示
