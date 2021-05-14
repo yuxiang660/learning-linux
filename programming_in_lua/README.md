@@ -109,3 +109,171 @@ print("hello ".."world")   --> 使用..来进行字符串的连接
    d = 5; m = 11; y = 1990
    string.format("%02d/%02d/%04d", d, m , y)     --> 05/11/1990
    ```
+
+# 表
+* Lua语言中的表本质上是一种辅助数组，这种数组不仅可以使用数值作为索引，也可以使用字符串或其他任意类型的值作为索引(nil除外)
+* 表是一种动态分配的对象，程序只能操作指向表的引用(或指针)，除此以外，Lua不会进行隐藏的拷贝或创建新的表
+
+## 表构造器
+* 空构造器`{}`
+* 初始化列表
+   ```lua
+   days = {"Sunday", "Monday"}
+   days[1]  --> Sunday
+   ```
+* 初始化记录式
+   ```lua
+   a = {x = 10, y = 20} --> 等价于：a = {}; a.x = 10; a.y = 20
+   a["x"]               --> 10
+   a[x]                 --> nil，因此初始化记录式构造方式的键值都是字符串，"a.x"等同于"a["x"]"，而不同于a[x]
+   ```
+* 通过方括号括起来的表达式显示地指定每一个索引
+   ```
+   {x = 0, y = 0}    <-->  {["x"] = 0, ["y"] = 0}
+   {"r", "g", "b"}   <-->  {[1] = "r", [w] = "g", [3] = "b"}
+   ```
+
+## 数组、列表和序列
+* 数组(array)或列表(list)，只需要使用整型作为索引的表即可。
+   ```lua
+   a = {}
+   for i = 1, 10 do
+      a[i] = io.read()
+   end
+   ```
+* 序列(sequence)是由指定的n个正整数值类型的键所组成集合{1,...,n}形成的表(值为nil的键实际不在表中)
+   * 不包含数值类型键的表就是长度为零的序列(`#`操作符可以获得序列的长度，如果存在值为nil，则`#`操作符不可靠)
+
+## 遍历表
+我们可以使用pairs迭代器遍历表中的键值对(nil元素会被忽略)：
+```lua
+t = {10, print, x = 12, nil, k = "hi"}
+for k, v in pairs(t) do
+   print(k, v)
+end
+   --> 1 10
+   --> k hi
+   --> 2 function:042061
+   --> x 12
+```
+
+## 表标准库
+* `table.insert`  - 向序列的指定位置插入一个元素，其他元素依次后移
+* `table.remove`  - 删除并返回序列指定位置的元素
+* `table.move`    - table.move(a, f, e, t)将表a中从索引f到e的元素移动到位置t上
+
+# 函数
+* Lua语言也为面向对象风格的调用提供了一种特殊的语法，即冒号操作符。形如`o:foo(x)`的表达式意为调用对象o的foo方法。
+* 一个Lua程序既可以调用Lua语言编写的函数，也可以调用C语言(或者宿主程序使用的其他任意语言)编写的函数。
+* 调用函数时使用的参数个数可以与定义函数时使用的参数个数不一致，多余的参数会抛弃，不足的参数设置为nil
+
+## 多返回值
+* 逗号隔开
+* 如果用括号包起来，返回值变为一个
+
+## 可变长参数函数
+```lua
+function add (...)
+   local s = 0
+   for _, v in ipairs{...} do
+      s = s + v
+   end
+   return s
+end
+--> 如果要计入nil元素，可使用table.pack(1,2,nil)
+--> 如果不想构建表，也可以使用select函数，从一堆数据中选择
+```
+
+## 函数table.unpack
+```lua
+print(table.unpack{10,20,30}) --> 10 20 30
+a,b = table.unpack{10,20,30}  --> a=10, b=20, 30被丢弃
+```
+`unpack`把Lua语言中的真实的列表转换成一组返回值，进而可以作为另一个函数的参数使用。
+
+
+# 输入输出
+## 简单I/O模型
+* 函数`io.input`和函数`io.output`可以用于改变当前的输入输出流，默认时stdin和stdout
+
+### io.write
+* 是`io.output():write`的简写
+* 如果想要完全地控制数值转换为字符串，使用`string.format`
+* 不会添加换行符
+
+### io.read
+* 是`io.input():read`的简写
+* 从当前输入流中读取字符串，其参数决定了读取的数据：<br>
+   ![io_read](./pictures/io_read.png)
+
+## 完整I/O模型
+```lua
+local f = assert(io.open(filename, "r"))
+local t = f:read("a")
+f:close()
+```
+
+## 其他系统调用
+* `os.exit`    - 终止程序的执行
+* `os.execute` - 用于运行系统命令，等价于C语言中的函数system
+* `io.popen`   - 运行一条系统命令，但该函数还可以重定向命令的输入/输出，从而使得程序可以向命令中写入或从命令的输出中读取
+
+# 补充知识
+## 局部变量和代码块
+* Lua语言中的变量在默认情况下是全局变量，所有的局部变量在使用前必须声明
+* 局部变量的生效范围仅限于声明它的代码块
+   * 一个代码块(block)是一个控制结构的主体(如，while循环)，或是一个函数的主体
+   ```lua
+   x = 10
+   local i = 1 -- 对于代码段来说是局部的
+
+   while i <= x do
+      local x = i * 2   --> 对于循环体来说是局部的
+      print(x)          --> 2, 4, 6...
+      i = i + 1
+   end
+
+   if i > 20 then
+      local x -- 对于“then”来说是局部的
+      x = 20
+      print(x + 2)      --> 22
+   else
+      print(x)          --> 10 全局的
+   end
+
+   print(x)             --> 10 全局的
+   ```
+   * 上述示例不能再交互模式中正常运行，因为交互模式下，每一行代码就是一个代码段
+
+## 控制结构
+* 条件执行`if/end`
+   * 所有不是false和nil的值当作真
+* 循环`while/end`，`repeat/until`，`for/end`
+   * 和大多数其他编程语言不同，在Lua语言中，循环体内声明的局部变量的作用域包括测试条件
+
+### 泛型for
+使用恰当的迭代器可以在保证代码可读性的情况下遍历几乎所有的数据结构，如: `pairs`, `ipairs`, `io.lines`等
+
+```lua
+u={}
+u[1]="a"
+u[3]="b"
+u[2]="c"
+u[4]="d"
+u["hello"]="world"
+for key,value in ipairs(u) do print(key,value) end
+--[[
+  a
+  c
+  b
+  d
+--]]
+for key,value in pairs(u) do print(key,value) end
+--[[
+  a
+  hello   world
+  b
+  c
+  d
+--]]
+```
