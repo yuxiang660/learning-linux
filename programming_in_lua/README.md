@@ -277,3 +277,107 @@ for key,value in pairs(u) do print(key,value) end
   d
 --]]
 ```
+
+# 闭包
+在Lua语言中，函数是严格遵循词法定界(lexical scoping)的第一类值(first-class value)
+* "第一类值"意味着Lua语言中的函数与其他常见类型的值(例如数值和字符串)具有同等权限：一个程序可以将某个函数保存到变量中(全局变量和局部变量均可)或表中，也可以将某个函数作为参数传递给其他函数，还可以将某个函数作为其他函数的返回值返回。
+* "词法定界"意味着Lua语言中的函数可以访问包含其自身的外部函数中的变量(也意味着Lua语言完全支持Lambda演算)
+
+## 函数是第一类值
+以下演示了第一类值的含义：
+```lua
+a = {p = print}      -- 'a.p'指向'print'函数
+a.p("Hello World")   --> Hello World
+print = math.sin     -- 'print'现在指向sin函数
+a.p(print(1))        --> 0.8414
+math.sin = a.p       -- 'sin'现在指向print函数
+math.sin(10, 20)     --> 10   20
+```
+
+* 在Lua语言中，所有的函数都是匿名的。像其他所有的值一样，函数并没有名字。当讨论函数名时，实际上指的是保存该函数的变量。
+* 高阶函数指以另一个函数为参数的函数，可利用高阶函数实现导数
+   ```lua
+   function derivative (f, delta)
+      delta = delta or 1e-4
+      return function(x) return (f(x + delta) - f(x))/delta end
+   end
+   c = derivative(math.sin)
+   print(math.cos(math.pi/3), c(math.pi/3))  --> 0.5   0.49995669789693
+   ```
+
+## 非全局函数
+* 函数不仅可以被存储在全局变量中，还可以被存储在表字段和局部变量中
+* 当把一个函数存储到局部变量时，就得到了一个局部函数(local function)
+   * 有时需要通过前向声明，定义局部函数的递归情况
+
+## 词法定界
+当编写一个被其他函数B包含的函数A时，被包含的函数A可以访问包含其的函数B的所有局部变量，我们将这种特性称为词法定界(lexical scoping)。
+闭包的例子：
+```lua
+function newCounter ()
+   local count = 0
+   return function()
+         count = count + 1
+         return count
+      end
+end
+
+c1 = newCounter()
+print(c1())    --> 1
+print(c1())    --> 2
+c2 = newCounter()
+print(c2())    --> 1
+print(c1())    --> 3
+print(c1())    --> 2
+```
+* 从技术上讲，Lua语言中只有闭包而没有函数，函数本身只是闭包的一种原型
+
+## 小试函数式编程
+```lua
+-- 定义一个根据指定的圆心和半径创建圆盘的工厂
+function disk(cx, cy, r)
+   return function (x, y) return (x - cx)^2 + (y - cy)^2 <= r^2 end end
+disk(1.0, 3.0, 4.5)  --> 创建了一个以点(1.0, 3.0)为圆心、半径4.5的圆盘
+
+-- 定义一个指定边界的轴对称矩形工厂
+function rect(left, right, bottom, up)
+   return function(x, y)
+            return left <= x and x <= right and bottom <= y and y <= up
+         end
+end
+
+-- 创建任何区域的补集，同样方法可以创建并集、交集和差集
+function complement(r)
+   return function(x, y)
+            return not r(x, y)
+         end
+end
+
+function difference (r1, r2)
+   return function(x, y)
+            return r1(x, y) and not r2(x, y)
+         end
+end
+
+function translate(r, dx, dy)
+   return function(x, y)
+            return r(x -dx, y -dy)
+         end
+end
+
+function plot(r, M, N)
+   io.write("P1\n", M, " ", N, "\n")
+   for i = 1, N do
+      local y = (N - i * 2) / N
+      for j = 1, M do
+         local x = (j * 2 - M) / M
+         io.write(r(x, y) and "1" or "0")
+      end
+      io.write("\n")
+   end
+end
+
+c1 = disk(0, 0, 1)
+plot(difference(c1, translate(c1, 0.3, 0)), 500, 500)
+```
+
