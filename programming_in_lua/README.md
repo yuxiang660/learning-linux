@@ -381,3 +381,76 @@ c1 = disk(0, 0, 1)
 plot(difference(c1, translate(c1, 0.3, 0)), 500, 500)
 ```
 
+# 模式匹配
+
+## 模式
+* 字符分类模式
+   * `.`    - 任意字符
+   * `%d`   - 匹配的是任意数字
+   * `%a`   - 任意字母
+   * `%c`   - 控制字符
+   * `%g`   - 除空格外的可打印字符
+   * `%l`   - 小写字母
+   * `%p`   - 标点符号
+   * `%s`   - 空白字符
+   * `%u`   - 大写字母
+   * `%w`   - 字母和数字
+   * `%x`   - 十六进制数字
+* 上述大写形式表示类的补集，如`%A`代表任意非字母的字符
+* 魔法字符
+   * `().%+-*?[]^$`
+
+## 捕获
+* 捕获机制允许根据一个模式从目标字符串中抽出与该模式匹配的内容来用于后续用途
+   ```lua
+   pair = "name = Anna"
+   key, value = string.match(pair, "(%a+)%s*=%s*(%a+)"
+   print(key, value) --> name Anna
+   ```
+
+# 日期和时间
+![os_date](./pictures/os_date.png)
+```lua
+t = os.date("*t") --获取当前时间的日期表
+print(os.date("%Y/%m/%d", os.time(t))) -->2015/08/18
+t.day = t.day + 40
+print(os.date("%Y/%m/%d", os.time(t))) -->2015/09/27
+```
+
+# 数据结构
+
+## 数组
+```lua
+local a = {}
+for i = 1, 1000 do
+   a[i] = 0
+end
+-- 通过表构造器在一句表达式中同时创建和初始化数组：
+squares = {1, 4, 9, 16, 25, 36}
+```
+
+## 矩阵及多维数组
+```lua
+local mt = {} -- 创建矩阵
+for i = 1, N do
+   local row = {}
+   mt[i] = row
+   for j = 1, M do
+      row[j] = 0
+   end
+end
+```
+
+## 链表
+```lua
+list = { next = list, value = v}
+-- 遍历
+local l = list
+while l do 
+   visit l.value
+   l = l.next
+end
+```
+
+
+
