@@ -65,7 +65,6 @@ calcint_t term(void) {
         switch(token) {
         case '*':
             match('*');
-
             value *= factor();
             break;
 

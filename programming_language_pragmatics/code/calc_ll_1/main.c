@@ -7,9 +7,9 @@
   digits := {+|-} [0..9] {[0..9]}
 
   expr         := term term_tail
-  term_tail    := {add_op term term_tail} | null
+  term_tail    := add_op term term_tail | null
   term         := factor factor_tail
-  fatctor_tail := {mul_op factor factor_tail} | null
+  fatctor_tail := mul_op factor factor_tail | null
   factor       := digits | '(' expr ')'
 
  */
