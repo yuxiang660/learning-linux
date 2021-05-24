@@ -26,7 +26,7 @@ int ERROR = -1;
 #include <stdlib.h>
 
 void error(const char *msg) {
-    fprintf(stderr, "Error msg: %s, token %d", msg, token);
+    fprintf(stderr, "Error msg: %s, token %d\n", msg, token);
     exit(1);
 }
 
@@ -37,7 +37,7 @@ void match(char expected) {
         return;
     }
 
-    fprintf(stderr, "Expected %c, got %c", expected, token);
+    fprintf(stderr, "Expected %c, got %c\n", expected, token);
     exit(1);
 }
 
