@@ -15,11 +15,10 @@
  */
 
 
-int expr(void);
+double expr(void);
 
 char token;
 char END_TOKEN = '\n';
-int ERROR = -1;
 
 #include <stdio.h>
 #include <ctype.h>
@@ -41,8 +40,8 @@ void match(char expected) {
     exit(1);
 }
 
-int factor() {
-    int value;
+double factor() {
+    double value;
 
     if (token == '(') {
         match('(');
@@ -52,7 +51,7 @@ int factor() {
     } else if (isdigit(token) || token == '+' || token == '-') {
         // Get the digital
         ungetc(token, stdin);
-        scanf("%d", &value);
+        scanf("%lf", &value);
         token = getchar();
     } else {
         error("bad factor");
@@ -61,70 +60,54 @@ int factor() {
     return value;
 }
 
-int factor_tail() {
+double factor_tail() {
     if (token == '*') {
         match('*');
-        int value = factor();
-        int value_mult = factor_tail();
-        return value * value_mult;
+        return factor() * factor_tail();
     } else if (token == '/') {
         match('/');
-        int value = factor();
-        int value_div = factor_tail();
-        return value / value_div;
+        return 1 / factor() * factor_tail();
     } else if (token == '+' || token == '-' || token == END_TOKEN) {
         // no factor_tail
         return 1;
     }
     error("bad factor_tail");
-    return ERROR;
 }
 
-int term() {
-    if (isdigit(token) || token == '(') {
-        int value = factor();
-        int value_mult = factor_tail();
-        return value * value_mult;
+double term() {
+    if (isdigit(token) || token == '(' || token == '-' || token == '+') {
+        return factor() * factor_tail();
     }
     error("bad term");
-    return ERROR;
 }
 
-int term_tail() {
+double term_tail() {
     if (token == '+') {
         match('+');
-        int value = term();
-        int value_add = term_tail();
-        return value + value_add;
+        return term() + term_tail();
     }
     else if (token == '-') {
         match('-');
-        int value = term();
-        int value_add = term_tail();
-        return -(value + value_add);
+        return - term() + term_tail();
     } else if (token == END_TOKEN) {
         // no term_tail
         return 0;
     }
     error("bad term_tail");
-    return ERROR;
 }
 
-int expr() {
-    if (isdigit(token) || token == '(') {
-        int value = term();
-        int value_add = term_tail();
-        return value + value_add;
+double expr() {
+    if (isdigit(token) || token == '(' || token == '-' || token == '+') {
+        return term() + term_tail();
     }
     error("bad expr");
-    return ERROR;
 }
 
 int main(void) {
 
     token = getchar();
-    int result = expr();
-    printf("result: %d\n", result);
+    double result = expr();
+    printf("result: %f\n", result);
 
     return 0;
 }
