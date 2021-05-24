@@ -219,14 +219,33 @@ end.
       * 移入-归约分析器正好是反向地追溯出最右(规范)推导，例如上图中，最开始进行的是对“分号”的归约
 
 ### 递归下降(Recursive Descent)
-* 计算器LL文法<br>
-   ![calculator_ll](./pictures/calculator_ll.png)
-* 计算器LR文法<br>
-   ![calculator_lr](./pictures/calculator_lr.png)
 
 #### 关键问题：如何通过计算器LL文法，做自上而下的语法分析？
 我们从树的顶端开始，基于树种当前的最左非终结符和当前输入单词预测所需的产生式，有两种方式可以将这一过程形式化：
 * 手工构造一个递归下降语法分析器
    * 常常用于分析那些相对较容易分析的语言
 * 用语法分析器的生成器构造一个LL分析表格，并用一个驱动程序读入
+
+* 计算器LL文法<br>
+   ![calculator_ll](./pictures/calculator_ll.png)
+* 计算器LR文法<br>
+   ![calculator_lr](./pictures/calculator_lr.png)
+   * 无法根据上图的LR文法，用自上而下的语法分析。因为，如果我们在期望expression时，看到的时输入里的一个identifier，无法确定应该在两个可能的产生式里预测哪一个(term or expression add_op term)
+   * LL文法避免了上面的问题，即可以通过向前探查一个单词，就可以确定产生式
+
+现在我们分析如下一个简单的计算器程序，该程序读入两个数，打印出它们的和与平均值：
+```
+read A
+read B
+sum := A + B
+write sum
+write sum / 2
+```
+![calculator_parse_tree](./pictures/calculator_parse_tree.png)
+* 递归下降式语法分析器的难点：
+   * 如何确定哪些单词应该作为case语句分支的标号，预测所对应的产生式
+* 单词x可能因为两个理由预测某个产生式:
+   * 该产生式的右部递归展开后能得到一个以x开头的串
+   * 这个右部可能什么都不产生，即，产生出空串，或者产生出一个非终结符，而该非终结符产生出空串，而x可能式随后的生成物的开始
+
 
