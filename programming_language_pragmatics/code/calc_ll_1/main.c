@@ -75,10 +75,7 @@ double factor_tail() {
 }
 
 double term() {
-    if (isdigit(token) || token == '(' || token == '-' || token == '+') {
-        return factor() * factor_tail();
-    }
-    error("bad term");
+    return factor() * factor_tail();
 }
 
 double term_tail() {
@@ -97,10 +94,7 @@ double term_tail() {
 }
 
 double expr() {
-    if (isdigit(token) || token == '(' || token == '-' || token == '+') {
-        return term() + term_tail();
-    }
-    error("bad expr");
+    return term() + term_tail();
 }
 
 int main(void) {
