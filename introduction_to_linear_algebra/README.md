@@ -10,3 +10,6 @@ The solution vector x comes at three levels:
 * Matrix solution
 * Particular solution plus nullspace solution
 
+![matrix_alphabet](./pictures/matrix_alphabet.png)
+
+
