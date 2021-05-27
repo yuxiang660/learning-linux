@@ -30,8 +30,8 @@ We have three ways to describe vector `v`:
 * The length $\|v\|$ is the sequence root of $v \cdot v$
 
 ## Matrices
-* [Four thinking ways of matrix multiplying](./pictures/matrix_mult.png)
-   * dot product
+* [Four viewpoints of matrix multiplying: AB = C](./pictures/matrix_mult.png)
+   * dot products
 
       $$ \begin{bmatrix} 1&&3\\2&&4 \end{bmatrix} \cdot \begin{bmatrix} x_1\\x_2 \end{bmatrix} = \begin{bmatrix} (1,3) \cdot (x_1, x_2) \\ (2,4) \cdot (x_1, x_2) \end{bmatrix} $$
    * columns of C are combinations(B) of columns of A
@@ -45,3 +45,7 @@ We have three ways to describe vector `v`:
       $$ \begin{bmatrix} 1\\2 \end{bmatrix} \cdot \begin{bmatrix} 3&&4 \end{bmatrix} = \begin{bmatrix} 3&&4\\6&&8 \end{bmatrix} $$
 
 
+* invertible matrix
+   * independent columns: Ax = 0 has one solution
+* singular matrix
+   * dependent columns: Cx = 0 has many solutions
