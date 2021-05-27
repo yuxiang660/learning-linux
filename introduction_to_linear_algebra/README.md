@@ -46,6 +46,17 @@ We have three ways to describe vector `v`:
 
 
 * invertible matrix
-   * independent columns: Ax = 0 has one solution
+   * independent columns: Ax = 0 has one solution(zero solutions)
 * singular matrix
    * dependent columns: Cx = 0 has many solutions
+
+# Solving Linear Equations
+
+## Vectors and Linear Equations
+* column picture of Ax = b
+   * vector view
+   * a combination of n columns of A (vectors) produces the vector b
+* row picture of Ax = b
+   * algebraic geometry view
+   * m equations from m rows give m planes meeting at x, think about, in 3-dimensional coordinate, 3 planes get a point x
+
