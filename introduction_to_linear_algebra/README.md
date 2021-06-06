@@ -84,4 +84,12 @@ Breakdown of Elimination:
    ![elimination_many_solutions](./pictures/elimination_many_solutions.png)
 
 ## Rules for Matrix Operations
-
+To multiply AB, it has four ways:
+* First way (dot product)
+   * The entry in row i and column j of AB is (row i of A) * (column j of B)
+* Second way (column picture)
+   * Each column of AB is a combination of the columns of A
+* Third way (row picture)
+   * Each row of AB is a combination of the rows of B
+* Fourth way (columns multiply rows)
+   * Multiply columns of 1 to n of A times rows 1 to n of B. Add those matrices.
