@@ -109,6 +109,42 @@ To multiply AB, it has four ways:
    * Elimination on A requires about 1/3*n^3 multiplications and 1/3*n^3 subtractions
    * Each right side needs n^2 multiplications and n^2 subtractions
 
-# Transposes and Permutations
+# Vector Spaces and Subspaces
 
+## Spaces of Vectors
+* A real vector space is a set of "vector" together with rules for vector addition and for multiplication by real numbers.
+* subspace
+   * a subspace of a vector space is a set of vectors(including 0) that satisfies two requirements: If v and w are vectors in the subspace and c is any scalar, then:
+      * v + w is in the subspace
+      * cv is in the subspace
+   * all linear combinations stay in the subspace
 
+### Ax = b
+* To solve Ax = b is to express b as a combination of the columns
+* The system Ax = b is solvable if and only if b is in the column space of A
+
+## The Nullspace of A: Solving Ax = 0 and Rx = 0
+* The nullspace N(A) consists of all solutions to Ax = 0. These vectors x are in R^n.
+* nullspace is a subspace
+
+### The Reduced Row Echelon Form R
+* Best Matrix R
+   * After elimination for U, we can continue to make the matrix simpler to R
+      * Produce zeros above the pivots. Use pivot rows to eliminate upward in R.
+      * Produce ones in the pivots. Divide the whole pivot row by its pivot.
+   * For Ax = 0
+      * N(A) = N(U) = N(R)
+      * reduced row echelon from R = rref(A)
+      * The pivot columns of R contain I
+   * ![r_matrix](./pictures/r_matrix.png)
+* For many matrices, the only solution to Ax = 0 is x = 0
+   * It says the columns of A are **independent**
+   * No combination of columns gives the zero vector
+   * All columns have pivots, and no columns are free
+* The nullspace is a subspace. Its "dimension" is the number of **free variables**
+
+### The Rank of a Matrix
+* Rand Definition
+   * The rank of A is the number of pivots. This number is r
+   * All three matrices A and U and R have r independent rows
+   * The rank r is the "dimension" of the column space. It is also the dimension of the row space. The great thing is that n - r is the dimension of the nullspace.
