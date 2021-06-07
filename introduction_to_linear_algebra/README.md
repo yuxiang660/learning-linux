@@ -93,3 +93,22 @@ To multiply AB, it has four ways:
    * Each row of AB is a combination of the rows of B
 * Fourth way (columns multiply rows)
    * Multiply columns of 1 to n of A times rows 1 to n of B. Add those matrices.
+
+## Elimination = Factorization: A = LU
+* Elimination on Ax = b reaches Ux = c. Then back-substitution solves Ux = c.
+* Solving a triangular system takes n^2/2 multiply-subtracts. Elimination of find U takes n^3/3.
+* Assume on row exchanges, A = LU,
+   * When a row of A starts with zeros, so does that row of L.
+   * When a column of A starts with zeros, so does that column of U.
+* How to solve Ax = b?
+   * Factor into L and U, by elimination on the left side matrix A
+   * Solve forward elimination on b using L, then back substitution for x using U
+      * Forward for elimination and change b to a new right side c: Lc = b
+      * Backward to get x: Ux = c
+* The cost of elimination
+   * Elimination on A requires about 1/3*n^3 multiplications and 1/3*n^3 subtractions
+   * Each right side needs n^2 multiplications and n^2 subtractions
+
+# Transposes and Permutations
+
+
