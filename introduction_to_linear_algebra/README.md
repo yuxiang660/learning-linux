@@ -149,6 +149,12 @@ To multiply AB, it has four ways:
    * All three matrices A and U and R have r independent rows
    * The rank r is the "dimension" of the column space. It is also the dimension of the row space. The great thing is that n - r is the dimension of the nullspace.
 
+### Elimination: The Big Picture
+* Is this column a combination of previous columns?
+   * If the column contains a pivot, the answer is no. Pivot columns are "independent" of previous columns.
+* Is this row a combination of previous row?
+   * If the row contains a pivot, the answer is no. Pivot rows are "independent" of previous rows.
+
 ## The Complete Solution to Ax = b
 ![possible_solutions](./pictures/possible_solutions.png)
 
