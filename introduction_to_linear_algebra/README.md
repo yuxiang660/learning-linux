@@ -157,4 +157,4 @@ To multiply AB, it has four ways:
 
 ## The Complete Solution to Ax = b
 ![possible_solutions](./pictures/possible_solutions.png)
-
+![ax=b_solution](./pictures/ax=b_solution.png)
