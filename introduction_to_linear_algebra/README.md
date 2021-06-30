@@ -158,3 +158,21 @@ To multiply AB, it has four ways:
 ## The Complete Solution to Ax = b
 ![possible_solutions](./pictures/possible_solutions.png)
 ![ax=b_solution](./pictures/ax=b_solution.png)
+
+## Independence, Basis and Dimension
+![basis_dim](./pictures/basis_dim.png)
+
+* basis
+   * The basis vectors are linearly independent and they span the space
+   * Independent vectors that span the space
+* dimension
+   * The number of vectors, in any and every basis, is the "dimension" of the space
+   * The dimension of a space is the number of vectors in every basis
+   * All bases for a vector space contain the same number of vectors
+   * The pivot columns of A are a basis for its column space
+
+![example_dimension](./pictures/example_dimension.png)
+
+## Dimensions of the Four Subspaces
+![four_subspace](./pictures/four_subspace.png)
+![four_subspace_dim](./pictures/four_subspace_dim.png)
