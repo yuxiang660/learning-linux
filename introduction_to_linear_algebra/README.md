@@ -176,3 +176,23 @@ To multiply AB, it has four ways:
 ## Dimensions of the Four Subspaces
 ![four_subspace](./pictures/four_subspace.png)
 ![four_subspace_dim](./pictures/four_subspace_dim.png)
+
+# Orthogonality
+
+## Orthogonality of the Four Subspaces
+![orthogonal_subspaces](./pictures/orthogonal_subspaces.png)
+
+Subspace S is orthogonal to subspace T means
+* every vector in S is orthogonal to every vector in T
+
+Nullspace and rowspace are orthogonal complements in R(n)
+* Nullspace contains all vectors orthogonal to rowspace
+
+N(A^TA) = N(A), rank of A^TA = rank of A
+
+A^TA is invertible exactly if A has independent columns
+
+## Projection
+Why project?
+* Because Ax = b may have no solution, solve Ax = P instead (P is proj of b onto column space)
+
