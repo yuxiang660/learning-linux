@@ -219,6 +219,7 @@ Important formula:
 ## Least Squares Approximations
 
 ## Orthonormal Bases and Gram-Schmidt
+![gram_schmidt](./pictures/gram_schmidt.png)
 
 # Determinants
 * The determinant of the n by n identity matrix is 1.
