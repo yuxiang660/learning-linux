@@ -220,4 +220,14 @@ Important formula:
 
 ## Orthonormal Bases and Gram-Schmidt
 
-
+# Determinants
+* The determinant of the n by n identity matrix is 1.
+* The determinant changes sign when two rows(or two columns) are exchanged.
+* The determinant is linear function of each row separately.
+* If two rows of A are equal, then det A = 0.
+* Subtracting a multiple of one row from another row leaves det A unchanged.
+* A matrix with a row of zeros has det A = 0.
+* If A is triangular then det A = product of diagonal entries.
+* If A is singular then det A = 0. If A is invertible then det A != 0.
+* The determinant of AB is det A times det B.
+* The transpose A^T has the same determinant as A.
