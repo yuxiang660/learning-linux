@@ -176,6 +176,14 @@ To multiply AB, it has four ways:
 ## Dimensions of the Four Subspaces
 ![four_subspace](./pictures/four_subspace.png)
 ![four_subspace_dim](./pictures/four_subspace_dim.png)
+* Ax = 0
+   下面两个子空间正交，且维度是A的列数n
+   * A的行空间C(A^T)
+   * 零空间N(A)
+* x^T A = 0
+   下面两个子空间正交，且维度是A的行数m
+   * A的列空间C(A)
+   * 左零空间N(A^T)，因为: A^T y = 0
 
 # Orthogonality
 
@@ -195,4 +203,21 @@ A^TA is invertible exactly if A has independent columns
 ## Projection
 Why project?
 * Because Ax = b may have no solution, solve Ax = P instead (P is proj of b onto column space)
+
+![proj_1_dim](./pictures/proj_1_dim.png)
+
+![proj_2_dim](./pictures/proj_2_dim.png)
+
+![proj_2_dim_solution](./pictures/proj_2_dim_solution.png)
+
+Important formula:
+* A^T A x = A^T b
+* P = A (A^TA)^-1 A^T
+   * If b in column space, Pb = b
+   * If b perpendicular column space, Pb = 0
+
+## Least Squares Approximations
+
+## Orthonormal Bases and Gram-Schmidt
+
 
