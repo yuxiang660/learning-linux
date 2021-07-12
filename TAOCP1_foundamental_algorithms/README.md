@@ -13,7 +13,7 @@
       * E1. [求余数] 以n除m并令r为所得余数。(我们将有0 <= r < n)
       * E2. [余数为零？] 若r = 0, 算法结束, n即为答案。
       * E3. [减少] 置m <- n, n <- r, 并返回步骤E1。
-      * [euler_algorithm](./pictures/euler_algorithm.png)
+      * ![euler_algorithm](./pictures/euler_algorithm.png)
 
 
 
