@@ -232,3 +232,14 @@ Important formula:
 * If A is singular then det A = 0. If A is invertible then det A != 0.
 * The determinant of AB is det A times det B.
 * The transpose A^T has the same determinant as A.
+
+## Area of a Triangle
+![area_of_triangle](./pictures/area_of_triangle.png)
+
+![volume_of_box](./pictures/volume_of_box.png)
+
+## The Cross Product
+![cross_product](./pictures/cross_product.png)
+
+## Triple Product = Determinant = Volume
+![triple_product](./pictures/triple_product.png)
