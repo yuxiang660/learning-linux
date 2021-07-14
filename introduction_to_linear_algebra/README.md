@@ -243,3 +243,8 @@ Important formula:
 
 ## Triple Product = Determinant = Volume
 ![triple_product](./pictures/triple_product.png)
+
+# Eigenvalues and Eigenvectors
+
+* Sum of Eigenvalues = a11 + a22 + ... + ann
+
