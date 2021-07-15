@@ -23,3 +23,12 @@
 * 如何求函数f的反函数<br>
    ![inverse_func](./pictures/inverse_func.png)
 
+## 函数的复合
+* 多项式<br>
+   ![multinomial](./pictures/multinomial.png)
+* 有理函数<br>
+   ![rational](./pictures/rational.png)
+* 指数函数和对数函数
+   ![log](./pictures/log.png)
+* 三角函数
+* 带有绝对值的函数
