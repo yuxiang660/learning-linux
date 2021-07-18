@@ -19,4 +19,4 @@ plt.ylabel('Probability')
 plt.title("At Least Two Same Birth Probability Plot")
 plt.legend()
 
-# plt.show()
+plt.show()
