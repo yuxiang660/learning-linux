@@ -12,5 +12,6 @@
 * 解决问题
    * 狄利克雷鸽巢原理(抽屉原理)：设A1~An是一组集合，并且A1+...+An中至少有n+1个元素，那么至少有一个Ai包含了不少于两个元素
    * 计算对立事件的概率
-   * 概率分布图<br>
-   ![birth_prob](./pictures/birth_prob.png)
+   * [概率计算](./code/birth/same_birth_prob.py)
+      * 概率分布图<br>
+      ![birth_prob](./pictures/birth_prob.png)
