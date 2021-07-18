@@ -15,3 +15,12 @@
    * [概率计算](./code/birth/same_birth_prob.py)
       * 概率分布图<br>
       ![birth_prob](./pictures/birth_prob.png)
+* 对问题和答案的推广：效率
+   * 假设我们有一些麦片包装盒， 每个盒子都等可能地放着n个不同玩具中的一个，那么再首次得到两个相同的玩具之前，我们已经得到了多少个玩具？
+   * 假设某种东西正在破坏某个系统，必须击中两次才能完全破坏。如果在每次攻击中，所有地方都等可能地被击中，那么需要进行多少次攻击才能使得至少一个系统被摧毁？
+   * 生日问题的概率公式：$$\prod_{k=0}^{n-1}(1-\frac{k}{365})$$
+      * 利用`ln(1-x)`的泰勒级数近似`-x`，可得：$$\ln{p_{n}}\approx\sum_{k=0}^{n-1}-\frac{k}{365}$$
+      * 最终：$$n\approx\sqrt{D\cdot2\ln{2}}$$
+* 数值验证
+   * 验证上面的近似公式["code"](./code/birth/verify.py)，对比如下：<br>
+   ![birth_prob_appr](./pictures/birth_prob_appr.png)
