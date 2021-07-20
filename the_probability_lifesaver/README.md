@@ -18,9 +18,9 @@
 * 对问题和答案的推广：效率
    * 假设我们有一些麦片包装盒， 每个盒子都等可能地放着n个不同玩具中的一个，那么再首次得到两个相同的玩具之前，我们已经得到了多少个玩具？
    * 假设某种东西正在破坏某个系统，必须击中两次才能完全破坏。如果在每次攻击中，所有地方都等可能地被击中，那么需要进行多少次攻击才能使得至少一个系统被摧毁？
-   * 生日问题的概率公式：$$\prod_{k=0}^{n-1}(1-\frac{k}{365})$$
-      * 利用`ln(1-x)`的泰勒级数近似`-x`，可得：$$\ln{p_{n}}\approx\sum_{k=0}^{n-1}-\frac{k}{365}$$
-      * 最终：$$n\approx\sqrt{D\cdot2\ln{2}}$$
+   * 生日问题的概率公式：![$$\prod_{k=0}^{n-1}(1-\frac{k}{365})$$](https://render.githubusercontent.com/render/math?math=\prod_{k=0}^{n-1}(1-\frac{k}{365}))
+      * 利用`ln(1-x)`的泰勒级数近似`-x`，可得：![$$\ln{p_{n}}\approx\sum_{k=0}^{n-1}-\frac{k}{365}$$](https://render.githubusercontent.com/render/math?math=\ln{p_{n}}\approx\sum_{k=0}^{n-1}-\frac{k}{365})
+      * 最终：![$$n\approx\sqrt{D\cdot2\ln{2}}$$](https://render.githubusercontent.com/render/math?math=n\approx\sqrt{D\cdot2\ln{2}})
 * 数值验证
    * 验证上面的近似公式["code"](./code/birth/verify.py)，对比如下：<br>
    ![birth_prob_appr](./pictures/birth_prob_appr.png)
@@ -93,4 +93,4 @@
    * Ω是一个样本(结果)空间，Σ是一个σ代数。如果概率函数满足下列条件，那么(Ω，Σ，Prob)就是一个概率空间。
       * 如果A∈Σ，那么Pr(A)是有定义的，并且0≤Pr(A)≤1
       * Pr(Φ)=0且Pr(Ω)=1
-      * 设{Ai}是由有限个或可数个两两互不相交的集合构成的集族，并且每一个集合都是Σ中的元素，那么：![formula](https://render.githubusercontent.com/render/math?math=Pr(\cup_{i}A_{i})%20=%20\sum_{i}Pr(A_{i}))
+      * 设{Ai}是由有限个或可数个两两互不相交的集合构成的集族，并且每一个集合都是Σ中的元素，那么：![$$Pr(\cup_{i}A_{i}) = \sum_{i}Pr(A_{i})$$](https://render.githubusercontent.com/render/math?math=Pr(\cup_{i}A_{i})%20=%20\sum_{i}Pr(A_{i}))
