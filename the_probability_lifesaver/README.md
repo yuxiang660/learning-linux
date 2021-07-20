@@ -127,3 +127,4 @@
    * 例如此公式就出现了不可数个集合的并：![$$1=Pr([0,1])=Pr(\bigcup_{x\in{[0,1]}}\{x\})=\sum_{x\in{[0,1]}}Pr(\{x\})=\sum_{x\in{[0,1]}}?=0$$](https://render.githubusercontent.com/render/math?math=1=Pr([0,1])=Pr(\bigcup_{x\in{[0,1]}}\{x\})=\sum_{x\in{[0,1]}}Pr(\{x\})=\sum_{x\in{[0,1]}}?=0)
 * 对于一个可数集B，**存在**概率函数，使得
    * Pr(b)>0对所有的b∈B均成立，并且![$$\sum_{b\in{B}}Pr(b)=1$$](https://render.githubusercontent.com/render/math?math=\sum_{b\in{B}}Pr(b)=1)
+   * 例如，Pr(n)=1/2^(n+1)，n是非负整数。通过几何公式可知，可数集的概率和是1
