@@ -8,7 +8,7 @@ def generate_a_shuffled_poker():
     random.shuffle(poker)
     return poker
 
-def count_smallest_5_cards(num_of_tries):
+def count_no_pair(num_of_tries):
     poker = generate_a_shuffled_poker()
     count = 0
     for i in range(num_of_tries):
@@ -21,5 +21,5 @@ def count_smallest_5_cards(num_of_tries):
 if __name__ == "__main__":
     print("Probability of smallest 5 cards")
     NUM_OF_TRIES = 100000
-    count = count_smallest_5_cards(NUM_OF_TRIES)
+    count = count_no_pair(NUM_OF_TRIES)
     print(f"Observed probability is {count/NUM_OF_TRIES*100}%")
