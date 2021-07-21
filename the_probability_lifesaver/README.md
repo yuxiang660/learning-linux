@@ -146,10 +146,13 @@
 * 计算5张牌点数都不相同的方法数
    * 思路1：先从13个数中选5个不同的数，再分别为每个点数，从4个花色中选择一共点数
    * 公式：![$$\left(\begin{array}{c}13\\\\5\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\5\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right))
-   * 思路2：第二张牌不能和第一张牌点数相同，所以相当于有(52-4 = 48)种选择，以此类推，5张牌一种(52*48*44*40*36)种“有序”选择。但是5张牌是无序的，所以还要除去5!
+   * 思路2：第二张牌不能和第一张牌点数相同，所以相当于有(52-4 = 48)种选择，以此类推，5张牌一种(52 * 48 * 44 * 40 * 36)种“有序”选择。但是5张牌是无序的，所以还要除去5!
    * 拿到最小牌的概率约为50%，参加[代码](./code/poker/no_pair.py)
 
 ### 对子
 * 计算只有一个对子
    * 思路1：二项式系数法，对子组合+其余牌组合
-   * 思路2：列举组合数法，
+      * ![$$\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\2\end{array}\right)\cdot\left(\begin{array}{c}12\\\\3\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{3} $$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\2\end{array}\right)\cdot\left(\begin{array}{c}12\\\\3\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{3}%20)
+   * 思路2：列举组合数法，无须的对子组合数量+其余不同牌的组合数量
+      * (52 * 3 / (2!))*(48 * 44 * 40 / (3!))
+   * 拿到对子的概率约为42%，参加[代码](./code/poker/one_pair.py)
