@@ -128,3 +128,23 @@
 * 对于一个可数集B，**存在**概率函数，使得
    * Pr(b)>0对所有的b∈B均成立，并且![$$\sum_{b\in{B}}Pr(b)=1$$](https://render.githubusercontent.com/render/math?math=\sum_{b\in{B}}Pr(b)=1)
    * 例如，Pr(n)=1/2^(n+1)，n是非负整数。通过几何公式可知，可数集的概率和是1
+
+# 计数1：纸牌
+## 阶乘和二项式系数
+* 关键问题
+   * 对集合中的元素进行排序，一共有多少种方法？
+      * 排列问题，涉及阶乘函数
+   * 在不考虑次序的前提下，从中挑选出若干元素，一共有多少种方法？
+      * 组合问题，可导出二项式系数
+## 扑克牌
+![poker](./pictures/poker.png)
+* 牌型大小
+   * 对子最小，其次两对，三条...，同花顺最大
+* 从52张牌种无序挑出5张牌的方法数：![$$\left(\begin{array}{c}52\\\\5\end{array}\right)$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}52\\\\5\end{array}\right)) = 52!/(5!47!) = 2598960
+### 最小牌型
+* 计算5张牌点数都不相同的方法数
+   * 思路1：先从13个数中选5个不同的数，再分别为每个点数，从4个花色中选择一共点数
+   * 公式：![$$\left(\begin{array}{c}13\\\\5\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\5\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right))
+   * 思路2：第二张牌不能和第一张牌点数相同，所以相当于有(52-4 = 48)种选择，以此类推，5张牌一种(52*48*44*40*36)种“有序”选择。但是5张牌是无序的，所以还要除去5!
+   * 拿到最小牌的概率约为50%
+
