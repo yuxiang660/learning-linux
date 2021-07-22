@@ -168,3 +168,10 @@
    * 思路：分两组(一组三条，另一组两张点数不同)
       * ![$$\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\3\end{array}\right)\cdot\left(\begin{array}{c}12\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{2}$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\3\end{array}\right)\cdot\left(\begin{array}{c}12\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{2})
    * 拿到三条的概率约为2.1%，参加[代码](./code/poker/three_of_a_kind.py)
+
+### 其他牌的概率
+* 顺子概率:0.4%
+* 同花概率:0.2%
+* 葫芦概率:0.144%
+* 铁支概率：0.024%
+* 同花顺概率:0.0015%
