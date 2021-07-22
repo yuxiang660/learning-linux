@@ -162,3 +162,9 @@
    * 思路：分两组(一组是两个对，另一组是单的，如果分三组需要除去两个对的顺序)分别组合
       * ![$$\left(\begin{array}{c}13\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\2\end{array}\right)^{2}\cdot\left(\begin{array}{c}11\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\2\end{array}\right)^{2}\cdot\left(\begin{array}{c}11\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right))
    * 拿到两个对子的概率约为4.7%，参加[代码](./code/poker/two_pairs.py)
+
+### 三条
+* 计算三条且另外两张牌点数不一样的概率
+   * 思路：分两组(一组三条，另一组两张点数不同)
+      * ![$$\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\3\end{array}\right)\cdot\left(\begin{array}{c}12\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{2}$$](https://render.githubusercontent.com/render/math?math=\left(\begin{array}{c}13\\\\1\end{array}\right)\left(\begin{array}{c}4\\\\3\end{array}\right)\cdot\left(\begin{array}{c}12\\\\2\end{array}\right)\left(\begin{array}{c}4\\\\1\end{array}\right)^{2})
+   * 拿到三条的概率约为2.1%，参加[代码](./code/poker/three_of_a_kind.py)
