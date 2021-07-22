@@ -16,6 +16,7 @@ make -C /lib/modules/`uname -r`/build M=$(PWD) modules
 
 ## 编译运行hello驱动
 * 进入[hello目录](./code/hello)
+* 在编译之前需要准备好完整的Linux内核目录，可从GitHub官网下载并编译，此处用在根目录下的ARM版本的linux
 * 编译`make`
    * 输出hello.ko
 * 加载hello驱动
