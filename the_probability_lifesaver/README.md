@@ -272,3 +272,44 @@
 * 设FX是离散型随机变量X的累计分布函数，那么
    * ![$$\lim_{x \rightarrow -\infty}F_{X}(x) = 0$$](https://render.githubusercontent.com/render/math?math=\lim_{x%20\rightarrow%20-\infty}F_{X}(x)%20=%200)
    * ![$$\lim_{x \rightarrow \infty}F_{X}(x) = 1$$](https://render.githubusercontent.com/render/math?math=\lim_{x%20\rightarrow%20\infty}F_{X}(x)%20=%201)
+
+# 工具：期望
+## 泰勒公式
+* 我们希望能由泰勒系数推导出函数，换句话说，泰勒系数的序列可以唯一地确定函数。遗憾的是，事实并非如此。
+
+## 期望值和矩
+* 期望值和矩定义
+   * 设X是定义在R上的随机变量，它的概率密度函数是fX。函数g(X)的期望值是：
+   ![e_define](./pictures/e_define.png)
+   * 中心矩与泰勒系数相似，正如得到的泰勒系数越多，对函数的逼近就越好，知道更多的矩能让我们更好地理解概率密度函数的形状和性质
+   * 两个最重要的矩：均值(一阶矩)和方差(二阶矩)
+
+## 均值和方差
+![e_var](./pictures/e_var.png)
+
+
+## 联合分布
+![joint_density_function](./pictures/joint_density_function.png)
+* 联合概率密度函数是天线随机变量之间依赖关系的一种方法，它能给出给定n元组的概率
+
+## 期望的线性性质
+* 和的期望等于期望的和
+
+## 协方差
+![covariance](./pictures/covariance.png)
+* 互相独立的速记变量的协方差是0
+* 协方差为0并不代表随机变量是独立的
+* 协方差大于0，两个变量正相关；反之，负相关
+* Cov(X,Y) = E[XY] - μXμY，类似：Var(X) = E[X^2] - μX^2
+
+## 偏斜度与峰度
+* 三阶矩 - 偏斜度
+   * 测量了分布的不对称性
+   * 正态分布偏斜度是0
+   * 分布是单峰时，如果偏斜度时负的，那么左侧的尾巴要比右侧的长，反之左侧短
+   * 能通过偏斜度知道均值附件的波动出现在哪里
+* 四阶矩 - 峰度
+   * 峰度较小的数据集再均值上有一定的平稳性
+   * 具有极低峰度的分布时均匀分布
+   * 峰度较高的分布在其均值处会有一个非常尖的点，正太分布的峰度时3
+
