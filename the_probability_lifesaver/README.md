@@ -348,3 +348,43 @@
 
 ![pois](./pictures/pois.png)
 
+# 连续型随机变量
+
+## 均匀分布
+![unif](./pictures/unif.png)
+
+![unif_e_var](./pictures/unif_e_var.png)
+
+### 服从均匀分布的随机变量之和
+“好”的独立随机百年来之和会收敛于正态分布。8个服从均匀分布的随机变量，与所对应的(具有相同均值与方差的)正态分布能够完美拟合。
+
+## 指数分布
+![exp](./pictures/exp.png)
+
+![exp_e_var](./pictures/exp_e_var.png)
+
+### 服从指数分布的随机变量之和
+![exp_sum](./pictures/exp_sum.png)
+
+![exp_sum_pic](./pictures/exp_sum_pic.png)
+* 指数分布的随机变量之和收敛速度比均匀分布要慢，需要至少30个随机变量的拟合，原因是
+   * 均匀分布关于其均值对称，所以它的三阶中心矩为0，但指数分布不是这样的
+
+## 正态分布
+![normal_distribution](./pictures/normal_distribution.png)
+
+## 伽马函数与相关分布
+![gamma](./pictures/gamma.png)
+
+### 阶乘函数与伽马函数
+* 伽马函数是阶乘函数的推广
+
+### 贝塔函数与伽马函数
+![beta](./pictures/beta.png)
+
+![beta_distribution](./pictures/beta_distribution.png)
+
+![beta_pic](./pictures/beta_pic.png)
+
+### 分布族
+
