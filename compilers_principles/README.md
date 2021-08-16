@@ -14,7 +14,8 @@
 * 详细步骤如下<br>
    ![compile_phase](./pictures/compile_phase.png)
 
-### 词法分析
+### 词法分析 - lexical analysis
+* 目的：生成token
 * 对于每个词素，词法分析器产生`<token-name, attribute-value>`词法单元(token)作为输出
    * token-name是一个由语法分析步骤使用的抽象符号
    * attribute-value指向符号表中关于这个词法单元的条目
@@ -38,3 +39,22 @@
       * 被映射成<60>
    * 因此，最终上述赋值语句被表示成：`<id, 1> <=> <id, 2> <+> <id, 3> <*> <60>`<br>
      ![compile_phase_example](./pictures/compile_phase_example.png)
+
+### 语法分析 - syntax analysis
+* 目的：根据token-name，生成语法树
+* 语法分析器使用由词法分析器生成的各个词法单元的第一个分量来创建树形的中间表示
+   * 树种的每个内部结点表示一个运算，而该结点的子结点表示该运算分量
+
+### 语义分析 - semantic analyzer
+* 目的：使用语法树和符号表种的信息，检查源程序是否和语言定义的语义一致
+   * 类型检查
+
+### 中间代码生成
+* 目的：生成一个明确的低级的或类机器语言的中间表示
+* 中间表示的两个重要性质
+   * 易于生成
+   * 能够轻松地翻译为目标机器上的语言
+* 三地址代码(three-address code)
+   * 每个指令具有三个运算分量，每个运算分量都像一个寄存器
+
+
