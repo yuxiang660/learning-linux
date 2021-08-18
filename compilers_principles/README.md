@@ -215,3 +215,38 @@
    * 如果非终结符号A是某个内部结点的标号，并且它的子结点的标号从左到右分别为X1，X2，... Xn，那么比如存在产生式A->X1X2...Xn。如果A->空串ε是一个产生式，那么标号为A的结点可以只有一个标号为ε的子结点
 * 上例中`9-5+2`的推导可以用下图中的树来演示：<br>
    ![parse_tree_example](./pictures/parse_tree_example.png)
+   * 一棵语法分析树的叶子结点从左向右构成了树的结果，也就是从这棵语法分析树的根结点上的非终结符号推导得到的符号串
+
+### 二义性
+* 二义性定义
+   * 一个文法可能有多棵语法分析树能够生成同一个给定的终结符号串
+* 例子，以下文法具有二义性：`string -> string + string | string - string |0|1|2|3|4|5|6|7|8|9`<br>
+   ![parse_tree_ambiguous](./pictures/parse_tree_ambiguous.png)
+
+### 运算符的结合性
+* 四则运算是左结合，赋值是右结合
+   * 例如`a=b=c`可由如下文法产生(对比上面的加减文法，非终止符的位置不同)：
+   ```
+   right -> letter=right | letter
+   letter -> a | b | ... | z
+   ```
+   ![parse_tree_left_right](./pictures/parse_tree_left_right.png)
+
+### 运算符的优先级
+* 问题：如何构建算术表达式的文法？
+* 优先级递增分类，同一级别上的运算符具有相同的结合性和优先级
+   * 左结合：+ -
+   * 左结合：* /
+* 创建非终结符
+   * `factor`
+      * 不能被任何运算符分开的表达式
+   * `term`
+      * 可能被高优先级的运算符*和/分开，但不能被低优先级分开的表达式
+   * `expr`
+      * 可被任何运算符分开的表达式
+* 算术表达式文法
+   ```
+   expr -> expr + term | expr - term | term
+   term -> term * factor | term / factor | factor
+   factor -> digital | (expr)
+   ```
