@@ -250,3 +250,55 @@
    term -> term * factor | term / factor | factor
    factor -> digital | (expr)
    ```
+
+## 语法制导翻译
+* 目的：将中缀表达式翻译成后缀表达式，并用于表达式求值
+### 后缀表示
+* 后缀表示中不需要括号，因为其只有一种解码方式
+### 综合属性
+* 注释语法分析树
+   * 一棵语法分析树的各个结点上标记了相应的属性值
+   * 我们用X.a表示该结点上X的属性a的值
+   * 下图显示了`9-5+2`的一棵注释分析树<br>
+   ![annotated_parse_tree](./pictures/annotated_parse_tree.png)
+* 综合属性定义
+   * 如果某个属性在语法分析树结点N上的值式由N的子结点以及N本身的属性值确定，那么这个属性就称为综合属性(synthesized attribute)
+   * 只需要对语法分析树进行一次自底向上的遍历，就可以计算出属性的值
+### 简单语法制导定义
+* 要得到代表产生式头部的非终结符号的翻译结果的字符串，只需要将产生式体中各非终结符号的翻译结果安装它们在非终结符号中的出现顺序连接起来，并在其中穿插一些附加的串即可。具有这个性质的语法制导定义称为简单语法制导定义。
+
+![parse_tree_print](./pictures/parse_tree_print.png)
+* 上图后续遍历执行时会打印出：`95-2+`，不需要任何附加空间来存放子表达式的翻译结果
+* 与注释分析树(把字符串作为属性附加到语法分析树中的结点上)不同，此处是吧翻译结果以增量方式打印出来
+
+### 翻译方案
+* 算术表达式的产生式
+```
+expr -> expr + term
+      | expr - term
+      | term
+term -> term * factor
+      | term / factor
+      | factor
+factor -> digit | (expr)
+```
+* 后缀表达式翻译方案
+```
+expr -> expr + term {print('+')}
+      | expr - term {print('-')}
+      | term
+term -> term * factor {print('*')}
+      | term / factor {print('/')}
+      | factor
+factor -> digit {print(digit)} | (expr)
+```
+* 前缀表达式翻译方案
+```
+expr -> {print('+')} expr + term
+      | {print('-')} expr - term
+      | term
+term -> {print('*')} term * factor
+      | {print('/')} term / factor
+      | factor
+factor -> digit {print(digit)} | (expr)
+```
