@@ -385,3 +385,69 @@ factor -> digit {print(digit)} | (expr)
 * 对于没有参数的过程，一个尾递归调用可以被替换为跳转到过程开头的语句，例如上面的`rest`尾递归过程可以被改写为：<br>
    ![rest_tail_recursive_2_loop](./pictures/rest_tail_recursive_2_loop.png)
 * 参见[代码](./code/postfix/)
+
+## 词法分析
+* 构成一个词法单元的输入字符序列称为词素(lexeme)
+* 扩展上面的文法，使其支持乘除法和标识符id
+   ```
+   expr -> expr + term {print('+')}
+         | expr - term {print('-')}
+         | term
+   term -> term * factor {print('*')}
+         | term / factor {print('/')}
+         | factor
+   factor -> (expr)
+         | num {print(num.value)}
+         | id {print(id.lexeme)}
+   ```
+
+### 预读
+* 在决定向语法分析器返回哪个词法单元前，词法分析器可能需要预先读入一些字符
+   * 一种简单的解决方法是使用一个变量，如peek，来保存下一个输入字符
+   * 当词法分析器返回一个词法单元时，变量peek要么保存了当前词法单元的词素后的那个字符，要么保存空白符
+
+### 常量
+* 词法分析器向语法分析器传送一个词法单元，例如：`31+28+59`会被转换成序列`<num, 31> <+> <num, 28> <+> <num, 59>`
+
+### 识别关键字和标识符
+* 关键字
+* 标识符，用来为变量、数组、函数等命名
+   * 通常把标识符当作终结符号来进行处理，例如：`count = count + increment;`会被转换成`<id, "count"><=><id, "count"><+><id, "increment"><;>`
+* 本节中的词法分析器使用一个表来保存字符串，从而解决了两个问题：
+   * 单一表示
+   * 保留字
+
+### 词法分析器
+![lexer_code](./pictures/lexer_code.png)
+
+## 符号表
+* 我们为每个作用域建立一个单独的符号表来实现作用域
+* 我们让语法分析器来创建符号表，因为语法分析器知道一个程序的语法结构，因此相对于词法分析器而言，语法分析器通常更时候创建条目，可以更好地区分一个标识符的不同声明
+
+### 为每个作用域设置一个符号表
+* 最近嵌套
+   * 例子<br>
+   ![most_closely_example](./pictures/most_closely_example.png)
+   * 符号表链<br>
+   ![most_closely_example_symbol](./pictures/most_closely_example_symbol.png)
+      * B1对应于从第1行开始的语句块
+      * 图的顶端时符号表B0，它记录了全局的或由语言提供的默认声明
+   * 符号表链代码<br>
+   ![most_closely_example_symbol_code](./pictures/most_closely_example_symbol_code.png)
+
+### 符号表的使用
+* 符号表的作用是
+   * 将信息从声明的地方传递到实际使用的地方
+   * 当分析标识符x的声明时，一个语义动作将有关x的信息“放入”符号表中
+* 如何使用类`Env`？<br>
+   ![how_to_use_env](./pictures/how_to_use_env.png)
+   * 在进入和离开块的时候分别创建和释放符号表
+   * 变量top表示一个符号表链的顶部和顶层符号表
+   * 第一个产生式`program->block`
+      * 在block之前的语义动作将top初始化为null，即不包含任何条目
+   * 第二个产生式`block->'{'decls stmts'}'`
+      * 包含了进入和离开块时的语义动作
+         * 在decls之前，一个语义动作使用局部变量saved保存了对当前符号表的引用
+         * 在离开块时，'}'之后的一个语义动作将top的值恢复为进入块时保存起来的值
+   * 声明`decl->type id`的结果时创建一个对应于已声明标识符的新条目
+   * 产生式`factor->id`中的语义动作通过符号表获取这个标识符的条目
