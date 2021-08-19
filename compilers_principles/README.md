@@ -375,3 +375,13 @@ factor -> digit {print(digit)} | (expr)
          | ε
    term -> digit {print(digit)}
    ```
+
+### 非终结符号的过程
+![right_recursive_code](./pictures/right_recursive_code.png)
+
+### 翻译器的简化
+* 尾递归
+   * 如果一个过程体中执行的最后一条语句是对该过程的递归调用，那么这个调用就称为尾递归(tail recursive)
+* 对于没有参数的过程，一个尾递归调用可以被替换为跳转到过程开头的语句，例如上面的`rest`尾递归过程可以被改写为：<br>
+   ![rest_tail_recursive_2_loop](./pictures/rest_tail_recursive_2_loop.png)
+
