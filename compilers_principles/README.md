@@ -551,5 +551,51 @@ factor -> digit {print(digit)} | (expr)
    * 存放有关标识符的信息的数据结构
 
 # 一个完整的编译器前端
+* [代码](。/code/front_end_all/src)
+   * main
+   * lexer
+   * symbol
+   * parser
+   * inter
+      * 处理用抽象语法表示的语言结构
+
+## 源语言
+这个语言的产生式如下：
+* 第一级别：声明(basic表示基本类型)和语句
+```
+program -> block
+  block -> { decls stats }
+  decls -> decls decl | ε
+   decl -> type id;
+   type -> type [num] | basic
+  stmts -> stmts stmt | ε
+```
+* 第二级别：赋值和控制语句
+   * `loc`代表location(存储位置)
+   * `bool`代表表达式
+   * 把赋值当作一个语句(而不是表达式中的运算符)可以简化翻译工作
+```
+   stmt -> loc = bool;
+         | if (bool) stmt
+         | if (bool) stmt else stmt
+         | while (bool) stmt
+         | do stmt while (bool);
+         | break;
+         | block
+    loc -> loc[bool] | id
+```
+* 第三级别：表达式
+   * 表达式的产生式处理了运算符的结合性和优先级
+   * 非终结符`factor`用来表示括号中的表达式、标识符、数组引用和常量
+```
+   bool -> bool || join | join
+   join -> join && equality | equality
+equality-> equality == rel | equality != rel | rel
+    rel -> expr < expr | expr <= expr | expr >= expr | expr > expr | expr
+   expr -> expr + tem | expr -term | term
+   term -> term * unary | term / unary | unary
+  unary -> !unary | -unary | factor
+ factor -> (bool) | loc | num | real | true | false
+```
 
 
