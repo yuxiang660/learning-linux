@@ -9,7 +9,7 @@ export CLASSPATH = $(shell pwd)
 run_hello:
 	@java world.HelloWorld
 
-run_main:
+run:
 	@java main.Main
 
 clean:
