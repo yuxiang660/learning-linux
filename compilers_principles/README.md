@@ -561,7 +561,7 @@ factor -> digit {print(digit)} | (expr)
 
 ## 源语言
 这个语言的产生式如下：
-* 第一级别：声明(basic表示基本类型)和语句
+* 第一级别：声明(basic表示基本类型)和语句块
 ```
 program -> block
   block -> { decls stats }
