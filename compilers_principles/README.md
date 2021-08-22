@@ -519,6 +519,7 @@ factor -> digit {print(digit)} | (expr)
       t1 = 2 * t2
       a[i] = t1
       ```
+      * 上述三地址代码产生过程：
          * 这棵语法树的根是Assign结点，它的第一个参数是a[i]，第二个参数是2 * a[j-k]
             * 考虑第二个参数是Assign的一个结点，适用于rvalue函数的Assign情况
                * rvalue函数被递归地应用于2 * a[j-k]，这个子树的根结点是Op(*)节点，适用于rvalue的Op情况
