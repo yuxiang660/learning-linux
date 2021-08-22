@@ -1,10 +1,10 @@
+export CLASSPATH = $(CURDIR)
+
 all: build
 
 build:
 	@make -C ./world
 	@make -C ./main
-
-export CLASSPATH = $(shell pwd)
 
 run_hello:
 	@java world.HelloWorld

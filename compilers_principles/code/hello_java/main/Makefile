@@ -1,3 +1,5 @@
+export CLASSPATH = $(dir $(CURDIR))
+
 all: build
 
 build: *.java
