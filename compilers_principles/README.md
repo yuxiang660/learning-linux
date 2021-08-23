@@ -617,6 +617,7 @@ equality-> equality == rel | equality != rel | rel
          * 像`<=`复合词法单元，如果第二个输入不满足，则返回第一个字符的Token
          * 数字(整数或浮点数)
          * 单词(关键字或标识符)，关键字在Lexer构造的时候已经建立在Map中，Map以字符串词素为key，通过词素找Word词法单元
+   * `scan`返回的Token，以一个整体作为语法分析器的处理单元，从这个角度出发，[Type.java](./code/front_end_all/src/symbols/Type.java)更适合放在“lexer”文件夹中，因为Parser是以整体处理Type词法单元的。而[Array](./code/front_end_all/src/symbols/Array.java)不同，在Parser中不是以数组整体出现的，而是通过`[`和`]`符号，在Parser中做分析处理的。
 
 ## 符号表和类型
 * [Env.java](./code/front_end_all/src/symbols/Env.java)把字符串词法单元Token映射为类Id的对象
@@ -628,5 +629,6 @@ equality-> equality == rel | equality != rel | rel
    ```
    其中，括号中的数字，即为Token "a"的key
 
+## 表达式的中间代码
 
 
