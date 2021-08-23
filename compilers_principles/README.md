@@ -598,4 +598,35 @@ equality-> equality == rel | equality != rel | rel
  factor -> (bool) | loc | num | real | true | false
 ```
 
+## Main
+* [Main.java](./code/front_end_all/src/main/Main.java)
+   * 词法分析器Lexer
+   * 语法分析器Parser
+      * `parse.program()`
+
+## 词法分析器
+* 基本单元类
+   * [Tag.java](./code/front_end_all/src/lexer/Tag.java)定义了词法单元对应的常量，包括操作符和关键字等
+   * [Token.java](./code/front_end_all/src/lexer/Token.java)定义了词法单元的Token类(基类)，用于表示不同的标识
+   * [Num.java](./code/front_end_all/src/lexer/Num.java)继承了Token类，用于表示一个整数数字标识和数字的值
+   * [Real.java](./code/front_end_all/src/lexer/Real.java)继承了Token类，用于表示一个浮点数标识和浮点数的值
+   * [Word.java](./code/front_end_all/src/lexer/Word.java)继承了Token类，用于管理保留字、标识符和像&&这样的符合词法单元的词素
+* 主类Lexer：把字符串映射为字Token
+   * 目的：[Lexer.java](./code/front_end_all/src/lexer/Lexer.java)的主方法`scan`，用于识别数字、标识符和保留字
+      * `scan`会按下列顺序检测输入，返回期望的不同类型的Token，如果输入都不满足期望的Token类型，那么就返回以当前`peek`的字符作为tag值的Token
+         * 像`<=`复合词法单元，如果第二个输入不满足，则返回第一个字符的Token
+         * 数字(整数或浮点数)
+         * 单词(关键字或标识符)，关键字在Lexer构造的时候已经建立在Map中，Map以字符串词素为key，通过词素找Word词法单元
+
+## 符号表和类型
+* [Env.java](./code/front_end_all/src/symbols/Env.java)把字符串词法单元Token映射为类Id的对象
+   * 类Id的对象在后面会介绍，其存在于inter中，表示标识符。Id中的`key`会不断增加，用以区分不同作用域下相同的词法单元Token。例如，`{int a; a = 2; {int a; a = 3;}}`输入，会输出
+   ```
+   L1:     a(0) = 2
+   L3:     a(1) = 3
+   L2:
+   ```
+   其中，括号中的数字，即为Token "a"的key
+
+
 
