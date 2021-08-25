@@ -551,7 +551,8 @@ factor -> digit {print(digit)} | (expr)
    * 存放有关标识符的信息的数据结构
 
 # 一个完整的编译器前端
-* [代码](。/code/front_end_all/src)
+* [代码解释](https://blog.csdn.net/Zheng_lan/article/details/115916527)
+* [代码](./code/front_end_all/src)
    * main
    * lexer
    * symbol
