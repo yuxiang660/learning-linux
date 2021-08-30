@@ -8,6 +8,7 @@ fb1-4:
 	cc lex.yy.c -lfl
 	./a.out
 
+# bison -d produce header file
 fb1-5: fb1-5.l fb1-5.y
 	bison -d fb1-5.y
 	flex fb1-5.l
