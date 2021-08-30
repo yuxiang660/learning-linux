@@ -14,7 +14,9 @@ int lines = 0;
 
 int main (int argc, char **argv)
 {
+   printf("before yylex()\n");
    yylex();
+   printf("end yylex()\n");
    printf("%8d%8d%8d\n", lines, words, chars);
    return 0;
 }
