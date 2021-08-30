@@ -33,7 +33,7 @@ public class Parser {
     }
 
     public void program() throws IOException {
-        Stmt s = block();
+        Stmt s = block(true);
         int begin = s.newlabel();
         int after = s.newlabel();
         s.emitlabel(begin);
@@ -41,12 +41,17 @@ public class Parser {
         s.emitlabel(after);
     }
 
-    Stmt block() throws IOException {
+    Stmt block(boolean outer) throws IOException {
         match('{');
         Env savedEnv = top;
         top = new Env(top);
         Stmt s = stmts();
-        match('}');
+        if (outer) {
+            if (look.tag != '}') error("syntax error");
+        }
+        else {
+            match('}');
+        }
         top = savedEnv;
         return s;
     }
@@ -153,7 +158,7 @@ public class Parser {
                 match(';');
                 return new Continue();
             case '{':
-                return block();
+                return block(false);
             default:
                 return assign();
         }
