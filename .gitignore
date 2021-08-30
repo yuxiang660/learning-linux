@@ -97,3 +97,6 @@ main_*
 hs_err_pid*
 
 app*
+
+# flex and bison
+lex.yy.c
