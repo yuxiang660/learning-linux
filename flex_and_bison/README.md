@@ -134,3 +134,25 @@ main (int argc, char **argv)
 * 可以把`yyscan_t`代入任何依次`yylex()`的调用中
 * 最后通过`yylex_destroy`来删除`yyscan_t`
 * 参考[例子](。/code/reentrancy_pure_scanner)
+
+## 常用函数
+
+### yylex()和YY_DECL
+* 通常来说，`yylex`的调用并没有参数，它主要通过全局变量与程序的其他部分交互
+* 宏`YY_DECL`定义了它的调用顺序，可以重定义它来添加参数
+   ```
+   %{
+   #define YY_DECL int yylex(int *fruitp)
+   %}
+   %%
+   apple|orange {(*fruitp)++;}
+   ```
+
+### yyrestart()
+* 调用`yyrestart(f)`来使得词法分析器从打开的标准输入输出文件f来读取输入
+
+### yywrap()
+* 当词法分析器到达文件的末尾时，会调用`yywrap()`
+   * 如果返回0，则继续分析
+   * 如果返回1，则词法分析将返回一个零记号来表明文件结束
+* `%option noyywrap`可以用来移除对`yywrap()`的调用
