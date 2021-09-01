@@ -104,3 +104,7 @@ fb1-5.tab.c
 fb1-5.tab.h
 scanner.c
 scanner.h
+fb3-1
+fb3-1.tab.h
+fb3-1.tab.c
+fb3-1.lex.c
