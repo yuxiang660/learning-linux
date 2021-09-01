@@ -156,3 +156,53 @@ main (int argc, char **argv)
    * 如果返回0，则继续分析
    * 如果返回1，则词法分析将返回一个零记号来表明文件结束
 * `%option noyywrap`可以用来移除对`yywrap()`的调用
+
+# 使用Bison
+* flex把输入流分解为若干个片段，而bison则分析这些记号并基于逻辑进行组合
+
+## Bison语法分析器如何匹配输入
+### 移进/归约分析
+* 移进(shift)
+   * 当bison在处理时，会创建一组状态，每个状态都反映出一个或者多个部分分析过的规则中可能的位置
+   * 当语法分析器读取记号时，每当它读到的记号无法结束一条规则时，它将把这个记号压入一个内部堆栈，然后切换到一个新状态，这个状态能够反映出刚刚读取的记号
+* 归约(reduction)
+   * 当发现压入的所有语法符号已经可以组成规则的右部时，它将把又不符号全部从堆栈中弹出，然后把左部语法压入堆栈
+   * 每当bison归约一条规则时，它会指向该规则关联的用户代码。该代码也就是你对语法分析器分析的内容实际要做的事情
+* 例子`fred = 12 + 13`<br>
+   ![bison_example](./pictures/bison_example.png)
+   * 语法分析器开始时依次移进一个记号到内部堆栈中：
+   ```
+   fred
+   fred =
+   fred = 12
+   fred = 12 +
+   fred = 12 + 13
+   ```
+   * 这时它可以归约规则`expression: NUMBER + NUMBER`，所以它从堆栈中弹出12、加号和13，并把它们替换为`expression`
+   ```
+   fred = expression
+   ```
+   * 现在它又可以归约规则`statement: NAME = expression`，所以它弹出fred、=和expression，并把它们替换为statement
+   * 我们到达输入的末尾而堆栈被归约成起始符号，所以输入对于这个语法是有效的
+
+## Bison的LALR(1)语法分析器无法分析的语法
+* bison语法分析器可以使用两种分析方法
+   * LALR(1) - 自左向右向前查看一个记号
+      * 比GRL更快，更容易使用
+      * 但是不能处理需要向前查看多个记号才能确定是否匹配规则的语法
+   * GLR - 通用的自左向右
+      * 功能更强大
+* 特殊的例子
+   ```
+   phrase: cart_animal AND CART
+      | work_animal AND PLOW
+   cart_animal: HORSE | GOAT
+   work_animal: HORSE | OX
+   ```
+   * 这个语法虽然没有歧义，但是bison无法处理它，因为它需要向前查看两个符号
+      * 例如，对于`HORSE AND CART`这个输入，在看到CART之前它无法区别HORSE是一个cart_animal还是一个work_animal
+   * 如果修改成一些规则，则bison没有问题，因为bison能够向前查看一个记号来确定HORSE之后是否是CART
+      ```
+      phrase: cart_animal CART
+         | work_animal PLOW
+      ```
