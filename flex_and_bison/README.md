@@ -222,3 +222,103 @@ main (int argc, char **argv)
 
 ## 抽象语法树
 * 参见[例子(./code/calc_2)
+
+# Bison规范参考
+## Bison语法结构
+* bison程序由三部分构成
+   * 定义部分
+      * 文字块存在于`%{`和`%}`或者`%code`中，通常包括声明和`#include`行
+         * 声明包括`%union`, `%start`，`%token`，`%type`，`%left`，`%right`和`%nonassoc`
+   * 规则部分
+      * 包含语法规则和语义动作的C代码
+   * 用户子例程
+
+## 规则动作
+* 动作可以通过一个美元符号加上一个数字来使用规则中语法符号所关联的值，冒号后第一个语法符号的数字时1
+* `$$`指向左部符号--也就是冒号左边的符号的值
+   * 符号值(语义值)可以有不同的C类型
+* 没有语义动作的规则，默认动作：{ $$ = $1;}
+   * 如果有个规则没有右部符号，而左部符号右声明了类型，必须为它编写一个语义动作来赋值
+
+## 嵌入动作
+* 下面两个规则时等价的
+   ```
+   thing: A { printf("seen an A"); } B;
+   thing: A fakename B;
+   fakename: /* 空 */ { printf("seen an A"); };
+   ```
+
+## 移进/归约冲突
+* 移进/归约(shift/reduce)冲突
+   * 是指一个输入字符串存在两种可能的语法分析器
+      * 并且其中一个分析器结束一条规则(选择归约)
+      * 而另一个并不结束(选择移进)
+* 例子
+   ```
+   e: 'X'
+      | e '+' e
+      ;
+   ```
+   * 输入字符串`X+X+X`，有两种可能的语法分析器
+      * (X+X)+X   - 选择归约
+      * X+(X+X)   - 选择移进，除法用户使用操作符的优先级声明，否则bison选择移进
+
+## 归约/归约冲突
+* 归约/归约发生在同一个记号可以结束两条不同规则的时候，例如
+   ```
+   prog: proga | progb ;
+   proga: 'X';
+   progb: 'X';
+   ```
+   * X可以是proga也可以是progb
+
+## Bison程序的问题
+* 无限递归
+   * 创建了一个递归规则，但是并没有任何方法来结束这个递归
+      ```
+      xlist: xlist 'X';
+      ```
+* 互换优先级
+   ```
+   %token NUMBER
+   %left PLUS
+   %left MUL
+   %%
+   expr  :  expr PLUS expr %prec MUL
+         |  expr MUL expr %prec PLUS
+         |  NUMBER
+         ;
+   ```
+
+## 词法反馈
+* 语法分析器可以反馈一些信息给词法分析器
+* 例如，当特定规则是上下文相关时，就在语法分析器中设置一个标志：
+   ```
+   /* 语法分析器 */
+   %{
+   int parenstring = 0;
+   %}
+   ...
+   %%
+   statement: MESSAGE { parenstring = 1; } '(' STRING ')';
+   ```
+   * 然后在词法分析器中判定该标记：
+      ```
+      %{
+      extern int parenstring;
+      %}
+      %s PSTRING
+      %%
+      ...
+      "message" return MESSAGE;
+      "("   {
+               if (parenstring) BEGIN PSTRING;
+               return '(';
+            }
+      <PSTRING>[^)]* {
+                        yylval.svalue = strdump(yytext);
+                        BEGIN INITIAL;
+                        return STRING;
+                     }
+      ```
+      * 通过这样，就可以处理`message (any characters)`这样的语句了。不然，每次看到左圆括号都决定开始分析字符串，是不对的，因为左圆括号在该语法的其他地方可能有不同的解释，必须结合右圆括号一起分析
