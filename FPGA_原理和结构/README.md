@@ -304,3 +304,75 @@ FPGA通过可编程的开关来控制电路结构，这种“可编程”的开�
 * 缺点
    * PLL时钟合成的自由度更高，所以目前采用PLL的FPGA架构仍是主流
 
+# 设计流程和工具
+## 设计流程
+![fpga_design_flow](./pictures/fpga_design_flow.png)
+
+## 基于HDL的设计流程
+* 设计对象
+   * 由Verilog HDL或VHDL等HDL描述的RTL级别电路
+* 设计流程
+   * 对RTL描述进行逻辑综合
+   * 技术映射
+   * 布局布线
+   * 生成配置
+   * 写入FPGA进行系统验证
+* 工程的创建
+   * 约束设定
+      * 指向工程中输入电路所设计所使用FPGA器件的型号、时钟信号等物理约束
+   * 源文件创建
+      * 添加电路描述代码
+   * 仿真源文件的创建
+      * 添加testbench源文件
+* 逻辑综合和技术映射
+   * 逻辑综合指从RTL描述生成逻辑电路的过程<br>
+      ![rtl_to_netlist](./pictures/rtl_to_netlist.png)
+      * 输出是网表文件，其中包括：
+         * 逻辑门、触发器等逻辑元素的集合以及它们的连接关系
+   * 网表所表示的逻辑映射到FPGA实际的逻辑元素的过程称为技术映射
+* RTL仿真
+   * 用testbench对RTL电路描述进行仿真的过程
+* 布局布线(place and route)
+   * 布局布线是利用片上逻辑和布线等资源实现网表的过程<br>
+      ![netlist_to_place_and_route](./pictures/netlist_to_place_and_route.png)
+* 配置FPGA
+   * 将配置文件通过编程器写入器件<br>
+      ![config_fpga](./pictures/config_fpga.png)
+      * 直接通过JTAG写入
+      * 通过编程用非易失性存储器写入
+      * 通过存储卡或USB存储器写入
+* 实机功能验证
+* 优化
+
+## HLS设计
+* HLS (High Level Synthesis, 高层次综合，或者行为综合)
+   * 由行为描述生产电路
+
+### 行为描述
+![hls](./pictures/hls.png)
+
+### 行为级仿真
+* 定义
+   * 用C语言描述的设计对象首先可以作为软件编译并对其实施行为功能验证，这个阶段的仿真称为行为级仿真
+* 与RTL仿真的区别
+   * 不同于以时钟周期为单位进行事件驱动仿真的RTL级仿真，行为级仿真将设计编译为本地程序执行
+   * 优点是：速度快
+* 缺点是：没有考虑行为时序，所以无法进行时钟精确的验证
+
+### 行为综合
+* 高层次综合或行为综合
+   * 从基于C语言的行为级描述生成RTL级描述的过程
+* 行为综合的要素<br>
+   ![high_level_synthesis](./pictures/high_level_synthesis.png)
+   * 绑定(binding)
+      * 将行为记述所使用的变量、数组、运算 -> 寄存器、局部内存、运算器来实现
+   * 调度(scheduling)
+      * 运算依赖关系 -> 表示为数据流图(DFG)
+      * 控制流程 -> 表示为控制流图(CFG)
+
+### 与RTL连接
+* 行为综合后的模块再和其他模块群整合
+
+## 包含处理器的设计
+
+
