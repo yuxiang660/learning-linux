@@ -185,4 +185,79 @@ FPGA通过可编程的开关来控制电路结构，这种“可编程”的开�
 * 多路表决器的查找表实现<br>
    ![mux_circuit_lut](./pictures/mux_circuit_lut.png)
 
+# FPGA的结构
+## 逻辑块的结构
+* FPGA三大要素
+   * 可编程逻辑要素
+   * 可编程输入/输出要素
+   * 可编程布线要素
 
+![FPGA_structure_island](./pictures/FPGA_structure_island.png)
+* 上图岛型FPGA结构中
+   * 相邻的逻辑块，连接块、开关块组成一个可重复逻辑块(tile)
+   * 逻辑块和乘法块用于实现逻辑函数，存储块用来提供存储功能
+   * 硬逻辑：乘法块和存储块具有专门用途
+   * 软逻辑：逻辑块利用查找表和数据选择器实现任意逻辑函数
+
+## 逻辑簇
+* BLE(Basic Logic Element, 基本逻辑单元)是逻辑块的基本要素，其构成如下：<br>
+   ![ble](./pictures/ble.png)
+   * 实现组合电路的查找表
+   * 实现时序电路的触发器
+   * 数据选择器
+* 逻辑簇是由多个BLE群组化形成的逻辑块结构<br>
+   ![logic_cluster](./pictures/logic_cluster.png)
+* 逻辑簇最大优势是，在增加逻辑块功能性的同时，不大幅影响FPGA的整体面积
+
+## 自适应查找表
+* 自适应查找表和以往的查找表最大的不同，就是它可以通过分解来实现多个逻辑，从而提升资源使用率
+
+![adaptive_LUT](./pictures/adaptive_LUT.png)
+
+
+### Altera公司的Stratix II
+![altera_stratix_ii](./pictures/altera_stratix_ii.png)
+* 上图8输入电路，可实现
+   * 一个任意的6输入逻辑
+   * 或两个独立的4输入逻辑
+   * 或输入独立的一个5输入逻辑+一个3输入逻辑
+
+## 布线线段
+* FPGA的布线架构分为
+   * 全局布线(global routing)
+      * 主要解决逻辑块的连接、布线通道的宽度(连线数量)等高层次的问题
+   * 详细布线(detail routing)
+      * 决定具体的连接方式，比如逻辑块和布线通道间的开关布局等
+
+### 全局布线架构
+![wire](./pictures/wire.png)
+* 完全连接型
+   * 外部输入和逻辑块自身的反馈输出总是连接到输入
+   * 在含有可编程AND阵列的PLA器件中比较常见
+   * 缺点：在大规模电路中比较低效
+* 一次元阵列型
+   * 只有横向布线通道，上下布线通道间通过贯通式布线连接
+   * 缺点：使用的开关较多
+* 层次型FPGA<br>
+   ![wire_layer](./pictures/wire_layer.png)
+   * 一般层次越高，通道里面连线的数量就越多
+   * 优点：同层次内的连接所需开关数量少
+   * 缺点：一旦需要跨层连接延时就会增加
+* 岛型FPGA<br>
+   ![wire_island](./pictures/wire_island.png)
+   * 近些年的FPGA大多采用这种架构
+
+### 详细布线架构
+![wire_detail](./pictures/wire_detail.png)
+* 详细布线架构需要考虑
+   * 逻辑块和布线通道间的连接结构
+   * 布线线段长度的种类和比例
+   * 布线开关的晶体管参数
+
+## 开关块
+![switch_block](./pictures/switch_block.png)
+
+## 连接块
+![connect_block](./pictures/connect_block.png)
+* 连接块的功能是
+   * 连接布线通道和逻辑块的输入/输出
