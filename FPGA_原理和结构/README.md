@@ -162,3 +162,27 @@ FPGA通过可编程的开关来控制电路结构，这种“可编程”的开�
    * 易失性存储器
    * 接通电阻、负载电容较大
 
+## FPGA的逻辑实现
+下面以多路表决电路位例子，解释FPGA上不同的逻辑实现方式：
+![mux_circuit](./pictures/mux_circuit.png)
+
+![mux_circuit_expr](./pictures/mux_circuit_expr.png)
+
+![mux_circuit_fpga](./pictures/mux_circuit_fpga.png)
+
+### 基于乘积项的逻辑实现
+* PLA中的逻辑实现是基于乘积项的，简要结构如下：<br>
+   ![PLA_AND_OR](./pictures/PLA_AND_OR.png)
+   * PLA由1个AND阵列和1个OR阵列组成
+* 多路表决电路在PLA中的实现如下：<br>
+   ![mux_circuit_pla](./pictures/mux_circuit_pla.png)
+
+### 基于查找表的逻辑实现
+* FPGA上查找表的存储单元大多数是SRAM实现
+* k输入的查找表可以实现2^2^k种逻辑函数，例如，k=2时，能表示16种逻辑函数。因为由2^2个SRAM单元，每个单元的值又有1和0两种，所以SRAM可以有2^2^k种选择
+* 三输入的查找表结构<br>
+   ![LUT_Three_Input](./pictures/LUT_Three_Input.png)
+* 多路表决器的查找表实现<br>
+   ![mux_circuit_lut](./pictures/mux_circuit_lut.png)
+
+
