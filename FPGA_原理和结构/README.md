@@ -80,3 +80,34 @@
       * 所有的输入信号都会给一个不同时刻的激励，在testbench（.sp或者.v）中设置一段仿真时间，最后对仿真结果进行时序和功能分析
       * 优点是比较精确，缺点是速度比较慢，而且可能会遗漏一些关键路径(因为需要输入激励)
 
+## FPGA的定位和历史
+### FPGA的定位
+![chip_category](./pictures/chip_category.png)
+* FPGA是PLD(Programmable Logic Device, 可编程逻辑器件)的一种
+
+### FPGA的历史
+* 20世纪10年代(FPLA、PAL)
+   * FPLA - 现场可编程逻辑阵列
+   * PLA - 可编程阵列逻辑
+* 20世纪80年代
+   * GAL(通用阵列逻辑)
+   * EPL(可擦除阵列逻辑)
+      * SPLD (Simple PLD)，前面的PLD被统称SPLD，因为它们的集成度只有数十到数百门的程度
+   * FPGA
+   * CPLD(Complex PLD)
+* 20世纪90年代
+   * FPGA成为了大规模PLD的代表
+* 20世纪00年代
+   * 百万门时代和系统LSI化
+
+## FPGA专业术语
+* ASIC (Application Specific Integrated Circuit, 专用集成电路)
+   * 面向特定用途的集成电路
+      * 全定制IC
+      * 半定制IC
+* ASSP (Application Specific Standard Product, 专用标准产品)
+   * 某一特定领域或应用的通用LSI
+* CPLD (Complex PLD, 复杂可编程逻辑器件)
+   * 将多个小规模SPLD作为基本逻辑块，再通过开关链接而成的中规模(大规模)PLD
+* DLL (Delay-Locked Loop, 延迟锁定环)
+   * 基本功能和PLL相同：可以实现零传输延迟提供低偏移的时钟信号
