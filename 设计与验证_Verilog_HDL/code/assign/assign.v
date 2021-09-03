@@ -1,30 +1,40 @@
-`timescale 1ns/1ns
+// https://www.cxyzjd.com/article/Reborn_Lee/107888798
+
+`timescale 1ns/1ps
 
 module tb;
-reg val1;
-reg val2;
+reg  a, b, c, q;
 
 initial
   begin
-    $display ("tb1: `timescale 1ns/1ns");
+    $monitor("[%0t] a=%0b b=%0b c=%0b q=%0b", $time, a, b, c, q);
 
-    val1 <= 1;
-    val2 <= 2;
-    $display ("val1 = %d", val1);
-    $display ("val2 = %d", val2);
+    // Initialize all signals to 0 at time 0
+    a <= 0;
+    b <= 0;
+    c <= 0;
+    q <= 0;
 
-    $display ("val2 = val1");
-    val2 = val1;
-    $display ("val1 = %d", val1);
-    $display ("val2 = %d", val2);
+    // Inter-assignment delay: Wait for #5 time units
+    // and then assign a and c to 1. Note that 'a' and 'c'
+    // gets updated at the end of current timestep
+    #5  a <= 1;
+        c <= 1;
+        q <= a&c;
 
-    #1 $display ("T=%0t At time #1", $realtime);
+    // Intra-assignment delay: First execute the statement
+    // then wait for 5 time units and then assign the evaluated
+    // value to q
+    // q <= #5 a & b | c;
 
-    $display ("val1 = %d", val1);
-    $display ("val2 = %d", val2);
+    #1 q <= a&c;
 
-    #1 $display ("T=%0t At time #1", $realtime);
-    $display ("End");
+    // Inter-assignment delay: Wait for #5 time units
+    // and then assign 'q' with whatever value RHS gets
+    // evaluated to
+    #5 q <= a & b | c;
+
+    #20;
   end
 
 initial
