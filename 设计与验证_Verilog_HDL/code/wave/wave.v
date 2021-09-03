@@ -33,7 +33,7 @@ initial
 
 initial
   begin
-    $dumpfile("wave.vcd");
+    $dumpfile("main.vcd");
     //数0表示转储模块下面各个层的所有信号。如果是数字1，则表示只转储此模块中的变量，不转储此模块调用模块中的变量
     $dumpvars(0, tb);
   end
