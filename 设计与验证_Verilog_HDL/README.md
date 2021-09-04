@@ -140,6 +140,52 @@
       用户定义原语(UDP)实例化
       连续赋值(Continuous assignment)
    ```
+   * module的端口
+      * 仿真平台的顶层`tb`是一个封闭系统，不含端口
+      * module的`input`默认定义为`wire`类型
+      * module的`output`可以使wire类型，也可以使`reg`类型
+      * module的`inout`是双向的，一般将其设定为`tri`类型，表示其右多个驱动元，如无驱动则为三态
+   * 出现在一个module中的语句，互相之间没有任何顺序关系
 
+## 编译指令
+* 常用的编译指令
+   ```
+   `timescale;
+   `define, `undef;
+   `ifdef, `else, `endif;
+   `include;
+   `resetall;
+   ```
+* 编译指令规则
+   * 编译器一旦遇到某个编译指令，则该指令在整个编译过程中有效，知道编译器遇到另一个相同的编译指令为止
+### `timescale
+* timescale编译指令如果在模块外部出现，会影响后面模块中的所有延时值，知道遇到下一个timescale或者resetall
+* 以延时`#1.16`为例子，分析不同timescale下的真实延时
+   * `timescale 1ns/100ps
+      * 最小时间颗粒度是0.1ns
+      * 真实延时是1.16ns的十分位四舍五入：1.2ns
+   * `timescale 1ns/10ps
+      * 最小时间颗粒度是0.01ns
+      * 真实延时是1.16ns的百分位四舍五入：1.16ns
+
+### `define
+* 用于定义宏
+   ```verilog
+   // 利用宏定义一个宽度位16的reg类型数据Data
+   `define BUS_WIDTH 16
+   reg [`BUS_WIDTH-1 : 0] Data;
+   ```
+* 在一个文件中出现的define可以被多个文件使用(这是define和parameter定义的最大区别)，直到遇到undef指令为止
+
+### `include
+* 嵌入某个文件中的内如
+   * ``include "HEADFILE.h`，在编译的时候，文件中的内容会完全替换这一行
+
+### `resetall
+* 将其他编译指令重新设置位缺省值
+
+## 逻辑值和常量
+
+### 逻辑值
 
 
