@@ -125,7 +125,21 @@
 
 ## 模块和端口
 * 通常情况下一个Verilog文件只放一个module定义，而且要使文件名称与module名称一致
-
+* module的结构如下：
+   ```
+   module 模块名称(端口列表);
+   // 声明:
+      input, output, inout,
+      reg, wire, parameter,
+      function, task, ...
+   // 语句:
+      initial 语句
+      always 语句
+      module 实例化
+      门实例化
+      用户定义原语(UDP)实例化
+      连续赋值(Continuous assignment)
+   ```
 
 
 

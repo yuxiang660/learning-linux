@@ -1,22 +1,10 @@
-`timescale 1ns/100ps
+`timescale 1ns/1ns
 
 module tb;
 
 reg [1:0] A, B;
 reg clk, rstn, sel;
 wire A_out, B_out;
-
-always #10 clk <= ~clk;
-
-HelloVlog h0 (
-   .Clock(clk),
-   .Reset_n(rstn),
-   .A_in(A),
-   .B_in(B),
-   .Sel_in(sel),
-   .A_xor_out(A_out),
-   .B_xor_out(B_out)
-);
 
 initial
 begin
@@ -56,5 +44,17 @@ initial
    //数0表示转储模块下面各个层的所有信号。如果是数字1，则表示只转储此模块中的变量，不转储此模块调用模块中的变量
    $dumpvars(0, tb);
   end
+
+always #10 clk <= ~clk;
+
+HelloVlog h0 (
+   .Clock(clk),
+   .Reset_n(rstn),
+   .A_in(A),
+   .B_in(B),
+   .Sel_in(sel),
+   .A_xor_out(A_out),
+   .B_xor_out(B_out)
+);
 
 endmodule

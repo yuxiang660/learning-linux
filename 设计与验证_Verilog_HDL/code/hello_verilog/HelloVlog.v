@@ -1,15 +1,7 @@
-`timescale 1ns/100ps
+/* 声明 */
 
-// 声明部分：module, 端口, 线网和寄存器
-module HelloVlog (
-   Clock,
-   Reset_n,
-   A_in,
-   B_in,
-   Sel_in,
-   A_xor_out,
-   B_xor_out
-);
+// 声明：module, 端口, 线网和寄存器
+module HelloVlog (Clock, Reset_n, A_in, B_in, Sel_in, A_xor_out, B_xor_out);
 
 input Clock;
 input Reset_n;
@@ -26,6 +18,8 @@ reg eq0, eq1, eq2, eq3;
 reg A_xor_out;
 reg B_xor_out;
 
+/* 语句 */
+
 // 行为描述
 always @(posedge Clock or negedge Reset_n) begin
    if (~Reset_n)
@@ -41,15 +35,6 @@ always @(posedge Clock or negedge Reset_n) begin
       B_xor_out <= B_xor_wire;
 end
 
-// 数据流描述，#1延时一个时间单位来模拟组合逻辑的延时
-assign #1 A_xor_wire = eq0 ^ eq1;
-
-//结构化描述，用xor门原语达到上面一样的效果
-xor #1 XOR_B(B_xor_wire, eq2, eq3);
-
-assign #3 result = (Sel_in) ? B_in : A_in;
-
-//行为描述
 always @(result) begin
    case (result)
       2'b00: begin
@@ -71,5 +56,12 @@ always @(result) begin
       default: ;
    endcase
 end
+
+// 结构化描述，用xor门原语实现，和连续赋值效果相同
+xor #1 XOR_B(B_xor_wire, eq2, eq3);
+
+// 数据流描述，#1延时一个时间单位来模拟组合逻辑的延时
+assign #1 A_xor_wire = eq0 ^ eq1;
+assign #3 result = (Sel_in) ? B_in : A_in;
 
 endmodule
