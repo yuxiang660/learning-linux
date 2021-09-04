@@ -337,3 +337,99 @@ Opint = -12/4; //Opint被赋值为-3
    * 概率分布函数
       * `$random` - 系统函数，返回一个32位的有符号整型随机数
 * 系统任务/系统函数只可以在仿真器中运行，综合工具和布线工具会将其忽略
+
+# 描述方式和设计层次
+* 三种描述方法
+   * 数据流
+   * 行为
+   * 结构化
+
+## 数据流描述
+* `assign #1 A_xor_wire = eq0 ^ eq1;`
+
+### 连续赋值语句
+* 连续驱动
+   * 连续赋值语句使连续驱动的，只要输入发生变化，都会导致该语句的重新计算
+* 只有线网类型的变量才能在assign语句中被赋值
+   * 由于连续赋值语句中的被赋值的变量在仿真器中不会存储其值
+   * 线网类型的变量可以被多重驱动，但寄存器变量就不同了，它不能被不同的行为进程(always)驱动
+* 使用assign对组合逻辑几面
+   * 连续驱动特点与组合逻辑的行为非常相似
+   * 加延时可以非常精确地模拟组合逻辑的惯性延时
+* 并行性
+* [实例](./code/adder)
+
+### 延时
+* 延时类型
+   * 上升沿延时
+   * 下降沿延时
+   * 关闭延时(输出变成高阻态Z)
+   * 输出变成X的延时
+* 例子
+   * `assign #(1,2) A_xor_wire = eq0 ^ eq1;`
+      * 上升沿延时为1ns，下降沿延时为2ns，关闭延时和传递到X的延时取两者中最小的，即1ns
+   * `assign #(1,2,3) A_xor_wire = eq0 ^ eq1;`
+      * 上升沿延时为1ns，下降沿延时为2ns，关闭延时为1ns，传递到X的延时取三者中最小的，即1ns
+   * `assign #(4:5:6, 3:4:5) A_xor_wire = eq0 ^ eq1;`
+      * 上升沿延时的min:typ:max为4:5:6，下降沿延时的min:typ:max为3:4:5
+* 惯性延时的特性
+   * 任何小于其延时的信号变化脉冲都会被滤除掉，不会体现在输出端口上
+* assign语句中的延时特性通常是被逻辑综合工具忽略的
+   * 因为逻辑电路的延时是由基本的单元库和走线延时决定的，不应让用户指定
+
+### 多驱动源线网
+* 错误写法
+   ```
+   module WS (A, B, C, D, WireShort);
+   input A, B, C, D;
+   output WireShort;
+   wire WireShort;
+   // 仿真时WireShort的值将是X，但是综合工具会报错
+   wire WireShort = A ^ B;
+   wire WireShort = C & D;
+   ```
+* 线与写法
+   ```
+   module WS (A, B, C, D, WireAnd);
+   input A, B, C, D;
+   output WireAnd;
+   wand WireAnd;
+   wire WireAnd = A ^ B;
+   wire WireAnd = C & D;
+   ```
+* 线或写法
+   ```
+   module WS (A, B, C, D, WireOr);
+   input A, B, C, D;
+   output WireOr;
+   wor WireOr;
+   wire WireOr = A ^ B;
+   wire WireOr = C & D;
+   ```
+* 三态总线写法
+   ```
+   module WS (A, B, C, D, WireTri, En1_n, En2_n);
+   input A, B, C, D, En1_n, En2_n;
+   output WireTri;
+   tri WireTri;
+   wire WireTri = En1_n ? 1'bZ : A ^ B;
+   wire WireTri = En2_n ? 1'bZ : C & D;
+   ```
+   ![tri](./pictures/tri.png)
+
+## 行为描述
+### 行为描述的语句格式
+* initial或always过程块(procedural block)
+   * initial语句在0仿真时间执行，而且只执行一次
+   * always语句在0仿真时间开始执行，但是它一直循环执行
+   * 两者执行顺序随机
+* 过程块中的语句种类
+   * 非阻塞过程赋值
+   * 阻塞过程赋值
+   * 连续过程赋值
+   * 高级编程语句，如: `if`
+   * 语句组，如：`begin...end, fork...join`
+* 时序控制
+   * 事件语句：`@`
+   * 延时语句：`#`
+
