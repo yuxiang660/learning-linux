@@ -567,3 +567,142 @@ Opint = -12/4; //Opint被赋值为-3
 
 ### 晶体管级
 * 逻辑门由一个个晶体管组成，Verilog语言中，有用于直接描述NMOS和PMOS的原语。
+
+# RTL概念于RTL级建模
+
+## RTL与综合的概念
+* 典型的RTL级设计包含3个部分
+   * 时钟域描述
+      * 时间主从关系和时钟域之间的转换
+   * 时序逻辑描述(寄存器描述)
+      * 根据时钟沿的变换，描述寄存器之间的数据传输
+   * 组合逻辑描述
+      * 描述电平敏感信号的逻辑组合方式和逻辑功能
+
+## 常用的RTL级建模
+### 阻塞赋值、非阻塞赋值和连续赋值
+* 对于时序逻辑，即always模块的敏感表为**沿**敏感信号，统一使用非阻塞赋值“<=”
+   ```
+   reg[3:0] cnt_out;
+   always @(posedge clock)
+      cnt_out <= cnt_out + 1;
+   ```
+* 对于always模块的敏感表为**电平**敏感信号的组合逻辑，统一使用阻塞赋值“=”
+   * "cnt_out_plus"虽然被指定为reg型，但是实际综合后会是组合逻辑
+   ```
+   reg[3:0] cnt_out_plus;
+   always @(cnt_out)
+      cnt_out_plus = cnt_out + 1;
+   ```
+* 对于assign关键字描述的组合逻辑(通常称之为连续赋值语句)，统一使用“=”，变量被定义为wire型信号
+   ```
+   wire[3:0] cnt_out_plus;
+   assign cnt_out_plus = cnt_out + 1;
+   ```
+
+### 寄存器电路建模
+* 寄存器信号声明
+   * 寄存器被定义为reg型，但是reg型变量不一定是寄存器
+* 时钟输入
+* 异步复位/置位
+   ```
+   reg [3:0] cnt_reg;
+   always @ (posedge clock or negedge reset_)
+      if (!reset_)
+         cnt_reg <= 4'b0000;
+      else
+         begin
+            ...
+         end
+   ```
+* 同步复位/置位
+   ```
+   reg [3:0] cnt_reg;
+   always @ (posedge clock)
+      if (!reset_)
+         cnt_reg <= 4'b0000;
+      else
+         begin
+            ...
+         end
+   ```
+* 同时使用时钟上升沿和下降沿的问题
+   * 存在抖动、偏移、斜率等问题
+
+### 组合逻辑建模
+* 组合逻辑的特点
+   * 输出的变化仅仅和输入的电平相关，而与时钟沿无关
+* 常用的RTL级组合模有两种
+   * always模块的敏感表位电平敏感信号的电路
+   * assign等关键字描述的组合逻辑电路
+
+### 双向端口与三态信号建模
+* 仅在顶层定义双向总线和实例化的三态信号，并在顶层将双向信号分为输入信号和输出信号两种类型，然后根据需要分别传递到不同的子模块中去
+
+### Mux建模
+* 对于简单的Mux
+   * 直接用`assign`和`?`表达式建模
+   ```
+   wire mux_out;
+   assign mux_out = (en) ? a : b;
+   ```
+* 对于复杂的Mux
+   * 使用`always`和`if...else...`, `case`等条件判断语句
+   ```
+   reg mux_out;
+   always @ (en or a or b or c or d)
+      case (en)
+         2'b00: mux_out = a;
+         2'b01: mux_out = b;
+         2'b10: mux_out = c;
+         2'b11: mux_out = d;
+      endcase
+   ```
+
+### 存储器建模
+* 存储单元定义格式：`reg [data_width] MemoryName [address_width];`
+* FPGA都内嵌有RAM资源，不推荐使用Verilog直接建模RAM，在PLD中使用存储结构的基本方法如下：
+   * 通过器件商的开发平台中内嵌的IP生成器直接生成
+   * 直接根据Verilog语言建模存储器，由综合自己优化
+
+### 串并转换建模
+```
+module srl2pal (clk, rst, srl_in, pal_out);
+
+input        clk;
+input        rst;
+input        srl_in;
+output [7:0] pal_out;
+reg    [7:0] pal_out;
+
+always @ (posedge clk or negedge rst)
+   if (!rst)
+      pal_out <= 8'b0;
+   else
+      pal_out <= {pal_out,srl_in};
+
+endmodule
+```
+
+### 使用case和if...else语句建模
+* 没有优先级的分支(推荐)
+   * `case`和`if...else`语句<br>
+   ![if_else](./pictures/if_else.png)
+* 有优先级的分支(不推荐)
+   * `default value; if...if...if...`<br>
+   ![if_if](./pictures/if_if.png)
+      * 最后一条if语句对应的sel3和d的优先级最高
+
+### 可综合的Verilog语法子集
+* 可综合的Verilog语法是一个非常小的子集，包括
+   * 模块声明：module...endmodule
+   * 端口声明：input, output, inout
+   * 信号类型：wire, reg, tri
+   * 参数定义：parameter
+   * 运算操作符
+   * 比较判断
+   * 连续赋值
+   * always模块
+   * begin...end
+   * 任务定义：task...endtask
+   * 循环语句
