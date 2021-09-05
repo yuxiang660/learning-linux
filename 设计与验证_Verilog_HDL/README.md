@@ -810,7 +810,7 @@ endmodule
    * 二端是FSM描述利用同步时序提高了状态转移的稳定性。但是，状态输出用组合逻辑实现，仍然会出现毛刺
    * 三段式FSM描述能够更根据状态转移规律，在上以状态根据输入条件判断当前状态的输出，从而在不插入额外时钟节拍的前提下实现寄存器输出
 
-* 实例：[FSM](./code/fsm)
+* 实例：[FSM](./code/fsm)<br>
    ![fsm_example](./pictures/fsm_example.png)
    * 4种状态：IDEL, S1, S2, ERROR
    * 状态输出
