@@ -1075,3 +1075,86 @@ endmodule
 * 使用VCD文件
    * VCD文件是一种标准格式的波形记录文件，该文件只记录发生变化的波形
 
+# Verilog语义和仿真原理
+## 从一个问题说起
+* 对如下RTL代码仿真：
+   ```verilog
+   always @ (A_in or B_in or C_in)
+   begin
+      Temp = A_in & B_in; //阻塞赋值
+      D_out = Temp | C_in;
+   ```
+   * 得到如下电路图<br>
+   ![example](./pictures/example.png)
+* 如果将两语句颠倒顺序
+   * 错误的写法，A_in或B_in变化，D_out不会有任何变化
+      ```verilog
+      always @ (A_in or B_in or C_in)
+      begin
+         D_out = Temp | C_in;
+         Temp = A_in & B_in;
+      ```
+   * 正确的写法
+      ```verilog
+      always @ (A_in or B_in or C_in or Temp)
+      begin
+         D_out = Temp | C_in;
+         Temp = A_in & B_in;
+      ```
+
+## 电路与仿真
+
+### Verilog仿真语义
+* 顺序执行的仿真器怎么仿真并行的Verilog语言呢？
+   * Verilog的仿真过程类似于PC中的多任务操作系统，Verilog中的不同硬件电路描述语句对应PC上的不同应用程序
+   * 仿真事件是由硬件电路延时参数决定的，而仿真软件在计算机上运行的时间没有任何关系
+
+## 仿真原理
+### Verilog的仿真过程
+![example2](./pictures/example2.png)
+* 上图的Verilog代码可参见[链接](./code/dff)
+
+![example2_wave](./pictures/example2_wave.png)
+* 0仿真时刻
+   * 在仿真顶层TB中，4个进程同时在0时刻执行，包括3个initial进程和一个INV_DFF实例u_INV_DFF，执行顺序不确定
+   * Clock Generation Initial进程
+      * Ck=0后，仿真器遇到#10时挂起进程，目前仿真时刻还是0，所以不继续往下执行
+   * Reset Generation Initial进程
+      * Rst_n=1后，仿真器遇到#5，挂起进程
+   * Data Input Generation Initial进程
+      * Din=0后，仿真器遇到#80，挂起进程
+   * 执行实例n_INV_DFF
+      * always语句由于没有触发，并没有执行
+      * assign语句
+         * 计算事件
+            * 在0时刻首先计算`~DataIn`
+         * 更新事件
+            * `DataInv`变量的更新被推迟到3ns后才执行
+   * 0仿真时刻语句全部执行完成后，仿真时间轴向前推进，由于在3ns之前没有任务需要执行，仿真器直接推进到3ns时刻
+* 3ns仿真时刻
+   * 只有一个任务，就是assign语句的更新事件，`DataInv`被更新为1
+   * 3ns仿真时刻结束，仿真器直接推进到最近的任务时刻：5ns时刻
+* 5ns仿真时刻
+   * Reset Generation Initial进程被唤醒
+      * 执行Rst_n=0后，遇到#55，进程再次被挂起，等待"5+55=60ns"时刻
+   * 由于Rst_n被置位于0，Rst_n下降沿触发了u_INV_DFF中的always语句
+      * `DataOut`变量从初始的"x"状态被复位为0后，always语句再次挂起
+   * 5ns仿真时刻结束，继续推进
+* 10ns仿真时刻
+   * Clock Generation Initial进程被唤醒，产生上升沿
+   * 触发u_INV_DFF中的always语句
+      * Rst_n还是零，`DataOut`的值还是零
+   * 仿真30ns, 50ns的时钟上升沿时刻，由于Rst_n都是零，所以`DataOut`保持不变
+* 60ns仿真时刻
+   * Reset Generation Initial进程被唤醒，产生上升沿
+      * Rst_n=1后，进程结束，永远被挂起
+* 70ns仿真时刻
+   * Clock Generation Initial进程被唤醒，产生上升沿
+   * 触发u_INV_DFF中的always语句
+      * 由于Rst_n=1，因此`DataOut <= DataInv`，值变为1
+* 80ns仿真时刻
+   * Data Input Generation Initial进程被唤醒，将Din置为1
+   * assign语句被触发
+      * 在83ns的时候，将DataInv变为0
+* 90ns仿真时刻
+   * 触发u_INV_DFF中的always语句将DataOut变为0
