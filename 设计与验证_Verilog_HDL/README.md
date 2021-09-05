@@ -706,3 +706,292 @@ endmodule
    * begin...end
    * 任务定义：task...endtask
    * 循环语句
+
+# 如何写好状态机
+## 状态机的基本概念
+### 状态机是一种思想方法
+* 例子1<br>
+   ![simple_fsm](./pictures/simple_fsm.png)
+   * 状态 - 地点
+   * 状态输出 - 功能
+* 例子2<br>
+   ![simple_fsm_2](./pictures/simple_fsm_2.png)
+   * 状态 - 地点
+   * 状态输出 - 功能
+   * 状态输入 - 条件
+* 状态机本质
+   * 状态机是对具有**逻辑顺序**或**时序规律**的事件进行描述的一种方法
+* 如何应用状态机
+   * 思路1
+      * 从状态变量入手，分析每个状态的输入、状态转移和输出
+   * 思路2
+      * 从状态输出入手，回溯规划每个状态、状态转移条件以及状态输入
+
+### 状态机的基本要素及分类
+* 状态机的三个要素
+   * 状态
+      * 使用状态划分逻辑顺序和时序规律，如设计电机控制电路时，将电机转速作为状态
+   * 输出
+      * 在某一个状态时特定发生的事件
+      * 如电机控制时转速过高，则输出转速过高报警
+   * 输入
+      * 进入每个状态的条件
+* 根据状态机的输出是否与输入条件相关，可将状态机分为两类
+   * 摩尔(Moore)型状态机
+      * 输出仅依赖当前状态
+      * 如上面的例子1中，状态输出“功能”仅与状态本身“状态”有关
+   * 米勒(Mealy)型状态机
+      * 输出不仅依赖当前状态，而且取决于该状态的输入条件
+      * 如面模的例子2中，状态输出“功能”由状态本身和输入“条件”共同决定。例如，在食堂不一定吃饭，如果是非周末且下午7点，就不吃饭，而是转移宿舍睡觉。
+
+### 状态机的基本描述方式
+* 状态机的3中描述方式
+   * 状态转移图
+   * 状态转移列表
+   * HDL语言描述
+
+## 如何写好状态机
+### RTL级状态机描述常用的语法
+* 设计可综合的FSM的常用关键字
+   * wire, reg
+      * 状态编码一般用reg
+   * parameter
+      * 用于描述状态名称，增强代码可读性
+      * 例如，独热码的5个状态名称，2个状态编码：
+      ```verilog
+      reg [3:0] NS, CS; //4位状态编码
+      parameter [3:0]   //5个状态名称
+      IDLE = 4'b0000,
+      S1   = 4'b0001,
+      S2   = 4'b0010,
+      S3   = 4'b0100,
+      ERROR= 4'b1000,
+      ```
+   * always
+      * 根据主时钟沿完成同步时序的状态迁移
+      * 根据信号敏感表完成组合逻辑的输出
+      * 根据时钟沿完成同步时序逻辑的输出
+   * case/endcase
+      ```
+      case (case_expression)
+      case_item1: case_item_statement1;
+      case_item2: case_item_statement2;
+      ...
+      default: case_item_statementn;
+      endcase
+      ```
+      * `case_itm_statement`是每个状态对应的状态转移或者输出，通过修改`NS`完成
+      * 当`case_expression`与任意一个`case_item`匹配后，将忽略对其他`case_item`的判断，直接跳出case结构
+   * task/endtask
+      * 将不同状态所对应的输出封装，增强代码的可读性
+      ```
+      task IDLE_out;
+         begin
+         {w_o1, w_o2, w_err} = 3'b000;
+         end
+      ```
+
+### 推荐的状态机描述方法
+* 描述状态机需要解决的问题
+   * 如果进行状态转移
+   * 每个状态的输出是什么
+   * 状态转移是否与输入条件相关
+* 3种FSM描述方法
+   * 一段式：都放入一个`always`模块
+   * 两段式：两个`always`模块
+      * 一个采用同步时序的方式描述状态转移
+      * 另一个采用组合逻辑的方式判断状态转移条件，描述状态转移规律
+   * 三段式：三个`always`模块
+      * 一个采用同步时序的方式描述状态转移
+      * 一个采用组合逻辑的方式判断状态转移条件，描述转图转移规律
+      * 第三个使用同步时序电路描述每个状态的输出
+* 3种FSM描述方式对比
+   * 一段式FSM描述不利于时序约束、功能更改及调试，容易写出Latches，导致逻辑功能错误
+   * 二端是FSM描述利用同步时序提高了状态转移的稳定性。但是，状态输出用组合逻辑实现，仍然会出现毛刺
+   * 三段式FSM描述能够更根据状态转移规律，在上以状态根据输入条件判断当前状态的输出，从而在不插入额外时钟节拍的前提下实现寄存器输出
+
+* 实例：[FSM](./code/fsm)
+   ![fsm_example](./pictures/fsm_example.png)
+   * 4种状态：IDEL, S1, S2, ERROR
+   * 状态输出
+      * IDLE - {o1, o2, err} = 3'b000;
+      * S1 - {o1, o2, err} = 3'b100;
+      * S2 - {o1, o2, err} = 3'b010;
+      * ERROR - {o1, o2, err} = 3'b111;
+   * 一段式状态机描述：[state1.v](./code/fsm/state1.v)<br>
+      ![state1](./pictures/state1.png)
+      ```verilog
+      //1 always block to describe state transition, state output, state input condition
+      always @ (posedge clk or negedge nrst)
+      if (!nrst)
+         begin
+            NS         <= IDLE;
+            {o1,o2,err} <= 3'b000;
+         end
+      else
+         begin
+            NS         <=  3'bx;
+            {o1,o2,err} <=  3'b000;
+            case (NS)
+            IDLE:  begin
+                     if (~i1)         begin{o1,o2,err}<=3'b000;NS <= IDLE; end
+                     if (i1 && i2)    begin{o1,o2,err}<=3'b100;NS <= S1;   end
+                     if (i1 && ~i2)   begin{o1,o2,err}<=3'b111;NS <= ERROR;end
+                     end
+            S1:    begin
+                     if (~i2)         begin{o1,o2,err}<=3'b100;NS <= S1;   end
+                     if (i2 && i1)    begin{o1,o2,err}<=3'b010;NS <= S2;   end
+                     if (i2 && (~i1)) begin{o1,o2,err}<=3'b111;NS <= ERROR;end
+                     end
+            S2:    begin
+                     if (i2)          begin{o1,o2,err}<=3'b010;NS <= S2;   end
+                     if (~i2 && i1)   begin{o1,o2,err}<=3'b000;NS <= IDLE; end
+                     if (~i2 && (~i1))begin{o1,o2,err}<=3'b111;NS <= ERROR;end
+                     end
+            ERROR: begin
+                     if (i1)          begin{o1,o2,err}<=3'b111;NS <= ERROR;end
+                     if (~i1)         begin{o1,o2,err}<=3'b000;NS <= IDLE; end
+                     end
+            endcase
+         end
+      ```
+   * 两段式状态机描述：[state2.v](./code/fsm/state2.v)<br>
+      ![state2](./pictures/state2.png)
+      ```verilog
+      //sequential state transition
+      always @ (posedge clk or negedge nrst)
+            if (!nrst)            
+               CS <= IDLE;        
+            else                  
+               CS <=NS;           
+
+      //combinational condition judgment
+      always @ (nrst or CS or i1 or i2)
+               begin
+                     NS = 3'bx;
+                     ERROR_out;
+                     case (CS)
+                        IDLE:     begin
+                                       IDLE_out;
+                                       if (~i1)           NS = IDLE;
+                                       if (i1 && i2)      NS = S1;
+                                       if (i1 && ~i2)     NS = ERROR;
+                                    end
+                        S1:       begin
+                                       S1_out;
+                                       if (~i2)           NS = S1;
+                                       if (i2 && i1)      NS = S2;
+                                       if (i2 && (~i1))   NS = ERROR;
+                                    end
+                        S2:       begin
+                                       S2_out;
+                                       if (i2)            NS = S2;
+                        if (~i2 && i1)     NS = IDLE;
+                                       if (~i2 && (~i1))  NS = ERROR;
+                                    end
+                        ERROR:    begin
+                                       ERROR_out;
+                                       if (i1)            NS = ERROR;
+                                       if (~i1)           NS = IDLE;
+                                    end
+                     endcase
+               end
+
+
+      //output task
+      task IDLE_out;
+         {o1,o2,err} = 3'b000;
+      endtask
+
+      task S1_out;
+         {o1,o2,err} = 3'b100;
+      endtask
+
+      task S2_out;
+         {o1,o2,err} = 3'b010;
+      endtask
+
+      task ERROR_out;
+         {o1,o2,err} = 3'b111;
+      endtask
+      ```
+      * `always`的敏感列表为：`always @ (nrst or CS or i1 or i2)`
+         * 当前状态CS
+         * 复位信号
+         * 输入条件
+            * 如果式米勒状态机，则必须由输入条件，如果式摩尔状态机，则敏感表和后续逻辑判定没有输入
+      * 敏感表下写入默认的下一状态“NS”的描述：
+         ```verilog
+         begin
+            NS = 3'bx;
+            ERROR_out;
+         ```
+         * 默认状态设计为不确定状态X，这样有两个好处：
+            * 在仿真时可以很好地考察所设计的FSM的完备性，如果FSM不完备，会进入任意状态，仿真时很容易发现
+            * 综合器对X的处理是"Don't Care"，这里赋值不确定的效果和使用`casez`或`casex`替代`case`的效果很相似
+      * 该组合逻辑模块种所有的赋值推荐采用阻塞赋值"="
+      * 每个输出都用组合逻辑描述，用`task/endtask`封装起来
+         ```
+         task S1_out;
+            {o1,p2,err} = 3'b100;
+         endtask
+         ```
+         * 这个组合逻辑容易产生毛刺，因此如果时序允许，请对输出插入一个寄存器节拍
+   * 三段式状态机描述：[state3.v](./code/fsm/state3.v)<br>
+      ![state3](./pictures/state3.png)
+      ```verilog
+      //1st always block, sequential state transition
+      always @ (posedge clk or negedge nrst)
+            if (!nrst)            
+               CS <= IDLE;        
+            else                  
+               CS <=NS;           
+
+      //2nd always block, combinational condition judgment
+      always @ (nrst or CS or i1 or i2)
+               begin
+                     NS = 3'bx;
+                     case (CS)
+                        IDLE:     begin
+                                       if (~i1)           NS = IDLE;
+                                       if (i1 && i2)      NS = S1;
+                                       if (i1 && ~i2)     NS = ERROR;
+                                    end
+                        S1:       begin
+                                       if (~i2)           NS = S1;
+                                       if (i2 && i1)      NS = S2;
+                                       if (i2 && (~i1))   NS = ERROR;
+                                    end
+                        S2:       begin
+                                       if (i2)            NS = S2;
+                        if (~i2 && i1)     NS = IDLE;
+                                       if (~i2 && (~i1))  NS = ERROR;
+                                    end
+                        ERROR:    begin
+                                       if (i1)            NS = ERROR;
+                                       if (~i1)           NS = IDLE;
+                                    end
+                     endcase
+               end
+
+
+      //3rd always block, the sequential FSM output
+      always @ (posedge clk or negedge nrst)
+      if (!nrst)
+            {o1,o2,err} <= 3'b000;
+      else
+         begin
+            {o1,o2,err} <=  3'b000;
+            case (NS)
+               IDLE:  {o1,o2,err}<=3'b000;
+
+               S1:    {o1,o2,err}<=3'b100;
+               S2:    {o1,o2,err}<=3'b010;
+               ERROR: {o1,o2,err}<=3'b111;
+            endcase
+         end
+      ```
+      * 三段式描述方式的关键在于使用同步时序逻辑寄存FSM的输出
+
+* 3种描述FSM方法比较<br>
+   ![fsm_3_ways_compare](./pictures/fsm_3_ways_compare.png)
