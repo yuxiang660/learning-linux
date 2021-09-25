@@ -61,6 +61,25 @@ Notes about "Design Patterns in Modern C++" by Dmitri Nesteruk (Apress, 2018).
    * Factory typically create an object in one go
    * Builder constructs the object piecewise by providing information in parts
 
+## Prototype
+### Scenario
+* instead of creating an entire object from scratch, take a preconstructed object and either use a copy of it, or customize if a little
 
+### Prototype Factory
+* Create with a proto
+   ```c
+   static unique_ptr<Contact> NewEmployee(string name, int suite, Contact& proto)
+   {
+      auto result = make_unique<Contact>(proto); // Contact should have deep copy-constructor
+      result->name = name;
+      result->address->suite = suite;
+      return result;
+   }
+   ```
+
+### Summary
+* Prototype pattern requires deep copy
+   * done in a copy constructor/copy assignment operator
+   * or in a separate member function, such as `clone()`
 
 
