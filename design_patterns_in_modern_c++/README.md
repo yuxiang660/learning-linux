@@ -14,3 +14,30 @@ Notes about "Design Patterns in Modern C++" by Dmitri Nesteruk (Apress, 2018).
    * high-level module should not depend on low-level modules, should depend on abstractions
    * abstractions should not depend on details
 
+# Creational Patterns
+* Different ways for creation
+   * stack allocation
+   * heap allocation using raw pointer
+   * unique pointer
+   * shared pointer
+   * weak pointer
+
+## Builder
+* Scenario
+   * creation of complicated objects
+   * piecewise construction of a complicated object
+* Composite Builder
+   * If we want to create Person in following way, we can use composite builder
+   ```c
+    Person p = Person::create()
+      .lives().at("123 London Road")
+              .with_postcode("SW1 1GB")
+              .in("London")
+      .works().at("PragmaSoft")
+              .as_a("Consultant")
+              .earning(10e6);
+   ```
+* Summary
+   * only make sense when the construction of the object is a nontrivial process
+   * simple objects should use a constructor (or dependency injection) without necessitating a Builder
+
