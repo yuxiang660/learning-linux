@@ -348,3 +348,36 @@ cout << ft << endl;
 The Flyweight pattern is fundamentally a space-saving technique. Two different ways of Flyweight:
 * Flyweight being returned as an API token
 * Flyweight is implicit, hiding behind the scenes
+
+## Proxy
+* Goal
+   * Preserve exactly the API that is being used while offering certain internal enhancements
+
+### Smart Pointers
+The simplest and most direct illustration of the Proxy pattern is a smart pointer.
+
+### Virtual Proxy
+* We have a `Bitmap` class which loads a file in constructor and cannot be modified. Now we want to use the `Bitmap` in a lazy way, which means only load a file when its member function `draw()` is called.
+   ```cpp
+   struct LazyBitmap : Image
+   {
+      LazyBitmap(const string& filename)
+         : filename(filename) {}
+      ~LazyBitmap() { delete bmp; }
+      void draw() override
+      {
+         if (!bmp)
+            bmp = new Bitmap(filename);
+         bmp->draw();
+      }
+   private:
+      Bitmap *bmp{nullptr};
+      string filename;
+   };
+   ```
+
+### Summary
+Unlike the Decorator pattern, the Proxy doesn’t try to expand the functionality of an object by adding new members (unless it can’t be helped). All it tries to do is enhance the underlying behavior of existing members.
+
+
+
