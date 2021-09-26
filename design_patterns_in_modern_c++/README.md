@@ -292,4 +292,59 @@ A decorator gives a class additional functionality while adhering to the OCP.
 ## Facade
 The Façade design pattern is a way of putting a simple interface in front of one or more complicated subsystems. In our example, a complicated set-up involving many buffers and viewports can be used directly or, if you just want a simple console with a single buffer and associated viewport, you can get it through a very accessible and intuitive API.
 
+## Flyweight
+* also called token
+* a temporary component that acts as "smart reference" to something (maybe save memory)
 
+### string_view
+We want to capitalize a string in a range, like:
+```cpp
+FormattedText ft("This is a brave new world");
+ft.capitalize(10, 15);
+cout << ft << endl;
+// prints "This is a BRAVE new world"
+```
+* Naive Approach
+   * create a boolean array to indicate the range for capitalizing
+* Flyweight Implementation
+   ```cpp
+   class BetterFormattedText
+   {
+   public:
+      struct TextRange
+      {
+         int start, end;
+         bool capitalize;
+         // other options here, e.g. bold, italic, etc.
+
+         bool covers(int position) const
+         {
+            return position >= start && position <= end;
+         }
+      };
+   private:
+      string plain_text;
+      vector<TextRange> formatting;
+   };
+
+   friend std::ostream& operator<<(std::ostream& os, const BetterFormattedText& obj)
+   {
+      string s;
+      for (size_t i = 0; i < obj.plain_text.length(); i++)
+      {
+         auto c = obj.plain_text[i];
+         for (const auto& rng : obj.formatting)
+         {
+            if (rng.covers(i) && rng.capitalize)
+            c = toupper(c);
+            s += c;
+         }
+      }
+      return os << s;
+   }
+   ```
+
+### Summary
+The Flyweight pattern is fundamentally a space-saving technique. Two different ways of Flyweight:
+* Flyweight being returned as an API token
+* Flyweight is implicit, hiding behind the scenes
