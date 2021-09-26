@@ -128,3 +128,34 @@ public:
 ### Summary
 * Avoid using singleton directly
 * Keep specifying singleton as a dependency (e.g., a constructor argument) for testability
+
+# Structural Pattern
+Structural patterns are all about setting up the structure of your application so as to improve SOLID:
+* Inheritance
+* Composition
+   * implies that the child cannot exist without the parent
+   * Think of an object having members of owner<T>type: when the object gets destroyed, they get destroyed with it
+* Aggregation
+   * an object can contain another object, but that object can also exist independently
+
+## Adapter
+
+### Scenario
+* We are given an interface, but want a different one, and building an adapter over the interface is what gets us to where we want to be
+   * adapt the geometry to pixel-based representation
+
+### Summary
+* In the process of adaptation, you sometimes end up generating temporary data (caching). Ensuring that new data is only generated when necessary
+
+## Bridge
+
+### The Pimpl Idiom
+* Advantages of Pimpl Idiom
+   * hide the class implementation
+   * modifying the data members of the hidden Impl class does not affect binary compatibility
+   * the header file only needs to include the header files needed for the declaration
+
+### Summary
+* The participants of the Bridge pattern do need to be aware of each other's existence, which is different from Mediator pattern or Adapter pattern
+
+
