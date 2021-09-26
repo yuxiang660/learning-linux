@@ -158,4 +158,15 @@ Structural patterns are all about setting up the structure of your application s
 ### Summary
 * The participants of the Bridge pattern do need to be aware of each other's existence, which is different from Mediator pattern or Adapter pattern
 
+## Composite
+The composite design pattern allows us to provide identical interfaces for individual objects and collections of objects. For example, if you want to use following implementation(`connect_to` for both Neuron and NeuronLayer), then composite pattern may be a choice.
+```cpp
+Neuron neuron, neuron2;
+NeuronLayer layer, layer2;
+
+neuron.connect_to(neuron2);
+neuron.connect_to(layer);
+layer.connect_to(neuron);
+layer.connect_to(layer2);
+```
 
