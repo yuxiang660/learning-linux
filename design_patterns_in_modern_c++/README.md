@@ -277,3 +277,14 @@ template <typename T> struct TransparentShape : T
    auto logged_add = make_logger3(add, "Add");
    auto result = logged_add(2, 3);
    ```
+
+### Summary
+A decorator gives a class additional functionality while adhering to the OCP.
+* Dynamic decorators
+   * can store references of the decorated objects and provide dynamic composability
+   * at hte expense of not being able to access the underlying objects' own members
+* Static decorators
+   * use mixin inheritance (inheriting from template parameter) to compose decorators at compile-time
+   * give access to the underlying object's members
+* Functional decorators
+   * can wrap either blocks of code or particular functions to allow composition of behaviors
