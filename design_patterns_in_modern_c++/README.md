@@ -499,9 +499,162 @@ rules[State::connecting] = {
 // more rules here
 ```
 
+## Visitor
+* Question: how to print `AdditionExpression`?
+   * Reflective Way
+   * Double Dispatch Way (Visitor Pattern)
 
+```cpp
+struct DoubleExpression : Expression
+{
+   double value;
+   explicit DoubleExpression(const double value)
+      : value{value} {}
+};
 
+struct AdditionExpression : Expression
+{
+   Expression *left, *right;
+   ...
+}
 
+void main()
+{
+   auto e = new AdditionExpression{
+      new DoubleExpression{1},
+      new AdditionExpression{
+         new DoubleExpression{2},
+         new DoubleExpression{3}
+      }
+   };
+   // Question: how to print e
+}
+```
 
+### Reflective Printer
+```cpp
+struct ExpressionPrinter
+{
+   void print(Expression *e)
+   {
+      if (auto de = dynamic_cast<DoubleExpression*>(e))
+      {
+         oss << de->value;
+      }
+      else if (auto ae = dynamic_cast<AdditionExpression*>(e))
+      {
+         oss << "(";
+         print(ae->left, oss);
+         oss << "+";
+         print(ae->right, oss);
+         oss << ")";
+      }
+   }
+   string str() const { return oss.str(); }
+private:
+   ostringstream oss;
+};
+```
+* Use `dynamic_cast` to distinguish different type expression and call its print
 
+### WTH is Dispatch?
+* "dispatch" is a problem of figuring out which function to call. Specifically, how many pieces of information are required order to make the call.
+* double dispatch
+   * first you do a polymorphic call on the actual object
+   * inside the polymorphic call, you call the overload. Since, inside the object, this has a precise type, the right overload is triggered.
+```cpp
+struct Stuff {}
+struct Foo : Stuff {}
+struct Bar : Stuff {}
+
+void func(Foo* foo) {}
+void func(Bar* bar) {}
+
+Stuff *stuff = new Foo;
+func(stuff); // oops!
+```
+
+```cpp
+struct Stuff {
+   virtual void call() = 0;
+}
+struct Foo : Stuff {
+   void call() override { func(this); }
+}
+struct Bar : Stuff {
+   void call() override { func(this); }
+}
+
+void func(Foo* foo) {}
+void func(Bar* bar) {}
+
+Stuff *stuff = new Foo;
+stuff->call(); // effectively calls func(stuff);
+```
+
+### Classic Visitor
+The “classic” implementation of the Visitor design pattern uses double dispatch. There are conventions as to what the visitor member functions are called:
+* Member functions of the visitor are typically called visit().
+* Member functions implemented throughout the hierarchy are typically called accept().
+
+```cpp
+struct Expression
+{
+   virtual void accept(ExpressionVisitor *visitor) = 0;
+};
+
+void accept(ExpressionVisitor* visitor) override
+{
+   visitor->visit(this);
+}
+
+struct ExpressionVisitor
+{
+   virtual void visit(DoubleExpression* de) = 0;
+   virtual void visit(AdditionExpression* ae) = 0;
+};
+
+struct ExpressionPrinter : ExpressionVisitor
+{
+   ostringstream oss;
+   string str() const { return oss.str(); }
+   void visit(DoubleExpression* de) override;
+   void visit(AdditionExpression* ae) override;
+};
+
+void ExpressionPrinter::visit(DoubleExpression* de)
+{
+   oss << de->value;
+}
+
+void ExpressionPrinter::visit(AdditionExpression* ae)
+{
+   oss << "(";
+   ae->left->accept(this);
+   oss << "+";
+   ae->right->accept(this);
+   oss << ")";
+}
+
+void main()
+{
+   auto e = new AdditionExpression{
+      new DoubleExpression{1},
+      new AdditionExpression{
+         new DoubleExpression{2},
+         new DoubleExpression{3}
+      }
+   };
+   ostringstream oss;
+   ExpressionPrinter ep;
+   ep.visit(e);
+   cout << ep.str() << endl; // (1+(2+3))
+}
+```
+
+### Summary
+The Visitor design pattern allows us to add some behavior to every element in a hierarchy of objects. The approaches we have seen include
+   * Intrusive: adding a virtual method to every single object in the hierarchy. Possible (assuming you have access to source code) but breaks OCP.
+   * Reflective: adding a separate visitor that requires no changes to the objects; uses dynamic_cast whenever runtime dispatch is needed.
+   * Classic(double dispatch): the entire hierarchy does get modified, but just once and in a very generic way. Each element of the hierarchy learns to accept() a visitor. We then subclass the visitor to enhance the hierarchy’s functionality in all sorts of directions
 
