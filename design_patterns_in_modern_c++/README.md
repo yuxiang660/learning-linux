@@ -379,5 +379,16 @@ The simplest and most direct illustration of the Proxy pattern is a smart pointe
 ### Summary
 Unlike the Decorator pattern, the Proxy doesn’t try to expand the functionality of an object by adding new members (unless it can’t be helped). All it tries to do is enhance the underlying behavior of existing members.
 
+# Behavioral Patterns
+
+## Mediator
+The Mediator design pattern essentially proposes an introduction of an in-between component that everyone in a system has a reference to and can use to communicate with one another.
+* For example, chatroom between persons.
+   * Each person has a reference to chatroom
+   * chatroom maintains all persons
+
+
+
+
 
 
