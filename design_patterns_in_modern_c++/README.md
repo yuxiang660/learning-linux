@@ -387,6 +387,74 @@ The Mediator design pattern essentially proposes an introduction of an in-betwee
    * Each person has a reference to chatroom
    * chatroom maintains all persons
 
+## Memento
+The Memento pattern stores the state of the system and returns it as a dedicated, read-only object with no behavior of its own. This “token,” if you will, can be used only for feeding it back into the system to restore it to the state it represents.
+
+### Example
+* Usage
+   ```cpp
+   BankAccount2 ba{ 100 };
+   ba.deposit(50);
+   ba.deposit(25); // 175
+   cout << ba << "\n";
+
+   ba.undo();
+   cout << "Undo 1: " << ba << "\n"; // Undo 1: 150
+   ba.undo();
+   cout << "Undo 2: " << ba << "\n"; // Undo 2: 100
+   ba.redo();
+   cout << "Redo 2: " << ba << "\n"; // Redo 2: 150
+   ba.undo(); // back to 100 again
+   ```
+* Implementation
+   ```c
+   class BankAccount2 // supports undo/redo
+   {
+      int balance = 0;
+      vector<shared_ptr<Memento>> changes;
+      int current;
+   public:
+      explicit BankAccount2(const int balance) :
+         balance(balance)
+      {
+         changes.emplace_back(make_shared<Memento>(balance));
+         current = 0;
+      }
+
+      shared_ptr<Memento> deposit(int amount)
+      {
+         balance += amount;
+         auto m = make_shared<Memento>(balance);
+         changes.push_back(m);
+         ++current;
+         return m;
+      }
+
+      shared_ptr<Memento> undo()
+      {
+         if (current > 0)
+         {
+            --current;
+            auto m = changes[current];
+            balance = m->balance;
+            return m;
+         }
+         return{};
+      }
+
+      shared_ptr<Memento> redo()
+      {
+         if (current + 1 < changes.size())
+         {
+            ++current;
+            auto m = changes[current];
+            balance = m->balance;
+            return m;
+         }
+         return{};
+      }
+   }
+   ```
 
 
 
