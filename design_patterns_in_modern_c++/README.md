@@ -170,3 +170,110 @@ layer.connect_to(neuron);
 layer.connect_to(layer2);
 ```
 
+## Decorator
+### Scenario
+* working with a class your colleague wrote, and you want to extend that class' functionality, but not inherit from it.
+* The Decorator pattern allows us to enhance existing types without either modifying the original types (OCP) or causing explosion of the number of derived types
+
+### Dynamic Decorator
+* Purpose
+   * Reduce number of inherit classes
+
+```cpp
+struct ColoredShape : Shape
+{
+   Shape& shape;
+   string color;
+
+   CloredShape(Shape& shape, const string& color)
+      : shape{shape}, color{color} {}
+
+   string str() const override
+   {
+      ostringstream oss;
+      oss << shape.str() << " has the color " << color;
+      return oss.str();
+   }
+};
+```
+* `ColoredShape` inherits `Shape` and also stores `Shape&` as a member, so we can constructor `ColoredShape` with other shapes
+
+### Static Decorator
+* Purpose
+   * Reduce number of inherit classes
+
+```cpp
+// Usage
+ColoredShape<TransparentShape<Square>> sq = { "red", 51, 5 };
+
+template <typename T> struct TransparentShape : T
+{
+   uint8_t transparency;
+   template<typename...Args>
+   TransparentShape(const uint8_t transparency, Args ...args)
+      : T(std::forward<Args>(args)...), transparency{ transparency } {}
+   ...
+}; // same for ColoredShape
+```
+
+### Functional Decorator
+* lambda
+   ```cpp
+   struct Logger
+   {
+      function<void()> func;
+      string name;
+
+      Logger(const function<void()>& func, const string& name)
+         : func{func},
+         name{name}
+      {
+      }
+
+      void operator()() const
+      {
+         cout << "Entering " << name << endl;
+         func();
+         cout << "Exiting " << name << endl;
+      }
+   };
+
+   // Usage
+   Logger([]() {cout << "Hello" << endl; }, "HelloFunction")();
+   ```
+* template class
+   ```cpp
+   template <typename R, typename... Args>
+   struct Logger3<R(Args...)>
+   {
+      Logger3(function<R(Args...)> func, const string& name)
+         : func{func},
+         name{name}
+      {
+      }
+      R operator() (Args ...args)
+      {
+         cout << "Entering " << name << endl;
+         R result = func(args...);
+         cout << "Exiting " << name << endl;
+         return result;
+      }
+
+      function<R(Args ...)> func;
+      string name;
+   };
+   ```
+* template function
+   ```cpp
+   template <typename R, typename... Args>
+   auto make_logger3(R (*func)(Args...), const string& name)
+   {
+      return Logger3<R(Args...)>(
+      std::function<R(Args...)>(func),
+      name);
+   }
+
+   // usage
+   auto logged_add = make_logger3(add, "Add");
+   auto result = logged_add(2, 3);
+   ```
