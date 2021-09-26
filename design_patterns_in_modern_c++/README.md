@@ -456,6 +456,51 @@ The Memento pattern stores the state of the system and returns it as a dedicated
    }
    ```
 
+## State
+There are two ways in State Patter:
+* States are actual classes with behaviors, and these behaviors switch the actual state from one to another
+* States and transitions are just enumerations. We have a special component called a state machine that performs the actual transitions. (common)
+
+### Handmade State Machine
+```cpp
+// states of a phone
+enum class State
+{
+   off_hook,
+   connecting,
+   connected,
+   on_hold,
+   on_hook
+};
+// transitions between states
+enum class Trigger
+{
+   call_dialed,
+   hung_up,
+   call_connected,
+   placed_on_hold,
+   taken_off_hold,
+   left_message,
+   stop_using_phone
+};
+// rules of this state machine
+//    key is the State we're moving from
+//    Trigger-State is possible triggers and move into state
+map<State, vector<pair<Trigger, State>>> rules;
+rules[State::off_hook] = {
+   {Trigger::call_dialed, State::connecting},
+   {Trigger::stop_using_phone, State::on_hook}
+};
+
+rules[State::connecting] = {
+   {Trigger::hung_up, State::off_hook},
+   {Trigger::call_connected, State::connected}
+};
+// more rules here
+```
+
+
+
 
 
 
