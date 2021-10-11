@@ -29,6 +29,24 @@
 * Template的限制
    * 对于普通Class，只能特化其成员函数，不能特化其数据成员
    * 对于类的成员函数，不支持partial specialization，参加[例子](./code/template_partial_spec/main.cpp)
+   * 只能提供一份template的缺省值，不能提供多份缺省值
+* 多重继承和Template对比
+   * template拥有了多重继承缺少的技术，拥有更多型别信息
+   * 多重继承更容易扩展，可以写无限的base class，但是template成员函数只能有一份缺省版本
+
+## Policies和Policy Classes
+* Policy用来定义一个class或class template的接口，有下列项目之一或全部组成：
+   * 内隐型别定义(inner type definition)
+   * 成员函数
+   * 成员变量
+* 例子
+   * Creator Policy
+      * 定义了一个policy用以生成对象
+      * 是一个带有型别T的class template
+      * 三个[policy classes](./code/creator/main.cpp)
+         * 虽然他们的接口有所不同，但都定义了`Create()`，所以符合"Creator policy"
+
+
 
 
 
