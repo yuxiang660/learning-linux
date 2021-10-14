@@ -45,6 +45,24 @@
       * 是一个带有型别T的class template
       * 三个[policy classes](./code/creator/main.cpp)
          * 虽然他们的接口有所不同，但都定义了`Create()`，所以符合"Creator policy"
+   * Host Class
+      * 定义了policy class后，需要一个host class用以使用policy。采用template+继承的方式：
+      ```cpp
+      // 也可以是多继承
+      template <class CreationPolicy>
+      class WidgetManager: public CreationPolicy
+      {
+      };
+      typedef WidgetManager<OpNewCreator<Widget>> MyWidgetMgr;
+
+      // 使用"template template参数"优化 WidgetManager
+      template <template <class> class CreationPolicy>
+      class WidgetManager : public CreationPolicy<Widget>
+      {
+      };
+      typedef WidgetManager<OpNewCreator> MyWidgetMgr;
+      ```
+   * [完整例子](./code/creator/main.cpp)
 
 
 
