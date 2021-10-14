@@ -90,3 +90,24 @@
    * policy得以通过host class提供追加机能
    * host classes也能运用"policy提供的选择性机能"作出更丰富的功能
       * 如果某个选择性机能不存在，host class还是可以成功编译，前提是该选择性机能未被真正使用
+
+# 技术
+
+## 编译期(Compile-Time) Assertions
+* 编译期的Assertion的方法是：
+   * 当出现不期望的情况时，利用宏和模板产生非法的代码，导致编译出错
+* 这多少有点不利于维护，个人不太喜欢这样的做法
+
+## 模板偏特化(Partial Template Specialization)
+* 偏特化只能用于模板类，不能用于函数(无论是成员函数或非成员函数)
+   * 可以全特化成员函数，但不能偏特化
+   * 不能偏特化普通函数，但可以重载overloading，例如：
+   ```cpp
+   template<class T, class U> T Fun(U obj); // primary template
+   // template<class U> void Fun<void, U>(U obj); // illegal partial specialization
+   template <class T> T Fun(Window obj); // legal overloading
+   ```
+* [例子](./code/template_partial_spec/main.cpp)
+
+## 局部类(Local Classes)
+

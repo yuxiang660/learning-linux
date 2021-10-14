@@ -21,15 +21,41 @@ template<typename U> void Widget<char, U>::Fun()
 }
 */
 
+template <typename T, typename U> T Fun(U obj)
+{
+   std::cout << "template namespace-level function" << std::endl;
+   return T();
+}
+
+template <typename T> T Fun(int obj)
+{
+   std::cout << "template namespace-level overloading" << std::endl;
+   return T();
+}
+
+template <> int Fun<int, char>(char obj)
+{
+   std::cout << "template namespace-level full specialization" << std::endl;
+   return 0;
+}
+
+/* Compile error because method doesn't support partial specialization
+template <class U> void Fun<void, U>(U obj)
+{
+   std::cout << "template namespace-level partial specialization" << std::endl;
+}*/
+
 int main()
 {
-   std::cout << "template example" << std::endl;
-
    Widget<int, char> w;
    w.Fun();
 
    Widget<char, int> w2;
    w2.Fun();
+
+   Fun<int, int>(1);
+   Fun<int, char>(1);
+   Fun<char>(1);
 
    return 0;
 }
