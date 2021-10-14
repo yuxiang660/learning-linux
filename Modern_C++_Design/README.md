@@ -35,6 +35,8 @@
    * 多重继承更容易扩展，可以写无限的base class，但是template成员函数只能有一份缺省版本
 
 ## Policies和Policy Classes
+* 目的
+   * policies可以在型别安全的前提下扩增host class的功能
 * Policy用来定义一个class或class template的接口，有下列项目之一或全部组成：
    * 内隐型别定义(inner type definition)
    * 成员函数
@@ -64,7 +66,27 @@
       ```
    * [完整例子](./code/creator/main.cpp)
 
+## Policy Classes的析构函数
+* 如果为policy定义一个虚析构函数，会妨碍policy的静态连结特性，会影响执行效率(虚表的额外开销)
+* 折中的办法是：将policy的析构函数放到protected层级，只允许派生类销毁此policy对象，阻止外界采用delete方式销毁
 
+## 将一个Class分解为一堆Polices
+* 关键问题
+   * 如何将class正确分解为policies
+* 准则
+   * 将参与class行为的设计鉴别出来并命名之
+      * 任何事情只要能以一种以上的方法解决，都应该被分析出来，并从class中移出来成为policy
+      * 淹没于class设计中的constraints(约束条件)就像淹没于代码中的魔术常数一样不好
+   * 找出正交的policies
 
-
-
+## 总结
+* Policies机制
+   * 由templates和多重继承组成
+* host class
+   * 一个class如果使用了policies，我们称其为host class
+   * 拥有多个template参数(通常是"template template参数")的class template
+   * 运作起来像是一个聚合了数个policies的容器
+* 由于采用"public"继承
+   * policy得以通过host class提供追加机能
+   * host classes也能运用"policy提供的选择性机能"作出更丰富的功能
+      * 如果某个选择性机能不存在，host class还是可以成功编译，前提是该选择性机能未被真正使用
