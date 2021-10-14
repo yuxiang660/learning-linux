@@ -53,7 +53,8 @@ int main()
    Widget<char, int> w2;
    w2.Fun();
 
-   Fun<int, int>(1);
+   double a = 1;
+   int b = Fun<int>(a);
    Fun<int, char>(1);
    Fun<char>(1);
 

@@ -97,6 +97,7 @@
 * 编译期的Assertion的方法是：
    * 当出现不期望的情况时，利用宏和模板产生非法的代码，导致编译出错
 * 这多少有点不利于维护，个人不太喜欢这样的做法
+* 可参见，C++标准库中的`static_assert`
 
 ## 模板偏特化(Partial Template Specialization)
 * 偏特化只能用于模板类，不能用于函数(无论是成员函数或非成员函数)
@@ -110,4 +111,51 @@
 * [例子](./code/template_partial_spec/main.cpp)
 
 ## 局部类(Local Classes)
+* 定义在函数中的类，有不能使用static的限制，感觉也有点奇怪
+* 可以用函数外的“template class”实现同样的功能
+
+## 型别选择(Type Selection)
+* 使用"traits class template"可以实现编译期间的型别选择，例如
+   ```cpp
+   template<typename T, bool isPolymorphic>
+   struct NiftyContainerValueTraits
+   {
+      typedef T* ValueType;
+   };
+
+   template<typename T>
+   struct NiftyContainerValueTraits<T, false>
+   {
+      typedef T ValueType;
+   };
+
+   // then, we can use isPolymorphic to select the value type in NiftyContainer
+   template <typename T, bool isPolymorphic>
+   class NiftyContainer
+   {
+      typedef NiftyContainerValueTraits<T, isPolymorphic> Traits;
+      typedef typename Traits::ValueType ValueType;
+   };
+   ```
+* 也可以直接设计一个通用类型选择器，用户可自行指定可选择的类型
+   ```cpp
+   template <bool flag, typename T, typename U>
+   struct Select
+   {
+      typedef T Result;
+   };
+   template <typename T, typename U>
+   struct Select<false, T, U>
+   {
+      typedef U Result;
+   };
+
+   template <typename T, bool isPolymorphic>
+   class NiftyContainer
+   {
+      typedef Select<isPolymorphic, T*, T>::Result ValueType;
+   };
+   ```
+
+## Type Traits
 
