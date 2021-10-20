@@ -166,5 +166,80 @@
 * C++默认分配的弊端
    * C++默认分配器是对`malloc/free`的浅层包装，而`malloc/free`对小型对象的分配效率不高
    * 默认分配器会额外分配一个记忆池(memory pool)，对于小对象，其大小占比过大
+## 四层结构
+* Chunk
+   * 负责向系统申请/释放内存资源
+   * 是向系统一次申请内存的最小单位
+   * 被划分成一个个block，并通过单向链表维护
+* FixedAllocator
+   * 负责维护一组同样大小的Chunk
+   * 每次给用户固定大小的内存资源，可以理解为固定大小的内存池
+* SmallObjAllocator
+   * 负责维护多个不同的FixedAllocator，以满足用户申请不同大小内存的需求
+* SmallObject
+   * 进一步包装，用户可通过继承此类，就能通过`new`和`delete`完成内存申请与释放
+
+
+# Command模式
+![command](./pictures/command.png)
+
+* Command模式的两个重要特点：
+   * 接口分离
+      * invoker和receiver分离
+   * 时间分离
+      * Command保存了一个整装待发的处理请求，供将来运用
+
+# Singletons
+## 不推荐的写法
+```cpp
+class Singleton {
+public:
+   static Singleton* Instance() {
+      return &instance_;
+   }
+private:
+   static Singleton instance_;
+}
+
+Singleton Singleton::instance_;
+```
+* 原因
+   * `instance_`创建的时机是由编译器决定的，下面语句无法保证全局变量global是在`instance_`创建完成后才执行的
+      * `int global = Singleton::Instance()->DoSomething();`
+
+## 推荐的写法
+```cpp
+Singleton& Singleton::Instance() {
+   static Singleton obj;
+   return obj;
+}
+```
+
+# Object Factories
+## 为什么要由Object Factories模式
+* 因为C++的class和object是不同的东西，无法在执行期间产生新的class
+   * classes由程序员产生
+   * objects由程序产生
+* 例如，C++无法实现下面的代码：
+   ```cpp
+   Class Read(const char* fileName);
+   Document* DocumentManager::OpenDocument(const char* fileName) {
+      Class theClass = Read(fileName);
+      Document* pDoc = new theClass;
+      ...
+   }
+   ```
+
+## 实现Object Factory的两种方法
+* 方法一：switch (不推荐)
+   * 在一个源码中收集了所有派生类的相关信息
+* 方法二：Type Identifiers
+   * 通过构建一个Map，维护type到create函数的映射
+
+# Visitor模式
+## 适用场景
+* 有一个继承体系，很少需要对它添加新classes，却需要经常添加虚函数
+* 换句话说，visitor模式就是将所有派生类的方法统一管理的一种模式
+
 
 
