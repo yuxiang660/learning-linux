@@ -7,6 +7,14 @@
    * a solid reference
    * an accessible tutorial
 
-# The Basics
+## Why Templates?
+* If no template,
+   * you may have to write general code for a common base type such as `Object`. Then you will lose the benefit of type checking
+   * you may have to use a special preprocessor, which might result in strange semantic errors
+* If having template,
+   * full support of type checking
+   * parameterize behavior
+   * optimize code
+
 
 
