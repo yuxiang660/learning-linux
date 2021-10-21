@@ -16,5 +16,20 @@
    * parameterize behavior
    * optimize code
 
+# Function Templates
+## Two-Phase Translation
+* The template are compiled in two phases:
+   * Without instantiation at definition time
+      * check the syntax error
+   * At instantiation time
+      * check the template instance code with the specific type
+* Compiling and Linking
+   * Two phase translation break the usual compile and link rule
+      * when the declaration of a function is sufficient to compile its use
+   * Simple rule: **Implement each template inside a header file**
+
+## Template Argument Deduction
+
+
 
 
