@@ -1,5 +1,7 @@
 #pragma once
 
+#include "./utility.h"
+
 #include <iostream>
 
 template<typename T>
@@ -18,6 +20,8 @@ void by_val(T a, T b)
 
 void test_type_deduction()
 {
+   Decorator d(__func__);
+
    const int a = 1;
    int b = 2;
    by_val(a, b);

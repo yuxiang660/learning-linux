@@ -37,8 +37,18 @@
    * by value
       * only trivial conversions that decay are supported
       * two arguments declared with the same template parameter T the decayed types must match
+* default arguments
+   * have to specify default type
+   ```cpp
+   template<typename T = std::string>
+   void f(T = "")
+   {}
+   f(); // OK
+   ```
 
-
+## Multiple Template Parameters
+### Template Parameters for Return Types
+If a return type depends on template parameters, to deduce the return type is a good choice.
 
 
 
