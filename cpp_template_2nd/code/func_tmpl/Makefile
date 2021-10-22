@@ -5,7 +5,7 @@ TARGET = main
 SRCS = main.cpp
 OBJS = $(SRCS:.cpp=.o)
 
-all: $(TARGET)
+all: clean $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $^

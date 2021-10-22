@@ -29,6 +29,15 @@
    * Simple rule: **Implement each template inside a header file**
 
 ## Template Argument Deduction
+### TypeConversions During Type Deduction
+* limitation, see the [example](./code/func_tmpl/dtype.h)
+   * by reference
+      * even trivial conversions do not apply to type deduction
+      * two arguments declared with the same template parameter T must match exactly
+   * by value
+      * only trivial conversions that decay are supported
+      * two arguments declared with the same template parameter T the decayed types must match
+
 
 
 
