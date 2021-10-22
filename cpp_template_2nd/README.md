@@ -58,7 +58,40 @@
    // same as, std::decay<decltype(ir)>::type
    ```
 # Class Templates
+* templates can only be defined in global/namespace scope or inside class declarations
+* C++17 introduced class argument template deduction
+   * C++14 must always specify the template arguments explicitly
+## Friends
+* Define friend function (it is normal function) inside a template class
+   ```cpp
+   template<typename T>
+   class Stack {
+      friend std::ostream& operator<< (std::ostream& strm, Stack<T> const& s) {
+         s.printOn(strm);
+         return strm;
+      }
+   };
+   ```
+* Two options to declare friend function without definition in side a template class
+   * declare a new function template
+      ```cpp
+      template <typename T>
+      class Stack {
+         template<typename U>
+         friend std::ostream& operator<< (std::ostream&, Stack<U> const&);
+      };
+      ```
+   * forward declare first (not recommend)
 
-
+## Specializations of Class Templates
+* Comparison
+   * overloading for function template
+   * specializing for class template
+### Partial Specialization
+* Two type
+   * One template parameter
+      * For example, `T*` for `template <typename T>`
+   * Multiple template parameters
+      * if more than one partial specialization matches equally well, compile error
 
 
