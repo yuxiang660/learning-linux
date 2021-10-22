@@ -48,7 +48,17 @@
 
 ## Multiple Template Parameters
 ### Template Parameters for Return Types
-If a return type depends on template parameters, to deduce the return type is a good choice.
+* If a return type depends on template parameters, to deduce the return type is a good choice.
+   * C++14: `auto max(int a, float b) { ... }`
+* an initialization of type auto always decays
+   ```cpp
+   int i = 42;
+   int const& ir = i;
+   auto a = ir;   // a is declared as new object of type int
+   // same as, std::decay<decltype(ir)>::type
+   ```
+# Class Templates
+
 
 
 
