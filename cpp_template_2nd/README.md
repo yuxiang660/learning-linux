@@ -140,3 +140,16 @@
       C<(i)> x; // N is int&
       ```
 
+# Variadic Templates
+* [Example](./code/func_tmpl/vtmpl.h)
+
+## Operator sizeof...
+```cpp
+template<typename T, typename... Types>
+void print(T firstArg, Types... args)
+{
+   std::cout << sizeof...(Types) << std::endl;  // print number of remaining types
+   std::cout << sizeof...(args) << std::endl;   // print number of remaining args
+   ...
+}
+```
