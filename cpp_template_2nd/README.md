@@ -153,3 +153,7 @@ void print(T firstArg, Types... args)
    ...
 }
 ```
+
+## Fold Expressions
+![fold_expr](./pictures/fold_expr.png)
+
