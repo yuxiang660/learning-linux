@@ -94,4 +94,49 @@
    * Multiple template parameters
       * if more than one partial specialization matches equally well, compile error
 
+# Nontype Template Parameters
+## Restrictions for Nontype Template Parameters
+* nontype template parameters can only be:
+   * constant integral values, including boolean and enumerations
+   * pointers to objects/functions/members
+   * lvalue references to objects or functions
+   * std::nullptr_t
+* nontype template parameters can not only be:
+   * floating-point numbers
+   * class-type objects, such as: `std::string`
+   * for string literals, temporaries, or data members and other sub-objects, restrictions apply
+* Differences between different C++ Version
+   ```cpp
+   extern char const s03[] = "hi";  // external linkage
+   char const s11[] = "hi";         // internal linkage
+   int main()
+   {
+      Message<s03> m03; // OK in all version
+      Message<s11> m11; // OK since C++11
+      static char const s17[] = "hi";  // no linkage
+      Message<s17> m17; // OK since C++17
+   }
+   ```
+
+## Template Parameter Type auto
+* Since C++17, a nontype template parameter allows `auto` keyword.
+   * as a value
+      ```cpp
+      template<auto T>
+      class Message {
+      public:
+         void print() {
+            std::cout << T << std::endl;
+         }
+      };
+      ```
+   * as a reference
+      ```cpp
+      template<decltype(auto) N>
+      class C {
+         ...
+      };
+      int i;
+      C<(i)> x; // N is int&
+      ```
 
