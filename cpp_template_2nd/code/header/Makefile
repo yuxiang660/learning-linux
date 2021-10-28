@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -c -fPIC -Wall -std=c++17 -g
+CFLAGS = -c -fPIC -Wall -std=c++20 -g
 
 TARGET = main
 SRCS = main.cpp foo.cpp
