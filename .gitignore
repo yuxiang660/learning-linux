@@ -111,3 +111,7 @@ fb3-1.lex.c
 
 #verilog
 *.vcd
+
+# racket
+hello
+!hello/
