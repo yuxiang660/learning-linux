@@ -94,7 +94,8 @@
 * 过程是描述如何去做这件事情，是行动性的知识(怎么做)，如：求√x的值
 
 牛顿法求平方根的Lisp表示，求`x`的平方根`guess`：
-```sicp
+```c
+// 定义sqrt-iter，用牛顿法求x的平方法，初始猜测值为guess
 (define (sqrt-iter guess x)
     (if (good-enough? guess x)
         guess
@@ -104,12 +105,24 @@
     )
 )
 
+// 定义improve，求比guess更精确的x平方根的猜测值
 (define (improve guess x)
     average guess (/ x guess)
 )
 
+// 定义average，求x,y的平均值
 (define (average x y)
     (/ (+ x y) 2)
+)
+
+// 定义good-enough?，判断guess是否在x平方根的误差范围
+(define (good-enough? guess x)
+    (< (abs (- (square guess) x)) 0.001)
+)
+
+// 以1作为所有数的初始猜测值
+(define (sqrt x)
+    (sqrt-iter 1.0 x)
 )
 ```
 
