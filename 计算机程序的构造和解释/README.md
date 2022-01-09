@@ -264,5 +264,16 @@
 ![rat_abstract](./pictures/rat_abstract.png)
 * 抽象屏障把使用数据抽象的程序与实现数据抽象的程序分离开
 
+## 层次性数据和闭包性质
+某种组合数据对象的操作满足闭包性质，意思是通过它组合起来的数据对象本身还可以通过同样的操作再进行组合。
+
+### 序列的表示
+* 用序对表示序列
+    * ![cons_list](./pictures/cons_list.png)
+    * 上面的序列也可等价为：`(list <a1> <a2> <a3> ... <an>)`
+
+### 层次性结构
+![list_of_list](./pictures/list_of_list.png)
+* 用多层序列可以组合成树
 
 
