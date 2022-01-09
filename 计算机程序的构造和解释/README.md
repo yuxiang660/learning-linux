@@ -198,3 +198,48 @@
 
 这样会产生一个树形的递归计算过程，同样会存在冗余计算。例如，1,5,10硬币换总数a，那么(a-10)和(a-5-5)就会重复计算。
 
+## 用高阶函数做抽象
+高阶过程以过程作为参数，或者以过程作为返回值，极大地增强语言的表述能力。
+
+### 过程作为参数
+求和记法∑使数学家能去处理求和的概念本身，而不只是某个特定的求和。与此类似，我们也希望所用的语言能写出一个过程，去表述求和的概念，而不是只能写计算特定求和的过程。例如，下面的程序`sum`：
+```c
+(define (sum term a next b)
+    (if (> a b)
+        0
+        (+ (term a)
+           (sum term (next a) next b)
+        )
+    )
+)
+```
+可被用于定义求a,b之间数的立方和`sum-cubes`，如下：
+```c
+(define (sum-cubes a b)
+    (sum cube a inc b)
+)
+
+(define (inc n) (+ n 1))
+```
+
+### 用lambda构造过程
+* 没有用lambda，计算`pi-sum`：1/(1*3) + 1/(5*7) + ...
+    ```c
+    (define (pi-sum a b)
+        (define (pi-term x) (/ 1.0 (* x (+ x 2))))
+        (define (pi-next x) (+ x 4))
+        (sum pi-term a pi-next b)
+    )
+    ```
+* 利用lambda后，`pi-sum`可表示为：
+    ```c
+    (define (pi-sum a b)
+        (sum (lambda (x) (/ 1.0 (* x (+ x 2))))
+             a
+             (lambda (x) (+ x 4))
+             b
+        )
+    )
+    ```
+
+
