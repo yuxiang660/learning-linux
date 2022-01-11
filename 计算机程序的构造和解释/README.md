@@ -315,4 +315,53 @@
 * 任意树叶上的符号的编码，可从树根开始向下运动，左0右1，进行编码
 
 
+## 抽象数据的多重表示
+对于一个数据对象可能存在多种表示形式，如：复数有直角坐标形式和极坐标形式。因此，除了需要将表示与使用相隔离外，还需要有抽象屏障去隔离互不相同的设计选择，以便允许不同的设计选择在同一个程序里共存。
 
+![complex_multiple_abstract](./pictures/complex_multiple_abstract.png)
+
+* 如何通过类型标志和通用型操作，使复数的两种表示共存在一个系统中？
+    * 构造赛格选择函数：real-part, imag-part, magnitude, angle
+    * 添加类型标志，使数据可以为高层过程所识别，基于类型分派
+
+![complex_multiple_abstract2](./pictures/complex_multiple_abstract2.png)
+
+### 数据导向的程序设计和可加性
+基于类型的分派的缺点是：在每次增加一种新表示形式时，实现通用选择函数的人都必须修改他们的过程，而那些做独立表示的界面的人也必须修改其代码，以避免名字冲突问题。
+
+数据导向的程序设计提供了进一步模块化，使程序能直接利用表格工作的程序设计技术。如果需要增加一种表示形式，只需要在表格中添加新条目即可。
+
+![complex_table](./pictures/complex_table.png)
+
+假定有两个过程：
+* `(put <op> <type> <item>)`
+* `(get <op> <type>)`
+
+定义`apply-generic`根据数据类型，从表格中找到对应的op，并应用于此数据。新增表示类型，这部分代码应不需要修改：
+```c
+(define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+        (let ((proc (get op type-tags)))
+            (if proc
+                (apply proc (map contents args))
+                (error "error")
+            )
+        )
+    )
+)
+```
+
+### 消息传递
+在数据导向的程序设计里，最关键的想法使通过显式处理操作-类型表格的方式，管理程序中的各种通用型操作，是一种方式是基于类型进行分派的组织方式。
+
+另一种策略是通过消息传递，将数据对象设想为一个实体，它以“消息”的方式接收所需操作，如下，`make-from-real-imag`返回一个过程，不是数据对象：
+```c
+(define (make-from-real-imag x y)
+    (define (dispatch op)
+        (cond ((eq? op 'real-part) x)
+                ((eq? op 'imag-part) y)
+        )
+    )
+    dispatch
+)
+```
