@@ -276,4 +276,8 @@
 ![list_of_list](./pictures/list_of_list.png)
 * 用多层序列可以组合成树
 
+### 序列作为一种约定的界面
+![enum_filter_map_accu](./pictures/enum_filter_map_accu.png)
+
+上图揭示了对序列操作的信号流。我们经常将枚举工作散布在程序种，将它与映射、过滤器和累积器混在一起。如果我们能够重新组织程序，使得信号流结构明显表现在写出的过程种，将会大大提高结果代码的清晰性。
 
