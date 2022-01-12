@@ -495,3 +495,30 @@
 
 如果创建第二个对象W2：`(define W2 (make-withdraw 100))`，W1和W2的行为上完全独立：
 ![env_run3](./pictures/env_run3.png)
+
+### 内部定义
+```c
+(define (sqrt x)
+    (define (good-enough? guess)
+        (< (abs(- (square guess) x)) 0.001)
+    )
+    (define (improve guess)
+        (average guess (/ x guess))
+    )
+    (define (sqrt-iter guess)
+        (if (good-enough? guess)
+            guess
+            (sqrt-iter (improve guess))
+        )
+    )
+    (sqrt-iter 1.0)
+)
+```
+![env_sqrt](./pictures/env_sqrt.png)
+* `sqrt`是全局环境里的一个符号，被约束到一个过程对象，与之关联的是全局环境
+* `sqrt`被调用，创建新环境E1
+* `good-enough?`, `improve`和`sqrt-iter`在E1里被约束与对应的过程对象，其关联环境是E1
+* `sqrt-iter`在E1中被调用，创建新环境E2
+* `sqrt-iter`转而以guess的值作为实际参数调用`good-enough?`，创建新环境E3，这里需要注意的是`sqrt-iter`和`good-enough?`都以E1作为自己的外围环境
+    * 因此，出现在`good-enough?`体内部的符号x将引用出现在E1里的x约束
+
