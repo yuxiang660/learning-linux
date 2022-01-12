@@ -454,4 +454,44 @@
 * 相对于环境A，我们说在框架II里x与7的约束遮蔽了框架I里x与3的约束
 
 ### 求值规则
+![global_env_comp](./pictures/global_env_comp.png)
+* 上图过程对象的环境部分是一个指向全局环境的指针，define建立定义的方式就是将新的约束加入框架里
 
+![global_env_run](./pictures/global_env_run.png)
+* 将一个过程应用于一组实际参数时，通过在全局环境里对表达式求值而创建了一个新环境E1，这个环境里包含着这个过程的形式参数x，被约束到实际参数5。现在要在E1里求值过程的体(* x x)，所以结果是25。
+
+我们可以把过程应用的环境模型总结为以下两条规则：
+* 将一个过程对象应用于一集实际参数，将构造出一个新框架，它的外围环境就是作为被应用的那个过程对象的一部分的环境
+* 相对于一个给定环境求值一个lambda表达式，将创建一个过程对象，这个过程对象是一个序对，由该lambda表达式的正文和一个指向环境的指针组成，这一指针指向的就是创建这个过程对象时的环境
+
+### 简单过程的应用
+求值`(f 5)`:
+```c
+(define (square x) (* x x))
+(define (sum-of-squares x y) (+ (square x ) (square y)))
+(define (f a) (sum-of-squares (+ a 1) (* a 2)))
+```
+![env_example](./pictures/env_example.png)
+
+### 将框架看作局部状态的展台
+求值`(W1 50)`:
+```c
+(define (make-withdraw balance)
+    (lambda (amount)
+        (if (>= balance amount)
+            (begin (set! balance (- balance amount))
+                balance
+            )
+            "Insufficient funds"
+        )
+    )
+)
+
+(define W1 (make-withdraw 100))
+```
+![env_run2](./pictures/env_run2.png)
+* 当`(W1 50)`发生时，首先要构造一个新框架，W1的形式参数amount在其中约束到实参50。这个框架的外围环境并不是全局环境，而是环境E1，因为它才是由过程对象W1所指定的环境
+* 执行完`set!`后，即对W1的调用完成时，balance变成50，而包含着这个balance的框架仍由过程对象W1指着。约束amount的那个框架现在已经无关紧要了，因为下次W1被调用时，又会另起一个新框架，建立起amount的新约束
+
+如果创建第二个对象W2：`(define W2 (make-withdraw 100))`，W1和W2的行为上完全独立：
+![env_run3](./pictures/env_run3.png)
