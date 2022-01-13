@@ -541,6 +541,139 @@
 ## 并发：时间是一个本质问题
 引入赋值之后，我们就必须承认时间在所用的计算模型中的位置。在引入赋值之前，我们的所有程序都没有时间问题，也就是说，任何具有某个值的表达式，将总是具有这个值。
 
-### 并发系统中时间的性质
+## 流
+赋值所带来的复杂性来自于：
+* 用具有局部状态的计算对象去模拟真实世界里具有局部状态的对象
+* 用计算机里面随着时间的变化去表示真实世界里随着时间的变化，在计算机里，被模拟对象随着时间的变化是通过对那些模拟对象中局部变量的赋值实现的
+
+我们能避免让计算机里的时间去对应于真实世界里的时间吗？我们可以将一个量x随时间变化的行为，描述为一个时间的函数`x(t)`。流处理使我们可以模拟一些包含状态的系统，但却不需要利用赋值或者变动数据实现。
+
+### 流作为延时的表
+将序列表示为表，需要付出低效的代码，比较两个程序，它们都计算一个区间里的素数和。
+* 迭代版本
+    ```c
+    (define (sum-primes a b)
+        (define (iter count accum)
+            (cond ((> count b) accum)
+                  ((prime? count) (iter (+ count 1) (+ count accum)))
+                  (else (iter (+ count 1 ) accum))
+            )
+        )
+        (iter a 0)
+    )
+    ```
+* 使用序列操作`accumulate`
+    ```c
+    (define (sum-primes a b)
+        (accumulate +
+                    0
+                    (filter prime? (enumerate-interval a b))
+        )
+    )
+    ```
+* 迭代版本只需要维持正在累积的和
+* 而后者需要等`enumerate=interval`构造完成一区间里所有的整数表之后才能工作。并且过滤器将再产生另一个表。如果区间很大，这样的开销将无法容忍
+
+流使一种非常巧妙的想法，使我们可能利用各种序列操作，但又不会带来将序列作为表去操作而引起的代价。可以同时满足：
+* 像序列操作那么优雅
+* 同时又能得到递增计算的效率
+
+流的基本思想是：只是部分地构造出流的结构，如果使用者需要访问这个流的尚未构造出的部分，那么这个流就会自动地继续构造下去。流的实现基于一种称为`delay`的特殊形式。对于`(delay <exp>)`的求值将不对表达式`<exp>`求值，而是返回一个称为延时对象的对象，它可以看作是对在未来的某个时间求值`<exp>`的允诺。例如，创建流序对：`cons-stream <a> <b>`等价于：`(cons <a> (delay <b>))`。用流实现上面的程序：
+```c
+(stream-car
+    (stream-cdr
+        (stream-filter prime?
+            (stream-enumerate-interval 10000 100000)
+        )
+    )
+)
+
+(define (stream-enumerate-interval low high)
+    (if (> low high)
+        the-empty-stream
+        (cons-stream
+            low
+            (stream-enumerate-interval (+ low 1) high)
+        )
+    )
+)
+
+(define (stream-filter pred stream)
+    (cond ((stream-null? stream) the-empty-stream)
+          ((pred (stream-car stream))
+           (cons-stream (stream-car stream) (stream-filter pred (stream-cdr stream)))
+           (else (stream-filter pred (stream-cdr stream)))
+          )
+    )
+)
+```
+* `stream-enumerate-interval`返回一个流，其car是10000，而其cdr是一个允诺，其意为如果需要，就能枚举出这个区间里更多的东西，优点类似python里面的generator?
+* `stream-filter`中的`stream-cdr`将迫使系统对延时的`stream-enumerate-interval`求值
+
+#### delay和force的实现
+* `(delay <exp>)`可以实现为：`(lambda () <expr>)`
+* force的实现：
+    ```c
+    (define (force delayed-object)
+        (delayed-object)
+    )
+    ```
+
+### 无穷流
+```c
+(define (integers-starting-from n)
+    (cons-stream n (integers-starting-from (+ n 1)))
+)
+
+(define integers (integers-starting-from 1))
+```
+
+### 流计算模式的使用
+* 系统地将迭代操作方式表示为流过程
+    * 以求平方根为例，在原来的`sqrt`过程里，我们用某一个状态变量的一系列值表示猜测值。换一种方式，我们也可以生成一个无穷的猜测序列：
+    ```c
+    (define (sqrt-stream x)
+        (define guesses
+            (cons-stream
+                1.0
+                (stream-map
+                    (lambda (guess) (sqrt-improve guess x))
+                    guesses
+                )
+            )
+        )
+    )
+    ```
+
+* 将流作为信号
+    ```c
+    (define (integral integrand initial-value dt)
+        (define int
+            (cons-stream
+                initial-value
+                (add-streams (scale-stream integrand dt) int)
+            )
+        )
+        int
+    )
+    ```
+    ![integral](./pictures/integral.png)
+    * 上图是一个积分过程，用流模拟了包含反馈循环的信号处理系统
+
+### 函数式程序的模块化和对象的模块化
+引进赋值的主要收益是使我们可以增强系统的模块化。流模型可以提供等价的模块化，同时又不必使用赋值。我们可以将一个提款处理器模拟为一个过程，它以一个余额值和一个提款流作为参数，生成账户中顺序余额的流：
+```c
+(define (stream-withdraw balance amount-stream)
+    (cons-stream
+        balance
+        (stream-withdraw
+            (- balance (stream-car amount-stream))
+            (stream-cdr amount-stream)
+        )
+    )
+)
+```
+* `stream-withdraw`实现了一个具有良好定义的数学函数，其输出完全由输入确定，`amount-stream`是由用户送来的顺序值构成的流。从送入这些值并观看结果的用户的角度看，这一流过程的行为与由`make-simplified-withdraw`创建的对象并没有什么不同。但这里没有局部变量赋值，也就不会有前面的困难，但是这个系统有状态。
+
 
 
