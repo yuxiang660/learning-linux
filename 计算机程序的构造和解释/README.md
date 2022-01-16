@@ -754,3 +754,57 @@
 ```
 * 为了安排好双重递归各个递归调用，我们需要保存起那些后来需要使用的寄存器值
 
+
+## 一个寄存器机器模拟器
+模拟器有四个界面过程：
+* 根据一个寄存器机器的描述，为这部机器构造一个模型(一个数据结构，其中的各个部分对应于被模拟机器的各个组成部分)
+    * 构造并返回机器的模型，其中包含了给定的寄存器、操作和控制器
+    * `(make-machine <register-names> <operations> <controller>)`
+* 将一个值存入给定机器的一个被模拟的寄存器里
+    * `(set-register-contents! <machine-model> <register-name> <value>)`
+* 返回给定机器里一个被模拟的寄存器的内容
+    * `(get-register-contents <machine-model> <register-name>)`
+* 模拟给定机器的执行，从相应控制器序列的开始处启动，直到这一序列的结束时停止
+    * `(start <machine-model>)`
+
+定义gcd-machine如下：
+```c
+(define gcd-machine
+    (make-machine
+        '(a b t)
+        (list (list 'rem remainder) (list '= =))
+        '(test-b
+            (test (op =) (reg b) (const 0))
+            (branch (label gcd-done))
+            (assign t (op rem) (reg a) (reg b))
+            (assign a (reg b))
+            (assign b (reg t))
+            (goto (label test-b))
+            gcd-done
+        )
+    )
+)
+```
+* 第一个参数时寄存器名字的表
+* 第二个参数时操作的名字和实现这一操作的过程的表格
+* 最后一个参数时描述了相应控制器，用一个标号和机器指令的表表示
+
+### 机器模型
+由`make-machine`生成的机器模型被表示为一个包含局部变量的过程。
+* `make-new-machine`构造出所有寄存器机器的机器模型里都需要的一些公共部分，其内部包括一个堆栈，另外还有一个初始为空的指令序列和一个操作的表，和一个寄存器的列表
+* `make-machine`将扩充这一基本模型，把要定义的特殊机器的寄存器、操作和控制器加进去
+* 最后，用一个汇编程序，把控制器列表变换为新机器所用的指令
+
+### 汇编程序
+这一汇编程序将一部机器的控制器表达式序列翻译为与之对应的机器指令的表，每条指令都带着相应的执行过程。过程assemble是这个汇编程序的主要入口，它以一个控制器正文和相应机器模型作为参数，返回存储在模型里的指令序列。
+```c
+(define (assemble controller-text machine)
+    (extract-labels controller-text
+        (lambda (insts labels)
+            (update-insts! insts labels machine)
+            insts
+        )
+    )
+)
+```
+
