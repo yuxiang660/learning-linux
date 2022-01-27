@@ -2,6 +2,20 @@
 《flex与bison》读书笔记
 
 # Flex和Bison简介
+下图是Flex和Bison的工作流程关系：
+
+![bison_flex](./pictures/bison_flex.png)
+
+* bison会通过"xxx.y"生成
+   * xxx.tab.c
+      * 包含了yyparse()函数的定义，此函数会调用yylex()，用户在main函数中调用此函数，即可触发所有工作
+         * yyparse()会根据flex返回的token，进行移进或者归约，当满足某一规则时，执行对应的动作
+   * xxx.tab.h
+      * 包含了token的定义，可被"xxx.l" flex文件include
+* flex会通过"xxx.l"生成
+   * lex.yy.c
+      * 包含了yylex()函数的定义，此函数会解析输入文本匹配，并返回yylval和对应的token给bison
+
 ## 我们的第一个Flex程序
 ```
 %{
