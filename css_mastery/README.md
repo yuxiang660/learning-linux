@@ -241,4 +241,13 @@ CCS中有3种基本的定位机制：普通流(默认)，浮动，绝对定位
 
 ![flex_layout](./pictures/flex_layout.png)
 
+# 背景图像效果
+
+## 背景图像基础
+```css
+body {
+    background-image:url(/img/pattern.gif);
+}
+```
+
 
