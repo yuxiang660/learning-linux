@@ -1,0 +1,31 @@
+<html>
+
+<head>
+   <meta charset="UTF-8">
+   <script src="https://unpkg.com/vue@next"></script>
+</head>
+
+<body>
+   <div id="app">
+      Counter: {{ counter }}
+   </div>
+   <script>
+      const RootComponent = {
+         data() {
+            return {
+               counter: 0
+            }
+         },
+         mounted() {
+            setInterval(() => {
+               this.counter++
+            }, 1000)
+         }
+      }
+
+      const app = Vue.createApp(RootComponent)
+      const vm = app.mount('#app')
+   </script>
+</body>
+
+</html>
