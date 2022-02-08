@@ -191,3 +191,76 @@ article > p { } /*组合器*/
 ```
 
 ![css_selector](./pictures/css_selector.png)
+
+## [盒模型](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/The_box_model)
+
+### 块级盒子(block box)和内联盒子(inline box)
+
+块级盒子行为：
+* 盒子会换行
+* `width`和`height`都发挥作用
+* 在内联方向上扩展并占据父容器在该方向上的所有可用空间
+
+内联盒子行为：
+* 不会换行
+* `width`和`height`不发挥作用
+* <a>元素、<span>、 <em>以及<strong>都是默认处于inline状态
+
+我们通过对盒子display属性的设置，比如`inline`或者`block`，来控制盒子的外部显示类型
+
+### 盒模型属性
+![box1](./pictures/box1.png)
+
+![box2](./pictures/box2.png)
+
+## [溢出的内容](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/Overflowing_content)
+
+### 什么是溢出？
+溢出是在你往盒子里面塞太多东西的时候发生的，所以盒子里面的东西也不会老老实实待着。默认情况下，CSS会让内容溢出，而不是隐藏内容。
+
+### overflow属性
+overflow属性可参考[文档](https://developer.mozilla.org/zh-CN/docs/Web/CSS/overflow)：
+* visible (默认值)
+* hidden
+* scroll
+* auto
+
+## [CSS的值与单位](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/Values_and_units)
+
+CSS中使用的数据类型有：
+* integer - 整数
+* number - 小数
+* dimension - 带单位的数，如: 45deg, 5s, 10px
+* percentage - 百分比，如：一个元素的长度相对于其父元素的长度
+
+### 长度
+
+绝对长度单位：
+
+![unit1](./pictures/unit1.png)
+
+相对长度单位：
+
+![unit2](./pictures/unit2.png)
+
+### 百分比
+```css
+li {
+  font-size: 80%; /*父级字体大小的80%*/
+}
+```
+
+### 数字
+```css
+.box {
+  opacity: 0.6; /*当您在CSS中使用数字作为值时，它不应该用引号括起来*/
+}
+```
+
+### 函数
+```css
+.box {
+  width: calc(20% + 100px);
+}
+```
+* CSS属性值也可以是函数的返回值，如：gb()，hsl()，url()
