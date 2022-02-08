@@ -142,4 +142,52 @@ h1 {
 } 
 ```
 
+# CSS构建基础
 
+## [层叠与继承](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/Cascade_and_inheritance)
+
+### 冲突规则
+
+层叠规则：
+* 当应用两条同级别的规则到一个元素的时候，写在后面的就是实际使用的规则
+
+优先级规则：
+* 一个元素选择器不是很具体 — 会选择页面上该类型的所有元素 — 所以它的优先级就会低一些
+* 一个类选择器稍微具体点 — 它会选择该页面中有特定class属性值的元素 — 所以它的优先级就要高一点
+
+继承规则：
+* 一些设置在父元素上的css属性是可以被子元素继承的，如：`color`, `font-family`；有些则不能，如：`width`, `margins`, `padding`, `borders`
+    * 可以通过每个CSS属性的定义查看是否能被继承，例如，[color](https://developer.mozilla.org/zh-CN/docs/Web/CSS/color)属性的定义
+
+### 理解层叠
+三个因素：
+* 资源顺序
+    * 如果两条规则权重相同，后面的规则会覆盖前面的规则
+* 优先级
+    * 范围更小的优先级更高，只覆盖相同属性
+    * ID选择器 > 类选择器 > 元素选择器，其他选择器参考[文档](https://developer.mozilla.org/zh-CN/docs/Web/CSS/CSS_Selectors)
+    * ![css_priority](./pictures/css_priority.png)
+
+## [CSS选择器](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/Selectors)
+
+### 选择器列表
+```css
+h1,
+.special {
+    color: blue;
+} 
+```
+* `h1`和`。special`通过一个逗号组成了一个选择器列表，应用相同的样式
+
+### 选择器的种类
+```css
+h1 { } /*类型(元素)选择器*/
+.box { } /*类选择器*/
+#unique { } /*ID选择器*/
+a[title] { } /*标签属性选择器*/
+a:hover { } /*伪类选择器*/
+p::first-line { } /*伪元素选择器*/
+article > p { } /*组合器*/
+```
+
+![css_selector](./pictures/css_selector.png)
