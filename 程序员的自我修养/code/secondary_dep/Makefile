@@ -39,5 +39,12 @@ app_barso: fooso barso
 run_barso: app_barso
 	LD_LIBRARY_PATH=$(PWD) ./app_barso
 
+app_rpath: fooso barso
+	gcc -o app_rpath main.c -L$(PWD) -lfoo -lbar -Wl,-rpath=$(PWD)
+	ldd app_rpath
+
+run_rpath: app_rpath
+	LD_LIBRARY_PATH=$(PWD) ./app_rpath
+
 clean:
 	@rm -f *.so *.a app* *.o

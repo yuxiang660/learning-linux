@@ -1,6 +1,6 @@
 all:
 	flex hello.l
-	gcc lex.yy.c
+	gcc -g lex.yy.c
 	./a.out
 
 clean:
