@@ -39,7 +39,7 @@
     * DNS协议(Domain Name Service, 域名服务)
         * 提供机器域名到IP地址的转换
 
-## 封装
+## 封装(encapsulation)
 ![encapsulation](./pictures/encapsulation.png)
 
 ### TCP封装
@@ -66,4 +66,24 @@
 ![ethernet_frame](./pictures/ethernet_frame.png)
 * 最大传输单元(Max Transmit Unit, MTU) - 最多能携带多少上层协议数据
     * 上图的以太网帧的MTU是1500字节，过长的IP数据报需要被分片(fragment)传输
+
+## 分用(demultiplexing)
+!(demultiplexing)[./pictures/demultiplexing.png]
+* 分用
+    * 当帧到达目的主机时，将沿着协议栈自底向上依次传递。各层协议依次处理帧中本层负责的头部数据，以获取所需的信息，并最终将处理后的帧交给目标应用程序。
+    * 分用时依靠头部信息中的类型字段实现的
+* 如何区分IP、ARP和RARP帧？
+    * 帧头部有2字节的类型字段，0x800为IP数据报，0x806为ARP请求应答报文，0x835为RARP请求或应答报文
+* 如何区分ICMP、TCP和UDP的IP数据报？
+    * IP数据报的头部采用16位的协议字段来区分
+* 如何区分TCP/UDP的不同上层应用？
+    * 通过头部中的16位的端口号(port number)来区分，53为DNS协议，80为HTTP协议
+
+## ARP协议工作原理
+* 工作原理
+    * 主机向自己所在的网络广播一个ARP请求，该请求包含目标机器的网络地址。此网络上的其他机器都将收到这个请求，但只有被请求的目标机器会回应一个ARP应答，其中包含自己的物理地址
+
+### 以太网ARP请求/应答报文详解
+![ARP_datagram](./pictures/ARP_datagram.png)
+
 
