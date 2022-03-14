@@ -147,3 +147,34 @@ _gateway (192.168.179.2) at 00:50:56:ee:0b:41 [ether] on ens3
 
 ![arp_com](./pictures/arp_com.png)
 * 上图中，路由器也收到了以太网帧1，因为该帧是一个广播帧，不过路由器并没有回应其中的ARP请求。
+
+## DNS工作原理
+
+![DNS_datagram](./pictures/DNS_datagram.png)
+* DNS查询类型
+    * 类型A，值是1，表示获取目标主机的IP地址
+    * 类型CNAME，值是5，表示获得目标主机的别名
+    * 类型PRT，值是12，表示反向查询
+
+### Linux下访问DNS服务
+* `/etc/resolv.conf`存放了DNS服务器的IP地址`nameserver`
+* `host -t A <addr-name>` - 查询类型A的机器名对应的IP
+
+### 使用tcpdump观察DNS通信过程
+* `sudo tcpdump -i ens33 -nt -s 500 port domain`
+    * 只抓取`ens33`上的使用domain(域名)服务的数据包，即DNS查询和应答报文
+* `host -t A www.baidu.com`执行后，抓取的数据：
+    * 第一个数据包中，
+        * 56694是DNS查询报文的标识值，因此该值也出现在了DNS应答报文中
+        * “+”表示递归查询
+        * “A?”表示使用A类型的查询方式
+        * 括号中的数值42是DNS查询报文的长度(以字节为单位)
+    * 第二个数据包中，
+        * “4/0/1”表示该报文中包含4个应答资源记录、0个授权资源记录和1个额外信息记录
+            * `CNAME www.a.shifen.com., CNAME www.wshifen.com., A 119.63.197.139, A 119.63.197.151`表示4个应答资源记录
+    ```bash
+    IP 192.168.179.132.49122 > 192.168.179.2.53: 56694+ [1au] A? www.baidu.com. (42)
+    IP 192.168.179.2.53 > 192.168.179.132.49122: 56694 4/0/1 CNAME www.a.shifen.com., CNAME www.wshifen.com., A 119.63.197.139, A 119.63.197.151 (127)
+    ```
+
+
