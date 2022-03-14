@@ -177,4 +177,53 @@ _gateway (192.168.179.2) at 00:50:56:ee:0b:41 [ether] on ens3
     IP 192.168.179.2.53 > 192.168.179.132.49122: 56694 4/0/1 CNAME www.a.shifen.com., CNAME www.wshifen.com., A 119.63.197.139, A 119.63.197.151 (127)
     ```
 
+## socket和TCP/IP协议族的关系
+数据链路层、网络层、传输层协议在内核中实现，操作系统提供了两套系统调用来访问这些协议，分别是：
+* socket
+* XTI (基本不用)
+
+socket API提供了两点功能：
+* 将应用程序数据从用户缓冲区中复制到TCP/UDP内核发送缓冲区，以交付内核来发送数据；或从内核TCP/UDP接收缓冲区中复制数据到用户缓冲区，以读取数据
+* 应用程序可通过它们来修改内核中各层协议的某些头部信息或其他数据结构，从而精细地控制底层通信的行为
+
+# IP协议详解
+本章从两个方面讨论IP协议：
+* IP头部信息
+    * 用于指定IP通信的源端和目的端
+* IP数据报的路由和转发
+
+## IP服务的特点
+IP协议为上层协议提供无状态、无连接、不可靠的服务：
+* 无状态
+    * IP通信双方不同步传输数据的状态信息，没有上下文关系
+    * 优点是简单、高效
+* 无连接
+    * IP通信双方都不长久地维持对方的任何信息，上层协议每次发送数据的时候，都必须明确指定对方的IP地址
+* 不可靠
+    * IP协议不能保证IP数据报准确地到达接收端，使用IP服务的上层协议需要自己实现数据确认、超时重传等机制以达到可靠传输的目的
+
+## IPv4头部结构
+
+![ipv4_header](./pictures/ipv4_header.png)
+* 长度通常为20字节
+
+### 使用tcpdump观察IPv4头部结构
+```bash
+> sudo tcpdump -ntx -i lo port 23
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+IP 127.0.0.1.41684 > 127.0.0.1.23: Flags [S], seq 3956412104, win 65495, options [mss 65495,sackOK,TS val 2922181685 ecr 0,nop,wscale 7], length 0
+        0x0000:  4510 003c c09e 4000 4006 7c0b 7f00 0001
+        0x0010:  7f00 0001 a2d4 0017 ebd2 0ec8 0000 0000
+        0x0020:  a002 ffd7 fe30 0000 0204 ffd7 0402 080a
+        0x0030:  ae2c f435 0000 0000 0103 0307
+```
+* 我们使用telnet登录本机，所以IP数据报的源端IP地址和目的端IP地址都是“127.0.0.1”
+* telnet服务器程序使用的端口号是23，而telnet客户端使用临时端口号41684与服务器通信
+* `-x`选项输出了二进制码，此数据包共60字节，前20字节是IP头部，后40字节是TCP头部，不包含应用程序数据(length值为0)
+    * ![ipv4_data](./pictures/ipv4_data.png)
+        * 其中数据报标识是：0xc09e
+
+## IP分片
+
 
