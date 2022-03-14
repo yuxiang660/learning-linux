@@ -225,5 +225,74 @@ IP 127.0.0.1.41684 > 127.0.0.1.23: Flags [S], seq 3956412104, win 65495, options
         * 其中数据报标识是：0xc09e
 
 ## IP分片
+当IP数据报长度超过MTU时，它会被分片，并最终在目标机器的IP模块中被重新组装。IP头部中下面三个字段给IP的分片和重组提供了足够信息：
+* 数据报标识
+* 标志
+* 片偏移
+
+`ifconfig`命令可查看MTU的值。例如，“192.168.179.132”的MTU值是1500，表明其IP数据报最多是1480字节(IP头部占用20字节)。如果要封装一个长度为1481字节的ICMP报文，则必须分片，如下图。
+```bash
+> ifconfig
+ens33: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.179.132  netmask 255.255.255.0  broadcast 192.168.179.255
+```
+
+![fragment](./pictures/fragment.png)
+
+### 使用tcpdump观察IP分片
+* `sudo tcpdump -ntv -i ens38 icmp` - 监听ens38上的ICMP报文
+* `ping 127.0.0.1 -s 1473` - 向本机发送1473字节的数据
+* tcpdump输出的一个IP数据报的两个分片，这两个分片的标识值都是`42695`，第一个分片的偏移值为0，第二个分片的偏移值为1480。`flags [+]`标识(More Fragment, MF)，意味着还有后续分片。`flags [none]`没有设置任何标志位
+    ```bash
+    IP (tos 0x0, ttl 128, id 42695, offset 0, flags [+], proto ICMP (1), length 1500)
+    192.168.179.1 > 192.168.179.132: ICMP echo request, id 112, seq 1, length 1480
+    IP (tos 0x0, ttl 128, id 42695, offset 1480, flags [none], proto ICMP (1), length 21)
+    192.168.179.1 > 192.168.179.132: ip-proto-1
+    ```
+
+## IP路由
+IP协议的一个核心任务是数据报的路由，即决定发送数据报到目标机器的路径。
+
+### IP模块工作流程
+![ip_module](./pictures/ip_module.png)
+* 从右下角开始分析，当IP模块接收到来自数据链路层的IP数据报时，它首先对该数据报的头部做CRC校验，确认无误后就分析其头部的具体信息
+    * 如果该IP数据报的头部设置了源站选路选项，则IP模块调用数据报转发子模块来处理该数据报
+    * 如果该IP数据报的头部中目标IP地址时本机的某个IP地址，或者是广播地址，即该数据报时发送给本机的，则IP模块就根据数据报头部中的协议字段来决定将它派发给那个上层应用(分用)
+* 数据报转发子模块首先检测系统是否允许转发，如果不允许，则丢弃。如果允许，则转发数据报到下一跳路由。
+* 上图中虚线箭头显示了路由表更新过程
+
+### 路由机制
+* `route`或`netstat`可查看路由表
+    ```bash
+    > route
+    Kernel IP routing table
+    Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+    default         _gateway        0.0.0.0         UG    100    0        0 ens33
+    default         _gateway        0.0.0.0         UG    101    0        0 ens38
+    link-local      0.0.0.0         255.255.0.0     U     1000   0        0 ens33
+    172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0
+    192.168.179.0   0.0.0.0         255.255.255.0   U     100    0        0 ens33
+    192.168.179.0   0.0.0.0         255.255.255.0   U     101    0        0 ens38
+    ```
+
+![route_table](./pictures/route_table.png)
+
+* 对于给定的目标IP地址，如何匹配路由表中的哪一项？分三步：
+    * 查找路由表中和数据报的目标IP是否完全匹配，如果找到，就使用该路由项
+    * 具有相同网路ID的网络IP地址
+    * 选择默认路由项，通常意味着下一跳路由是网关
+
+### 路由表更新
+* `sudo route add -host 192.168.179.1 dev ens38` - 添加主机“192.168.179.1”对应的路由表
+    * 发送给“192.168.179.1”的IP数据报将通过网卡ens38直接发送至目标机器的接收网卡
+* `sudo route del -host 192.168.179.1 dev ens38` - 删除主机“192.168.179.1”对应的路由表
+
+## 重定向
+![icmp](./pictures/icmp.png)
+
+* ICMP重定向报文也能用于更新路由表
+* 一般来说，主机只能接收ICMP重定向报文，而路由器只能发送ICMP重定向报文
+
+
 
 
