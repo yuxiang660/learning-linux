@@ -338,7 +338,7 @@ TCP协议相对于UDP协议的特点是：
     * RST，重新建立连接
     * SYN，请求建立一个连接
     * FIN，通知对方本端要关闭连接了
-* 16位窗口大小
+* 16位窗口大小(window size)
     * 接收方告诉发送方接收缓冲区还能容纳多少字节的数据，这样对方就可以控制发送数据的速度
 
 ### TCP头部选项
@@ -454,4 +454,60 @@ IP 127.0.0.1.41684 > 127.0.0.1.23: Flags [S], seq 3956412104, win 65495, options
 ![tcp_states_normal](./pictures/tcp_states_normal.png)
 
 ### TIME_WAIT状态
+在`TIME_WAIT`状态，客户端连接要等待一段长为2MSL(Maximum Segment Life, 报文段最大生存时间)的时间，才能完全关闭。原因是:
+* 可靠地中止TCP连接
+    * 防止服务器无法收到关闭确认报文
+* 保证让迟来的TCP报文有足够的时间被识别并丢弃
+    * 防止程序建立一个和刚关闭的连接相同的连接，接收到属于原来连接的报文
 
+## 复位报文段
+### 访问不存在的端口
+```bash
+> sudo tcpdump -nt -i lo port 54321
+> telnet 127.0.0.1 54321
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+IP 127.0.0.1.34448 > 127.0.0.1.54321: Flags [S], seq 2402185477, win 65495, options [mss 65495,sackOK,TS val 2792730020 ecr 0,nop,wscale 7], length 0
+IP 127.0.0.1.54321 > 127.0.0.1.34448: Flags [R.], seq 0, ack 2402185478, win 0, length 0
+```
+
+### 异常终止连接
+应用程序可以使用socket选项`SO_LINGER`来发送复位报文段，以异常终止一个连接。
+
+### 处理半打开连接
+如果客户端(或服务器)往处于半打开状态的连接写入数据，对方将回应一个复位报文段。
+
+## TCP交互数据流
+通过TCP连接交换的应用程序数据，按照长度分为：
+* 交互数据
+    * 仅包含很少的字节，对实时性要求高，比如telnet、ssh等。
+* 成块数据
+    * 对传输效率要求高，比如ftp
+
+```bash
+> sudo tcpdump -nt -i lo port 23
+# 客户端向服务器发送1个字节的应用程序数据："l"
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [P.], seq 178:179, ack 2544, win 512, options [nop,nop,TS val 2793706867 ecr 2793686126], length 1
+# 服务器对上面报文的确认，同时回显字母"l"
+IP 127.0.0.1.23 > 127.0.0.1.56048: Flags [P.], seq 2544:2545, ack 179, win 512, options [nop,nop,TS val 2793706867 ecr 2793706867], length 1
+# 客户端对上面服务器报文的确认
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 2545, win 512, options [nop,nop,TS val 2793706867 ecr 2793706867], length 0
+# 客户端向服务器发送1个字节的应用程序数据："s"
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [P.], seq 179:180, ack 2545, win 512, options [nop,nop,TS val 2793735273 ecr 2793706867], length 1
+IP 127.0.0.1.23 > 127.0.0.1.56048: Flags [P.], seq 2545:2546, ack 180, win 512, options [nop,nop,TS val 2793735273 ecr 2793735273], length 1
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 2546, win 512, options [nop,nop,TS val 2793735273 ecr 2793735273], length 0
+# 客户端向服务器发送1个字节的应用程序数据：回车符和流结束符EOF
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [P.], seq 193:195, ack 2650, win 512, options [nop,nop,TS val 2794004738 ecr 2794000323], length 2
+IP 127.0.0.1.23 > 127.0.0.1.56048: Flags [P.], seq 2650:2652, ack 195, win 512, options [nop,nop,TS val 2794004738 ecr 2794004738], length 2
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 2652, win 512, options [nop,nop,TS val 2794004738 ecr 2794004738], length 0
+# 服务器向客户端发送客户查询的目录的内容(ls命令的输出)
+IP 127.0.0.1.23 > 127.0.0.1.56048: Flags [P.], seq 2652:2992, ack 195, win 512, options [nop,nop,TS val 2794004740 ecr 2794004738], length 340
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 2992, win 510, options [nop,nop,TS val 2794004740 ecr 2794004740], length 0
+# 服务器向客户端发送：一个回车符、一个换行符、客户端登录用户的PS1环境变量
+IP 127.0.0.1.23 > 127.0.0.1.56048: Flags [P.], seq 2992:3076, ack 195, win 512, options [nop,nop,TS val 2794004740 ecr 2794004740], length 84
+IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 3076, win 510, options [nop,nop,TS val 2794004740 ecr 2794004740], length 0
+```
+* 由于服务器对客户请求处理很快，所以它发送确认报文段的时总是有数据一起发送(延时确认)
+* 而用户输入速度明显慢于客户端程序的处理速度，所以客户端的确认报文段总是不携带任何用用程序数据
+
+## TCP成块数据流
