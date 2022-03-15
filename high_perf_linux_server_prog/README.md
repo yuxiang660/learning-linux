@@ -293,6 +293,71 @@ IP协议的一个核心任务是数据报的路由，即决定发送数据报到
 * ICMP重定向报文也能用于更新路由表
 * 一般来说，主机只能接收ICMP重定向报文，而路由器只能发送ICMP重定向报文
 
+# TCP协议详解
+本章从四个方面讨论TCP协议：
+* TCP头部信息 - 用于指定源/目标端口
+* TCP状态转移过程
+* TCP数据流
+    * 交互数据流
+    * 成块数据流
+* TCP数据流的控制
+    * 超时重传
+    * 拥塞控制
 
+## TCP服务的特点
+TCP协议相对于UDP协议的特点是：
+* 面向连接
+    * 双方需要管理连接的状态和连接上数据的传输
+    * 无连接协议UDP更适合广播和多播
+* 字节流
+    * 发送端执行的写操作次数和接收端执行的读操作次数之间没有任何数量关系，这就是字节流的概念
+    * 下图显示了TCP字节流传输和UDP数据传输的区别
+* 可靠传输
+    * 应答机制
+    * 超时重传机制
+    * 对接收到的TCP报文重排整理后才交付给应用层
+
+![tcp_udp_send_recv](./pictures/tcp_udp_send_recv.png)
+
+## TCP头部结构
+
+![tcp_header](./pictures/tcp_header.png)
+* 16位端口号(port number)
+    * 客户端通常使用系统自动选择的临时端口号
+    * 服务器则使用知名的服务端口号，可在/etc/services中找到
+* 32位序号(sequence number)
+    * 一次TCP通信(从TCP连接建立到断开)过程中某**一个传输方向**上的字节流的每个字节的编号。例如，A发送给B的第一个报文被初始化位某个随机值ISN(Initial Sequence Number)，那么后续A到B再次传输1025~2048字节的TCP报文，此报文的序号值就是"ISN+1025"
+* 32位确认号(acknowledgement number)
+    * 用于对另一方发送来的TCP报文段的响应，其值是收到的TCP报文段的序号值加1。因此，A发送给B的报文，不仅携带自己的序号，也包含B发送来的TCP报文段的确认号
+* 4位头部长度(header length)
+    * 单位是32bit字，TCP头部最大长度是60字节
+* 6位标志位
+    * URG，紧急指针是否有效
+    * ACK，是否携带ACK标志
+    * PSH，接收端要立即从TCP接收缓冲区中读走数据
+    * RST，重新建立连接
+    * SYN，请求建立一个连接
+    * FIN，通知对方本端要关闭连接了
+* 16位窗口大小
+    * 接收方告诉发送方接收缓冲区还能容纳多少字节的数据，这样对方就可以控制发送数据的速度
+
+### TCP头部选项
+![tcp_option](./pictures/tcp_option.png)
+
+### 使用tcpdump观察TCP头部信息
+在分析IP头部信息的实验中，我们得到了如下二进制报文，其中前20字节是IP头部，后40字节是TCP头部：
+```bash
+> sudo tcpdump -ntx -i lo port 23
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+IP 127.0.0.1.41684 > 127.0.0.1.23: Flags [S], seq 3956412104, win 65495, options [mss 65495,sackOK,TS val 2922181685 ecr 0,nop,wscale 7], length 0
+        0x0000:  4510 003c c09e 4000 4006 7c0b 7f00 0001
+        0x0010:  7f00 0001 a2d4 0017 ebd2 0ec8 0000 0000
+        0x0020:  a002 ffd7 fe30 0000 0204 ffd7 0402 080a
+        0x0030:  ae2c f435 0000 0000 0103 0307
+```
+* tcpdump输出的`Flags[S]`表示该TCP报文段包含SYN标志
+
+![tcp_data](./pictures/tcp_data.png)
 
 
