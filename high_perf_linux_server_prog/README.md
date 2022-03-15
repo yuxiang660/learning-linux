@@ -454,7 +454,7 @@ IP 127.0.0.1.41684 > 127.0.0.1.23: Flags [S], seq 3956412104, win 65495, options
 ![tcp_states_normal](./pictures/tcp_states_normal.png)
 
 ### TIME_WAIT状态
-在`TIME_WAIT`状态，客户端连接要等待一段长为2MSL(Maximum Segment Life, 报文段最大生存时间)的时间，才能完全关闭。原因是:
+在`TIME_WAIT`状态，客户端连接要等待一段长为2MSL(Maximum Segment Life, 报文段最大生存时间, 其值可通过"cat /proc/sys/net/ipv4/tcp_fin_timeout"得到)的时间，才能完全关闭, 原因是:
 * 可靠地中止TCP连接
     * 防止服务器无法收到关闭确认报文
 * 保证让迟来的TCP报文有足够的时间被识别并丢弃
@@ -511,3 +511,68 @@ IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 3076, win 510, options [nop,no
 * 而用户输入速度明显慢于客户端程序的处理速度，所以客户端的确认报文段总是不携带任何用用程序数据
 
 ## TCP成块数据流
+* 服务器端
+    ```bash
+    > sudo tcpdump -nt -i lo port 21
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [P.], seq 131:139, ack 442, win 512, options [nop,nop,TS val 2798958144 ecr 2798930799], length 8: FTP: TYPE I
+    IP 127.0.0.1.21 > 127.0.0.1.45646: Flags [P.], seq 442:473, ack 139, win 512, options [nop,nop,TS val 2798958144 ecr 2798958144], length 31: FTP: 200 Switching to Binary mode.
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [.], ack 473, win 512, options [nop,nop,TS val 2798958144 ecr 2798958144], length 0
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [P.], seq 139:163, ack 473, win 512, options [nop,nop,TS val 2798958144 ecr 2798958144], length 24: FTP: PORT 127,0,0,1,207,103
+    IP 127.0.0.1.21 > 127.0.0.1.45646: Flags [P.], seq 473:524, ack 163, win 512, options [nop,nop,TS val 2798958145 ecr 2798958144], length 51: FTP: 200 PORT command successful. Consider using PASV.
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [.], ack 524, win 512, options [nop,nop,TS val 2798958145 ecr 2798958145], length 0
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [P.], seq 163:177, ack 524, win 512, options [nop,nop,TS val 2798958145 ecr 2798958145], length 14: FTP: RETR p4v.tgz
+    IP 127.0.0.1.21 > 127.0.0.1.45646: Flags [P.], seq 524:596, ack 177, win 512, options [nop,nop,TS val 2798958145 ecr 2798958145], length 72: FTP: 150 Opening BINARY mode data connection for p4v.tgz (125781581 bytes).
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [.], ack 596, win 512, options [nop,nop,TS val 2798958145 ecr 2798958145], length 0
+    IP 127.0.0.1.21 > 127.0.0.1.45646: Flags [P.], seq 596:620, ack 177, win 512, options [nop,nop,TS val 2798960837 ecr 2798958145], length 24: FTP: 226 Transfer complete.
+    IP 127.0.0.1.45646 > 127.0.0.1.21: Flags [.], ack 620, win 512, options [nop,nop,TS val 2798960837 ecr 2798960837], length 0
+    ```
+* 客户端
+    ```bash
+    > ftp 127.0.0.1
+    ftp> get p4v.tgz
+    local: p4v.tgz remote: p4v.tgz
+    200 PORT command successful. Consider using PASV.
+    150 Opening BINARY mode data connection for p4v.tgz (125781581 bytes).
+    226 Transfer complete.
+    125781581 bytes received in 2.75 secs (43.5517 MB/s)
+    ```
+
+## TCP超时重传
+```bash
+16:34:04.969902 IP 127.0.0.1.40286 > 127.0.0.1.5001: Flags [S], seq 3144583604, win 65495, options [mss 65495,sackOK,TS val 2799914105 ecr 0,nop,wscale 7], length 0
+16:34:04.969916 IP 127.0.0.1.5001 > 127.0.0.1.40286: Flags [S.], seq 3922255266, ack 3144583605, win 65483, options [mss 65495,sackOK,TS val 2799914105 ecr 2799914105,nop,wscale 7], length 0
+16:34:04.969931 IP 127.0.0.1.40286 > 127.0.0.1.5001: Flags [.], ack 1, win 512, options [nop,nop,TS val 2799914105 ecr 2799914105], length 0
+# 客户端发送“1234”到“perf -s”开启的服务器，长度是6，包括回车、换行两个字符
+16:34:29.271590 IP 127.0.0.1.40286 > 127.0.0.1.5001: Flags [P.], seq 1:7, ack 1, win 512, options [nop,nop,TS val 2799938406 ecr 2799914105], length 6
+16:34:29.271600 IP 127.0.0.1.5001 > 127.0.0.1.40286: Flags [.], ack 7, win 512, options [nop,nop,TS val 2799938406 ecr 2799938406], length 0
+```
+* `/proc/sys/net/ipv4/tcp_retries1`
+    * 在底层IP接管之前TCP最少执行的重传次数，默认是3
+* `/proc/sys/net/ipv4/tcp_retries2`
+    * 连接放弃前TCP最多可以执行的重传次数，默认是15
+
+## 拥塞控制
+拥塞控制的四个部分：
+* 慢启动
+    * TCP模块刚开始发送数据时并不知道网络的实际情况，需要用一种试探的方式平滑地增加CWND的大小
+* 拥塞避免
+    * 当CWND的大小超过门限时，进入拥塞避免阶段，减缓CWND的膨胀
+* 快速重传
+    * 发送端如果连续收到3个重复的确认报文段，就认为拥塞发生了，需要启动快速重传/恢复来处理拥塞
+* 快速恢复
+
+常见拥塞控制算法有(可通过"/proc/sys/net/ipv4/tcp_congestion_control"查看)：
+* reno
+* vegas
+* cubic
+
+![congestion](./pictures/congestion.png)
+* SMSS（Sender Maximum Segment Size）
+* SWND (Send Window)
+    * 太小会引起网络延时
+    * 太大会导致网络拥塞
+* RWND (Receive Window)
+    * 接收方可通过其接收通告窗口RWND来控制发送端的SWND
+* CWND (Congestion Window)
+
+
