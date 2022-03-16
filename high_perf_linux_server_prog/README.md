@@ -669,11 +669,14 @@ Linux为各个协议族提供了专门的socket地址结构体。但是，所有
     ```
 
 ### IP地址转换函数
-下面三个函数可以用于IPv4地址字符串和整数表示之间的转换：
-    ```cpp
-    #include <arpa/inet.h>
-    in_addr_t inet_addr(const char* strptr); // 将用点分十进制字符串的IPv4地址转换为网络字节序整数表示的地址
-    int inet_aton(const char* cp, struct in_addr* inp); // 和inet_addr功能一样，但将结果存于inp指向的结构中，成功返回1
-    char* inet_ntoa(struct in_addr in); // 将网络字节序整数表示的IPv4地址转化为用点分十进制字符串的IPv4地址
-    ```
+下面几个函数可以用于IPv4地址字符串和整数表示之间的转换：
+```cpp
+#include <arpa/inet.h>
+in_addr_t inet_addr(const char* strptr); // 将用点分十进制字符串的IPv4地址转换为网络字节序整数表示的地址
+int inet_aton(const char* cp, struct in_addr* inp); // 和inet_addr功能一样，但将结果存于inp指向的结构中，成功返回1
+char* inet_ntoa(struct in_addr in); // 将网络字节序整数表示的IPv4地址转化为用点分十进制字符串的IPv4地址
+int inet_pton(int af, const char* src, void* dst);
+const char* inet_ntop(int af, const void* src, char* dst, socklen_t cnt); // cnt指定目标存储单元的大小
+```
 * `inet_ntoa`内部静态变量存了转化结果，所以不可重入，可参考[例子](./code/socket/addr/main.cpp)
+* [例子](./code/socket/pton/main.cpp)显示了`inet_pton`和`inet_ntop`的使用方法
