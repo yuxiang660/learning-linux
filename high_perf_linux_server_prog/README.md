@@ -680,3 +680,44 @@ const char* inet_ntop(int af, const void* src, char* dst, socklen_t cnt); // cnt
 ```
 * `inet_ntoa`内部静态变量存了转化结果，所以不可重入，可参考[例子](./code/socket/addr/main.cpp)
 * [例子](./code/socket/pton/main.cpp)显示了`inet_pton`和`inet_ntop`的使用方法
+
+## 创建socket
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+int socket(int domain, int type, int protocol);
+```
+* `domain`告诉系统使用哪个底层协议族
+    * IPv4: PF_INET
+    * IPv6: PF_INET6
+    * UNIX本地协议族：PF_UNIX
+* `type`用于指定服务类型
+    * `SOCK_STREAM`，流服务，用于TCP/IP协议
+    * `SOCK_UGRAM`，数据报服务，用于UDP协议
+    * `SOCK_NONBLOCK`，非阻塞
+    * `SOCK_CLOEXEC`，用fork调用创建子进程时在子进程中关闭该socket
+* `protocol`，具体的协议，几乎都是0，表示默认协议
+
+## 命名socket
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+int bind(int sockfd, const struct sockaddr* my_addr, socklen_t addrlen);
+```
+* socket命名
+    * 在创建socket时，我们给它指定了地址族，但是并未指定使用该地址族中的哪个具体socket地址。将一个socket与socket地址绑定称为给socket命名。
+    * 客户端通常不需要命名socket，采用匿名方式，即使用操作系统自动分配的socket地址
+* `bind`将`my_addr`所指的socket地址分配给未命名的sockfd文件描述符，`addrlen`参数指出该socket地址的长度
+    * 返回0，成功
+    * errno == EACCES，表示地址受保护
+    * errno == EADDRINUSE，表示绑定地址正在使用中
+
+## 监听socket
+```cpp
+#include <sys/socket.h>
+int listen(int sockfd, int backlog);
+```
+* `listen`用户创建一个监听队列以存放待处理的客户连接
+* `sockfd`指定被监听的socket
+* `backlog`表示内核监听队列的最大长度
+    * 参见backlog的[例子](./code/socket/listen/main.cpp)
