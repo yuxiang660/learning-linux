@@ -760,4 +760,54 @@ int close(int fd);
 int shutdown(int sockfd, int howto);
 ```
 
+## 数据读写
+### TCP数据读写
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+```
+
+### UDP数据读写
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr* src_addr, socklen_t* addrlen);
+ssize_t sendto(int sockfd, const void *buf, size_t len, int flags, struct sockaddr* dest_addr, socklen_t addrlen);
+```
+* 因为UDP通信没有连接的概念，所以我们每次读取数据都要获取发送端的socket地址；同样发送数据也需要接收端的socket地址
+
+### 通用数据读写函数
+```cpp
+#include <sys/socket.h>
+ssize_t recvmsg(int sockfd, struct msghdr* msg, int flags);
+ssize_t sendmsg(int sockfd, struct msghdr* msg, int flags);
+
+struct msghdr
+{
+    void* msg_name; // socket地址，指向一个socket地址结构变量，对于TCP协议，该成员必须是NULL
+    socklen_t msg_namelen;
+    struct iovec* msg_iov; // 分散的内存块
+    int msg_iovlen; // 分散的内存卡数量
+    void* msg_control; // 指向辅助数据的起始位置
+    socklen_t msg_controllen;
+    int msg_flags;  // 无须设定
+}
+
+struct iovec
+{
+    void *iov_base; // 内存起始地址
+    size_t iov_len;
+}
+```
+
+## 地址信息函数
+```cpp
+#include <sys/socket.h>
+int getsockname(int sockfd, struct sockaddr* address, socklen_t* address_len);
+int getpeername(int sockfd, struct sockaddr* address, socklen_t* address_len);
+```
+* `getsockname`获取sockfd对应的本端socket地址
+* `getpeername`获取sockfd对应的远端socket地址
 
