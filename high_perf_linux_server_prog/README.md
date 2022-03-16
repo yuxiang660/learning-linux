@@ -575,4 +575,27 @@ IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 3076, win 510, options [nop,no
     * 接收方可通过其接收通告窗口RWND来控制发送端的SWND
 * CWND (Congestion Window)
 
+# TCP/IP通信案例：访问Internet上的Web服务器
+代理服务器分为：
+* 正向代理服务器
+    * 要求客户端自己设置代理服务器的地址，客户的每次请求都将直接发送到该代理服务器
+* 反向代理服务器
+    * 客户端无须任何设置，代理服务器接收Internet上的连接请求，然后将请求转发给内部网络上的服务器，并将从内部服务器上得到的结果返回给客户端
+* 透明代理服务器
+    * 只能设置在网关上，可以看作正向代理的一种特殊情况
+
+![proxy_server](./pictures/proxy_server.png)
+
+## HTTP通信
+![wget_squid_packets](./pictures/wget_squid_packets.png)
+* 客户端只给服务器发送了一个HTTP请求(TCP报文段4)，请求136字节
+* 代理服务器用6个TCP报文段给客户端返回了总长度为8522字节的HTTP应答
+* 客户端用7个TCP报文段应答了这8522字节
+
+### HTTP请求
+![http_request](./pictures/http_request.png)
+
+### HTTP应答
+![http_reply](./pictures/http_reply.png)
+
 
