@@ -737,6 +737,27 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 * 参见[例子](./code/socket/accept/main.cpp)
 
 ## 发起连接
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen);
+```
+* `connect`用来让客户端主动与服务器建立连接
+* `serv_addr`是服务器监听的socket地址
+    * `addrlen`指定了这个地址的长度
+* 成功时返回0，一旦成功建立连接，sockfd就唯一地标识了这个连接，客户端就可以通过读写sockfd来与服务器通信
 
+## 关闭连接
+```cpp
+#include <unistd.h>
+int close(int fd);
+```
+* `close`并非总是立即关闭一个连接，而是将fd的引用计数减1
+    * 多进程程序中，一次`fork`系统调用默认将父进程中打开的socket的引用计数加1，因此我们必须在父进程和子进程中都对该socket执行close调用才能将连接关闭
+* 如果要强制终止连接，可使用`shutdown`系统调用
+```cpp
+#include <sys/socket.h>
+int shutdown(int sockfd, int howto);
+```
 
 
