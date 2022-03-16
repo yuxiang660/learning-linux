@@ -598,4 +598,81 @@ IP 127.0.0.1.56048 > 127.0.0.1.23: Flags [.], ack 3076, win 510, options [nop,no
 ### HTTP应答
 ![http_reply](./pictures/http_reply.png)
 
+# Linux网络编程基础API
+
+## socket地址API
+
+### 主机字节序和网络字节序
+* 小端字节序
+    * 低位字节存在低地址
+* 主机字节序
+    * 现代PC大多采用小端字节序，因此小端字节序又被称为主机字节序
+* 网络字节序
+    * 大端字节序也称为网络字节序
+
+### 通用socket地址
+socket地址的结构体`sockaddr`定义如下：
+```c
+#include <bits/socket.h>
+struct sockaddr
+{
+    sa_family_t sa_family;
+    char sa_data[14];
+}
+```
+
+![sa_and_protocol_family](./pictures/sa_and_protocol_family.png)
+
+![protocol_family_val](./pictures/protocol_family_val.png)
+
+* `sa_family_t`是地址族类型，与之对应的还有协议族(protocol family)，两者相同，可以混用
+    * `PF_*`和`AF_*`定义相同，可以混用
+* `sa_data`用于存放socket地址值，具体内容参见上表
+    * 为了容纳IPv6地址(26字节)，Linux定义了新的结构体`sockaddr_storage`
+
+### 专用socket地址
+Linux为各个协议族提供了专门的socket地址结构体。但是，所有专用socket地址类型在使用过程中都要转换为通用socket地址类型`sockaddr`，因为所有socket编程接口使用的地址参数的类型都是`sockaddr`。
+* UNIX本地域协议族
+    ```cpp
+    #include <sys/un.h>
+    struct sockaddr_un
+    {
+        sa_family_t sin_family; // 地址族：AF_UNIX
+        char sun_path[108];     // 文件路径名
+    };
+    ```
+* TCP/IP协议族
+    ```cpp
+    struct sockaddr_in
+    {
+        sa_family_t sin_family; // 地址族：AF_INET
+        u_int16_t sin_port;     // 端口号，要用网络字节序表示
+        struct in_addr sin_addr;// IPv4地址结构体
+    };
+    struct in_addr
+    {
+        u_int32_t s_addr;       // IPv4地址，要用网络字节序表示
+    };
+
+    struct sockaddr_in6
+    {
+        sa_family_t sin6_family;// 地址族: AF_INET6
+        u_int16_t sin6_port;    // 端口号，要用网络字节序
+        u_int32_t sin6_flowinfo;// 流信息，应设置为0
+        struct in6_addr sin6_addr;
+        u_int32_t sin6_scope_id;// scope ID
+    };
+    struct in6_addr
+    {
+        unsigned char sa_addr[16];  // IPv6地址，要用网络字节序
+    };
+    ```
+
+### IP地址转换函数
+```cpp
+#include <arpa/inet.h>
+in_addr_t inet_addr(const char* strptr); // 将用点分十进制字符串的IPv4地址转换为网络字节序整数表示的地址
+int inet_aton(const char* cp, struct in_addr* inp); // 和inet_addr功能一样，但将结果存于inp指向的结构中，成功返回1
+char* inet_ntoa(struct in_addr in); // 将网络字节序整数表示的IPv4地址转化为用点分十进制字符串的IPv4地址
+```
 
