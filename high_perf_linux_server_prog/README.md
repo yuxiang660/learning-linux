@@ -811,3 +811,21 @@ int getpeername(int sockfd, struct sockaddr* address, socklen_t* address_len);
 * `getsockname`获取sockfd对应的本端socket地址
 * `getpeername`获取sockfd对应的远端socket地址
 
+## socket选项
+![socket_option](./pictures/socket_option.png)
+```cpp
+#include <sys/socket.h>
+int getsockopt(int sockfd, int level, int optname, void *restrict optval, socklen_t *restrict optlen);
+int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+```
+* 对服务器socket选项的配置最好在`listen`之前
+    * 对监听socket设置的socket选项，那accept返回的连接socket将自动继承这些选项
+* 客户端socket选项的配置最好在`connect`之前
+
+### SO_REUSEADDR选项
+
+### SO_RCVBUF和SO_SNDBUF选项
+
+### SO_RCVLOWAT和SO_SNDLOWAT选项
+
+### SO_LINGER选项
