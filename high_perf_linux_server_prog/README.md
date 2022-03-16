@@ -721,3 +721,22 @@ int listen(int sockfd, int backlog);
 * `sockfd`指定被监听的socket
 * `backlog`表示内核监听队列的最大长度
     * 参见backlog的[例子](./code/socket/listen/main.cpp)
+
+## 接受连接
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+```
+* `accept`从listen监听队列中接受一个连接
+* `sockfd`是执行过`listen`系统调用的监听socket
+* `addr`用来获取被接受连接的远端socket地址
+    * 该socket地址长度由`addrlen`指出
+* 成功时返回一个新的连接socket，服务器可通过读写该socket来与被接受连接对应的客户端通信
+* `accept`只是从监听队列中取出连接，不论连接处于何种状态，更不关心任何网络状况的变化
+* 参见[例子](./code/socket/accept/main.cpp)
+
+## 发起连接
+
+
+
