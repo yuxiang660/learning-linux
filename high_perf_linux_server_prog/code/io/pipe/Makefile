@@ -17,3 +17,8 @@ main: $(OBJS)
 
 clean:
 	@rm -rf main *.o
+
+# ll -h /proc/<PID>/fd
+#  lr-x------ 1 yuxiangw yuxiangw 64 3月  18 18:54 3 -> 'pipe:[7535703]'
+debug:
+	gdb -q ./main
