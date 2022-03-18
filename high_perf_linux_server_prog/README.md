@@ -905,3 +905,30 @@ struct addrinfo
 
 ### gertnameinfo
 * `gertnameinfo`是对`gethostbyaddr`和`getservbyport`的封装，根据主机/服务地址信息，获得以字符串表示的主机/服务名
+
+# 高级I/O函数
+高级I/O函数大致分三类：
+* 用于创建文件描述符的函数，包括pipe、dup/dup2函数
+* 用于读写数据的函数，包括readv/writev, sendfile, mmap/munmap, splice和tee函数
+* 用于控制I/O行为和属性的函数，包括fcntl函数
+
+## pipe函数
+```cpp
+#include <unistd.h>
+int pipe(int fd[2]);
+```
+* 目的是用于创建一个管道(两个文件描述符)，以实现进程间通信
+* 函数成功时返回0，并将一对打开的文件描述符值填入其参数指向的数组
+* 创建的两个文件描述符fd[0]和fd[1]构成了管道的两端，往fd[1]写入数据可以从fd[0]读出
+    * 如果要实现双向的数据传输，就应该使用两个管道
+    * 如果管道的写端文件描述符fd[1]的引用计数减少至0，则对fd[0]的read操作将返回0(注意，如果只是没有数据会阻塞)，读取到文件结束标记EOF
+    * 如果管道的读端文件描述符fd[0]的引用计数减少至0，则对fd[1]的write操作失败，并引发`SIGPIPE`信号
+* 参见[例子](./code/io/pipe/main.cpp)
+
+### 双向管道
+```cpp
+#include <sys/types.h>
+#include <sys/socket.h>
+int socketpair(int domain, int type, int protocol, int fd[2]);
+```
+* 参见[例子](./code/io/socketpair/main.cpp)
