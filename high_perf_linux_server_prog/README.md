@@ -966,3 +966,17 @@ ssize_t sendfile(int out_fd, int in_fd, off_t* offset, size_t count);
 * `in_fd`必须是一个支持类似mmap函数的文件描述符，即真实的文件，而不能是socket或管道
 * `out_fd`必须是一个socket
 * 参考[例子](./code/io/sendfile/main.cpp)
+
+## mmap函数和munmap函数
+```cpp
+#include <sys/mman.h>
+void* mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset);
+int munmap(void *start, size_t length);
+```
+* `mmap`用于申请一段内存空间，我们可以将这段内存作为进程间通信的共享内存，也可用将文件直接映射到其中
+* `prot`用于设置内存段的访问权限
+* `flags`控制内存段内容被修改后程序的行为
+    * ![mmap_flags](./pictures/mmap_flags.png)
+* [例子](./code/io/mmap/main.cpp)利用mmap实现了文件的复制
+
+
