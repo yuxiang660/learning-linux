@@ -947,3 +947,22 @@ int dup2(int file_descriptor_one, int file_descriptor_two)
     * 参见[例子](./code/io/dup/main.cpp)
 * `dup2`和`dup`功能类似，但是`dup`创建的新文件描述符是由系统定的(取可用的最小值)，而`dup2`可由用户指定为`file_descriptor_two`
     * 参见[例子](./code/io/dup2/main.cpp)
+
+## readv函数和writev函数
+```cpp
+#include <sys/uio.h>
+ssize_t readv(int fd, const struct iovec* vector, int count);
+ssize_t writev(int fd, const struct iovec* vector, int count);
+```
+* `readv`将数据从文件描述符读到分散的内存块中，即分散读
+* `writev`将多块分散的内存数据一并写入文件描述符中，即集中写
+
+## sendfile函数
+```cpp
+#include <sys/sendfile.h>
+ssize_t sendfile(int out_fd, int in_fd, off_t* offset, size_t count);
+```
+* `sendfile`函数在两个文件描述符之间直接传递数据(完全在内核中操作)，从而避免了内核缓冲区和用户缓冲区之间的数据拷贝，效率很高
+* `in_fd`必须是一个支持类似mmap函数的文件描述符，即真实的文件，而不能是socket或管道
+* `out_fd`必须是一个socket
+* 参考[例子](./code/io/sendfile/main.cpp)
