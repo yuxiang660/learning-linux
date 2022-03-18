@@ -858,3 +858,50 @@ struct linger
         * 对于阻塞socket，close将等待一段长为l_linger的时间，直到发送完数据并收到确认
         * 对于非阻塞socket，close立即返回-1
 
+## 网络信息API
+### gethostbyname和gethostbyaddr
+* 两个函数都返回类型为`hostent`的主机完整信息：
+```cpp
+#include <netdb.h>
+struct hostent
+{
+    char* h_name;           //主机名
+    char** h_aliases;       //主机别名，有可能有多个
+    int h_addrtype;         //地址族
+    int h_length;           //地址长度
+    char** h_addr_list;     //按网络字节序列出的主机IP地址列表
+};
+```
+
+### getservbyname和getservbyport
+* 两个函数都返回类型为`servent`的某个服务的完整信息：
+```cpp
+#include <netdb.h>
+struct servent
+{
+    char* s_name;           //服务名
+    char** s_aliases;       //服务的别名，有可能有多个
+    int s_port;             //服务端口号
+    char* s_proto;           //tcp/udp
+};
+```
+* 参考[例子](./code/socket/get_serv/main.cpp)
+
+### getaddrinfo
+```cpp
+struct addrinfo
+{
+    int ai_flags;
+    int ai_family;
+    int ai_socktype;    // 服务类型，SOCK_STREAM/SOCK_DGRAM
+    int ai_protocol;
+    socklen_t ai_addrlen;
+    char* ai_canonname; // 别名
+    struct sockaddr* ai_addr;
+    struct addrinfo* ai_next;
+};
+```
+* `getaddrinfo`是对`gethostbyname`和`getservbyname`的封装，根据主机名/服务名，获得主机或者服务的地址信息，返回`addrinfo`类型
+
+### gertnameinfo
+* `gertnameinfo`是对`gethostbyaddr`和`getservbyport`的封装，根据主机/服务地址信息，获得以字符串表示的主机/服务名
