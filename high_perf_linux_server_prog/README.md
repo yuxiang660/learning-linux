@@ -932,3 +932,18 @@ int pipe(int fd[2]);
 int socketpair(int domain, int type, int protocol, int fd[2]);
 ```
 * 参见[例子](./code/io/socketpair/main.cpp)
+
+## dup函数和dup2函数
+* 需求
+    * 把标准输入重定向到一个文件
+    * 把标准输出重定向到一个网络连接
+
+```cpp
+#include <unistd.h>
+int dup(int file_descriptor);
+int dup2(int file_descriptor_one, int file_descriptor_two)
+```
+* `dup`创建一个新的文件描述符，该文件描述符和原有文件描述符指向相同的文件、管道或者网络连接
+    * 参见[例子](./code/io/dup/main.cpp)
+* `dup2`和`dup`功能类似，但是`dup`创建的新文件描述符是由系统定的(取可用的最小值)，而`dup2`可由用户指定为`file_descriptor_two`
+    * 参见[例子](./code/io/dup2/main.cpp)
