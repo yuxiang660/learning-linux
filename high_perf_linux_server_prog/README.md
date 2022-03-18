@@ -823,9 +823,38 @@ int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t
 * 客户端socket选项的配置最好在`connect`之前
 
 ### SO_REUSEADDR选项
+```cpp
+int reuse = 1;
+setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+```
+* `SO_REUSEADDR`选项可以强制使用处于`TIME_WAIT`状态的连接占用的socket地址
 
 ### SO_RCVBUF和SO_SNDBUF选项
+* `SO_RCVBUF`表示TCP接收缓冲区的大小
+* `SO_SNDBUF`表示TCP发送缓冲区的大小
+* 当我们设置缓冲区大小是，系统都会将其值加倍，缓冲区的系统默认最小值可查看
+    * 接收缓冲区：/proc/sys/net/ipv4/tcp_rmem
+    * 发送缓冲区：/proc/sys/net/ipv4/tcp_wmem
+* 参考[例子]
 
 ### SO_RCVLOWAT和SO_SNDLOWAT选项
+* TCP接收缓冲区和发送缓冲区的低水位标记
+* 当TCP接收缓冲区中可读数据的总数大于其低水位标记时，I/O复用系统调用将通知应用程序可以从对应的socket上读取数据
+* 当TCP发送缓冲区中的空闲空间大于其低水位标记时，I/O复用系统调用将通知应用程序可以往对应的socket上写入数据
 
 ### SO_LINGER选项
+```cpp
+#include <sys/socket.h>
+struct linger
+{
+    int l_onoff;    //开启/关闭此选项
+    int l_linger;   //滞留时间
+};
+```
+* 用于控制close系统调用在关闭TCP连接时的行为
+* l_linger大于0时，close不立即返回，而是取决于两个条件：
+    * 被关闭的socket对应的TCP发送缓冲区中是否还有残留的数据
+    * socket是阻塞的，还是非阻塞的
+        * 对于阻塞socket，close将等待一段长为l_linger的时间，直到发送完数据并收到确认
+        * 对于非阻塞socket，close立即返回-1
+
