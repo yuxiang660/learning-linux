@@ -1017,7 +1017,7 @@ int fcntl(int fd, int cmd, ...); // file control
 * 用户进程生成系统日志
     * `syslog`函数将日志输出到一个UNIX本地socket类型的文件`/dev/log`中，最终输出到`/var/log/syslog`文件中，参考[例子](high_perf_linux_server_prog/code/system/syslog/main.cpp)
 * 内核日志
-    * `printk`函数答应日志到内核的环状缓存(ring buffer)中，映射到`/proc/kmsg`文件中，默认内核日志输出到`/var/log/kern.log`中
+    * `printk`函数答应日志到内核的环状缓存(ring buffer)中，映射到`/proc/kmsg`文件中，默认内核日志输出到`/var/log/kern.log`中，参考[例子](./code/system/printk/hello.c)
 
 ### syslog函数
 ```cpp
