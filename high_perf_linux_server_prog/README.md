@@ -1024,3 +1024,14 @@ int fcntl(int fd, int cmd, ...); // file control
 #include <syslog.h>
 void syslog(int priority, const char* message, ...);
 ```
+
+## 用户信息
+* [参考文档](https://blog.csdn.net/jiqiren007/article/details/6142502)
+* Linux中每个进程有两种用户
+    * 真实用户(启动进程者)
+        * real user/group ID
+    * 有效用户，一般与真实用户相同，除非通过`chmod +s`设置了`set-user/group-id`标志，例如`su`的有效用户是root，因此普通用户运行`su`，就获得了root权限
+        * effective user/group ID
+        * 设置`set-user/group-id`标志
+            * saved set-user/group-ID
+* [例子](./code/system/euid/main.cpp)中，用普通用户运行程序，却获得了root权限的有效用户
