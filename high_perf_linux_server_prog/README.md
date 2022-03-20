@@ -1050,3 +1050,58 @@ $ ps -o pid,ppid,pgid,sid,comm | less
 * 三条命令创建了一个会话(sessionID, SID, 1943)和2个进程组(PGID, 1943, 2298)
 * `bash`是会话的首领，也是组1943的首领
 * `ps`是组2298的首领
+
+# 高性能服务器程序框架
+
+## 服务器模型
+### C/S模型
+![C_S_Model](./pictures/C_S_Model.png)
+* 缺点
+    * 服务器是通信的中心，当访问量过大时，可能所有客户都将得到很慢的响应
+
+### P2P模型
+!(P2P_Model)[./pictures/P2P_Model.png]
+* 缺点
+    * 当用户之间传输的请求过多时，网络的负载加重
+
+## 服务器编程框架
+![server_framework](./pictures/server_framework.png)
+* I/O处理单元
+    * 处理客户连接，读写网络数据
+* 逻辑单元
+    * 业务进程或线程
+* 网络存储单元
+    * 本地数据库、文件或缓存
+* 请求队列
+    * 各单元之间的通信方式
+
+## I/O模型
+* socket的基础API中，可能被阻塞的系统调用包括：`accept`, `send`, `recv`, 和`connect`
+* 非阻塞I/O通常要和其他I/O通知机制一起使用，比如I/O复用和SIGIO信号
+
+### I/O复用
+* 应用程序通过I/O复用函数(select, poll, epoll_wait)向内核注册一组事件
+* 内核通过I/O复用函数把其中就绪的事件通知给应用程序
+* I/O复用函数本身时阻塞的，它们能提高程序效率的原因在于**它们具有同时监听多个I/O事件的能力**
+
+### SIGIO信号
+* SIGIO信号可用来报告I/O事件
+
+### 同步I/O和异步I/O
+![IO_Model](./pictures/IO_Model.png)
+
+* 同步I/O向应用程序通知的是I/O就绪事件
+    * 阻塞I/O，I/O复用和信号驱动I/O都是同步I/O模型
+* 异步I/O向应用程序通知的是I/O完成事件
+
+## 两种高效的事件处理模式
+
+### Reactor模式
+![reactor](./pictures/reactor.png)
+
+* 主线程只负责监听文件描述符上是否有事件发生，有的话立即将事件通知工作线程
+
+### Proactor模式
+![proactor](./pictures/proactor.png)
+
+* 将所有I/O操作都交给主线程和内核来处理，工作线程仅负责业务逻辑
