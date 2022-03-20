@@ -1035,3 +1035,18 @@ void syslog(int priority, const char* message, ...);
         * 设置`set-user/group-id`标志
             * saved set-user/group-ID
 * [例子](./code/system/euid/main.cpp)中，用普通用户运行程序，却获得了root权限的有效用户
+
+## 进程间关系
+![process_ids](./pictures/process_ids.png)
+
+```bash
+$ ps -o pid,ppid,pgid,sid,comm | less
+ PID   PPID  PGID  SID  COMMAND
+ 1943  1942  1943  1943 bash
+ 2298  1943  2298  1943 ps
+ 2299  1943  2298  1943 less
+```
+* `ps`和`less`的父进程是`bash`
+* 三条命令创建了一个会话(sessionID, SID, 1943)和2个进程组(PGID, 1943, 2298)
+* `bash`是会话的首领，也是组1943的首领
+* `ps`是组2298的首领
