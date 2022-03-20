@@ -17,3 +17,7 @@ main: $(OBJS)
 
 clean:
 	@rm -rf main *.o *.log
+
+run:
+	./main
+	tail -2 /var/log/syslog
