@@ -979,4 +979,13 @@ int munmap(void *start, size_t length);
     * ![mmap_flags](./pictures/mmap_flags.png)
 * [例子](./code/io/mmap/main.cpp)利用mmap实现了文件的复制
 
+## splice函数
+```cpp
+#include <fcntl.h>
+ssize_t splice(int fd_in, loff_t* off_in, int fd_out, loff_t* off_out, size_t len, unsigned int flags);
+```
+* `fd_in`和`fd_out`必须至少有一个是管道文件描述符
+* `splice`返回移动字节的数量，0表示没有数据移动
+* [例子](./code/io/splice/main.cpp)通过`splice`实例了回显服务
+
 
