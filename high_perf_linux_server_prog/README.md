@@ -997,3 +997,10 @@ ssize_t tee(int fd_in, int fd_out, size_t len, unsigned int flags);
 * `tee`函数在两个管道文件描述符之间复制数据，也是零拷贝操作
 * 要求两个文件描述符都是管道文件描述符
 * [例子](./code/io/tee/main.cpp)通过`tee`将标准输入的内容写入文件
+
+## fcntl函数
+```cpp
+#include <fcntl.h>
+int fcntl(int fd, int cmd, ...); // file control
+```
+![fcntl](./pictures/fcntl.png)
