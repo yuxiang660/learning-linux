@@ -984,8 +984,16 @@ int munmap(void *start, size_t length);
 #include <fcntl.h>
 ssize_t splice(int fd_in, loff_t* off_in, int fd_out, loff_t* off_out, size_t len, unsigned int flags);
 ```
+* `splice`在两个文件描述符之间移动数据
 * `fd_in`和`fd_out`必须至少有一个是管道文件描述符
 * `splice`返回移动字节的数量，0表示没有数据移动
 * [例子](./code/io/splice/main.cpp)通过`splice`实例了回显服务
 
-
+## tee函数
+```cpp
+#include <fcntl.h>
+ssize_t tee(int fd_in, int fd_out, size_t len, unsigned int flags);
+```
+* `tee`函数在两个管道文件描述符之间复制数据，也是零拷贝操作
+* 要求两个文件描述符都是管道文件描述符
+* [例子](./code/io/tee/main.cpp)通过`tee`将标准输入的内容写入文件
