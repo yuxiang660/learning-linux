@@ -1193,3 +1193,36 @@ int poll(struct pollfd* fds, nfds_t nfds, int timeout);
 * poll系统调用在指定时间内轮询一定数量的文件描述符，以测试其中是否有就绪者。
 * `fds`使一个pollfd结构类的数组，可指定我们感兴趣的事件，事件类型如下表
     * ![poll_events](./pictures/poll_events.png)
+* [例子](./code/io_multiplex/poll/server.cpp)中用`poll`替换了`select`，实现了同样的功能
+
+## epoll系列系统调用
+### 内核事件表
+```cpp
+#include <sys/epoll.h>
+int epoll_create(int size);
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+struct epoll_event
+{
+    __uint32_t events; //epoll事件
+    epoll_data_t data; //用户数据
+};
+typedef union epoll_data
+{
+    void* ptr;
+    int fd;
+    uint32_t u32;
+    uint64_t u64;
+} epoll_data_t;
+```
+* epoll把用户关心的文件描述符上的事件放在内核里的一个事件表中，从而无须像select和poll那样每次调用都要重复传入文件描述符集或事件集
+* 但epoll需要使用一个额外的文件描述符，来唯一标识内核中的这个事件表
+
+### epoll_wait函数
+```cpp
+#include <sys/epoll.h>
+int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int timeout);
+```
+* 该函数成功时返回就绪的文件描述符的个数
+* 该函数如果检测到事件，就将所有就绪的事件从内核事件表(由epfd参数指定)中复制到它的第二个参数events指向的数组中
+    * 这个数组只用于输出epoll_wait检测到的就绪事件，而不像select和poll的数组参数那样既用于传入用户注册的事件，又用于输出内核检测到的就绪事件
+* [例子](./code/io_multiplex/epoll/server.cpp)中用`epoll`替换了`select`，实现了同样的功能

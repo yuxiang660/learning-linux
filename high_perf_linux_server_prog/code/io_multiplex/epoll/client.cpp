@@ -10,7 +10,7 @@
 
 int main(int argc, char* argv[])
 {
-   printf("[Client] Test poll\n");
+   printf("[Client] Test epoll\n");
 
    if (argc <= 2)
    {

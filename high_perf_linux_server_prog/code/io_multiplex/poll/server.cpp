@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[])
 {
-   printf("[Server] Test select\n");
+   printf("[Server] Test poll\n");
 
    if (argc <= 2)
    {
