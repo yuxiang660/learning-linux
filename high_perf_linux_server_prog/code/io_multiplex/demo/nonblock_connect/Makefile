@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-g3 -O0 -fno-inline
-LDFLAGS=
+LDFLAGS=-pthread
 
 SRCS=server.cpp
 OBJS=$(SRCS:.cpp=.o)
@@ -10,7 +10,7 @@ OBJS_2=$(SRCS_2:.cpp=.o)
 
 .PHONY: clean server client
 
-all: server client
+all: clean server client
 
 %.o:%.cpp
 	$(CC) $(CFLAGS) -c $<

@@ -7,8 +7,10 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <thread>
+#include <vector>
 
-#define BUFFER_SIZE 1023
+#define CLIENT_NUMS 100
 
 int setnonblocking(int fd)
 {
@@ -91,6 +93,19 @@ int unblock_connect(const char *ip, int port, int time)
    return sockfd;
 }
 
+void connect_thread(int threadId, const char *ip, int port)
+{
+   int sockfd = unblock_connect(ip, port, 10);
+   if (sockfd < 0)
+   {
+      printf("connection %d fails\n", threadId);
+      return;
+   }
+
+   close(sockfd);
+   printf("connection %d done\n", threadId);
+}
+
 int main(int argc, char* argv[])
 {
    printf("[Client] demo - nonblock connect \n");
@@ -104,13 +119,17 @@ int main(int argc, char* argv[])
    const char *ip = argv[1];
    int port = atoi(argv[2]);
 
-   int sockfd = unblock_connect(ip, port, 10);
-   if (sockfd < 0)
+   std::vector<std::thread> threads;
+   for (int i = 0; i < CLIENT_NUMS; i++)
    {
-      return 1;
+      threads.emplace_back(connect_thread, i, ip, port);
    }
 
-   close(sockfd);
+   for (auto& t : threads)
+   {
+      t.join();
+   }
+
    return 0;
 }
 
