@@ -1240,3 +1240,23 @@ void reset_oneshot(int epollfd, int fd)
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
 }
 ```
+
+## 三组I/O复用函数的比较
+* 共同点
+    * 能同时监听多个文件描述符
+    * 都通过某种结构体变量来告诉内核监听哪些文件描述符上的哪些事件
+* 不同点
+    * 注册/获取事件
+        * select
+            * `fd_set`没有将文件描述符和事件绑定，仅仅时一个文件描述符的集合，并且需要提供3个集合，以标识可读、可写及异常等事件，能处理的事件类型非常有限
+        * poll
+            *  `pollfd`包括了文件描述符和事件，任何事件都被同一处理，可处理更多事件类型
+        * epoll
+            * `select`和`poll`每次都返回整个用户注册的事件集合(包括就绪的和未就绪的)，需要应用程序自己检索就绪事件。而epoll在内核中维护一个事件表，`epoll_wait`仅返回就绪的事件
+    * 最大监听数
+        * poll和epoll最大监听数都可达到最大文件描述符数目(65535)，而select允许监听的最大文件描述符数量通常有限制
+    * ET高效模式
+        * select和poll都只能工作在相对低效的LT模式，而epoll可以工作在ET高效模式(默认时LT模式)，可减少事件触发次数
+
+![io_multiplex_compare](./pictures/io_multiplex_compare.png)
+
