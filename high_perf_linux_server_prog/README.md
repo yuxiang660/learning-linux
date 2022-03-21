@@ -1105,3 +1105,82 @@ $ ps -o pid,ppid,pgid,sid,comm | less
 ![proactor](./pictures/proactor.png)
 
 * 将所有I/O操作都交给主线程和内核来处理，工作线程仅负责业务逻辑
+
+# I/O复用
+网络程序在下列情况下需要使用I/O复用技术：
+* 客户端要同时处理多个socket，比如非阻塞connect技术
+* 客户端要同时处理用户输入和网络连接，比如聊天室
+* TCP服务器要同时处理监听socket和连接socket
+* 服务器要同时处理TCP/UDP请求
+* 服务器要同时监听多个端口，或者处理多种服务
+
+## select系统调用
+* 用途
+    * 在一段指定时间内，监听用户感兴趣的文件描述符上的可读、可写和异常等事件
+
+### select API
+```cpp
+#include <sys/select.h>
+int select(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, struct timeval* timeout);
+```
+* `nfds`指定被监听的文件描述符的总数，通常是select监听的所有文件描述符的最大值加1，因为文件描述符是从0开始计数的
+* `fd_set`是一个整形数组，每个元素的每一位标记一个文件描述符
+
+### 文件描述符就绪条件
+socket可读情况：
+* 接收缓存区的字节数大于或等于SO_RCVLOWAT
+* socket通信的对方关闭连接，此时对该socket的读操作将返回0
+* 监听socket上有新的连接请求
+* socket上有未处理的错误
+
+socket可写情况：
+* 发送缓存区的字节数大于或等于SO_SNDLOWAT
+* socket的写操作被关闭
+* socket使用非阻塞connect连接成功后者失败(超时)之后
+* socket上有未处理的错误
+
+### 处理带外数据
+socket上接收到普通数据和带外数据都将使select返回，但socket处于不同的就绪状态：前者处于可读状态，后者处于异常状态。
+* 例子
+    * [服务器](./code/io_multiplex/select/server.cpp)
+    * [客户端](./code/io_multiplex/select/client.cpp)
+    * 服务器终端输出：
+        ```bash
+        [Server] Test select
+        get 3 bytes of normal data: 123
+        get 2 bytes of normal data: ab
+        get 1 bytes of obb data: c
+        get 3 bytes of normal data: 123
+        the socket is closed
+        Stop the server
+        ```
+    * tcpdump解析
+        ```bash
+        $ sudo tcpdump -i lo -lnt port 12345
+        tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+        listening on lo, link-type EN10MB (Ethernet), capture size 262144 bytes
+        # client->server 第一次握手，client发送SYNC请求
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [S], seq 3734453983, win 65495, options [mss 65495,sackOK,TS val 3304476585 ecr 0,nop,wscale 7], length 0
+        # server->client 第二次握手，server回复确认SYNC+ACK
+        IP 127.0.0.1.12345 > 127.0.0.1.55826: Flags [S.], seq 1408571082, ack 3734453984, win 65483, options [mss 65495,sackOK,TS val 3304476585 ecr 3304476585,nop,wscale 7], length 0
+        # client->server 第三次握手，client回复确认服务器的连接成功
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [.], ack 1, win 512, options [nop,nop,TS val 3304476585 ecr 3304476585], length 0
+        # client->server 发送3字节正常数据"123"，并要求服务器立即读取(P表示PSH)
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [P.], seq 1:4, ack 1, win 512, options [nop,nop,TS val 3304476586 ecr 3304476585], length 3
+        # server->client 服务器回复收到正常数据"123"，并成功读取
+        IP 127.0.0.1.12345 > 127.0.0.1.55826: Flags [.], ack 4, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        # client->server 发送OOB 3字节数据"abc"，要求服务器立即读取，并带有紧急指针(U表示URG，紧急指针)
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [P.U], seq 4:7, ack 1, win 512, urg 3, options [nop,nop,TS val 3304476586 ecr 3304476586], length 3
+        # server->client 服务器回复收到3字节OOB数据
+        IP 127.0.0.1.12345 > 127.0.0.1.55826: Flags [.], ack 7, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        # client->server 发送3字节正常数据"123"，并要求服务器立即读取(P表示PSH)
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [P.], seq 7:10, ack 1, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 3
+        # server->client 服务器回复收到正常数据"123"，并成功读取
+        IP 127.0.0.1.12345 > 127.0.0.1.55826: Flags [.], ack 10, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        # client->server 客户端发起关闭请求，带上FIN标志
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [F.], seq 10, ack 1, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        # server->client 服务器关闭服务完成后回复客户端带有FIN标志的报文
+        IP 127.0.0.1.12345 > 127.0.0.1.55826: Flags [F.], seq 1, ack 11, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        # client->server 客户方回复确认关闭后，结束连接
+        IP 127.0.0.1.55826 > 127.0.0.1.12345: Flags [.], ack 2, win 512, options [nop,nop,TS val 3304476586 ecr 3304476586], length 0
+        ```
