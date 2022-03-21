@@ -5,6 +5,7 @@
 #include <string.h> // bzero
 #include <unistd.h> // sleep, close
 #include <errno.h>
+#include <poll.h>
 
 #include <arpa/inet.h>
 
@@ -47,29 +48,25 @@ int main(int argc, char* argv[])
    }
 
    char buf[1024];
-   fd_set read_fds;
-   fd_set exception_fds;
-   FD_ZERO(&read_fds);
-   FD_ZERO(&exception_fds);
+   struct pollfd poll_set[1];
+   poll_set[0].fd = connfd;
+   poll_set[0].events = POLLIN | POLLPRI /* urgent data */;
 
    while (1)
    {
-      // 每次调用select前都要重新在read_fds和exception_fds中设置文件描述符connfd，因为事件发生之后，文件描述符将被内核修改
-      FD_SET(connfd, &read_fds);
-      FD_SET(connfd, &exception_fds);
-      ret = select(connfd + 1, &read_fds, NULL, &exception_fds, NULL);
+      ret = poll(poll_set, 1, -1/*infinite timeout*/);
       if (ret < 0)
       {
-         printf("selection failure\n");
+         printf("poll failure\n");
          break;
       }
-      printf("recevied an event\n");
 
-      // 对于可读事件，采用普通的recv函数读取数据
-      if (FD_ISSET(connfd, &read_fds))
+      printf("receive event %d\n", poll_set[0].revents);
+
+      if (poll_set[0].revents & POLLIN)
       {
          memset(buf, '\0', sizeof(buf));
-         ret = recv(connfd, buf, sizeof(buf) - 1, 0);
+         ret = recv(poll_set[0].fd, buf, sizeof(buf) - 1, 0);
          if (ret < 0)
          {
             printf("fail to read for normal data\n");
@@ -83,11 +80,10 @@ int main(int argc, char* argv[])
          printf("get %d bytes of normal data: %s\n", ret, buf);
       }
 
-      // 对于异常事件，采用带MSG_OBB标志的recv函数读取带外数据
-      if (FD_ISSET(connfd, &exception_fds))
+      if (poll_set[0].revents & POLLPRI)
       {
          memset(buf, '\0', sizeof(buf));
-         ret = recv(connfd, buf, sizeof(buf) - 1, MSG_OOB);
+         ret = recv(poll_set[0].fd, buf, sizeof(buf) - 1, MSG_OOB);
          if (ret <= 0)
          {
             printf("fail to read for oob data\n");
