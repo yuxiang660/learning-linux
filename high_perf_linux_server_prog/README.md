@@ -1226,3 +1226,17 @@ int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int timeout)
 * 该函数如果检测到事件，就将所有就绪的事件从内核事件表(由epfd参数指定)中复制到它的第二个参数events指向的数组中
     * 这个数组只用于输出epoll_wait检测到的就绪事件，而不像select和poll的数组参数那样既用于传入用户注册的事件，又用于输出内核检测到的就绪事件
 * [例子](./code/io_multiplex/epoll/server.cpp)中用`epoll`替换了`select`，实现了同样的功能
+
+### EPOLLONESHOT事件
+对于注册了EPOLLONESHOT事件的文件描述符，操作系统最多触发其上注册的一个可读、可写或者异常事件。这样我们就可用保证某个线程在处理某个socket上的事件时，其他线程不会接收到此socket上的任何事件。当此线程处理完成后，重置这个socket上的EPOLLONESHOT事件(看下面的代码)，以确保此socket上的事件又能重新被触发。这样就保证了，一个时间段，只有一个线程在处理某个socket上的事件。
+
+```cpp
+// 重置fd上的事件，这样操作之后，尽管fd上的EPOLLONESHOT事件被注册，但是操作系统仍然会只触发一次fd上的EPOLLIN事件
+void reset_oneshot(int epollfd, int fd)
+{
+    epoll_event event;
+    event.data.fd = fd;
+    event.events = EPOLLIN | EPOLLONESHOT;
+    epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+}
+```
