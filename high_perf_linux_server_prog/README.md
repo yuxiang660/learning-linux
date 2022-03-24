@@ -1384,6 +1384,7 @@ int sigprocmask(int _how, _const sigset_t* _set, sigset_t* _oset);
 * `_oset`输出原来的信号掩码
 * `_how`指定设置进程信号掩码的方式
     * ![sigprocmask_how](./pictures/sigprocmask_how.png)
+* 参见[例子](./code/signal/mask/main.cpp)
 
 ### 被挂起的信号
 ```cpp
