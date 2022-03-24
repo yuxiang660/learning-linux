@@ -44,10 +44,9 @@ void addsig(int sig)
    struct sigaction new_action;
    memset(&new_action, '\0', sizeof(new_action));
    new_action.sa_handler = sig_handler;
-   //sigemptyset(&new_action.sa_mask);
-   //new_action.sa_flags = 0;
+   // sigaction mask is not functional, if you want to mask any signal, please use sigprocmask, refer to ../mask/main.cpp
+   sigemptyset(&new_action.sa_mask);
    new_action.sa_flags |= SA_RESTART;
-   sigfillset(&new_action.sa_mask);
    assert(sigaction(sig, &new_action, NULL) != -1);
 }
 
