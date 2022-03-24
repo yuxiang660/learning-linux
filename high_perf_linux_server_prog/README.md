@@ -1402,5 +1402,11 @@ int sigpending(sigset_t* set); //获得当前被挂起的信号集
     * 主循环使用I/O复用来监听管道的读端文件描述符上的可读事件
 * 参见[例子](./code/signal/io_handler/server.cpp)
 
+## 网络编程相关信号
 
+### SIGHUP
+
+### SIGPIPE
+
+### SIGURG
 
