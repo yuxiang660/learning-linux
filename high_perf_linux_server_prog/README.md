@@ -1309,3 +1309,47 @@ typedef void (* __sighandler_t) (int);
 * SIGCHLD
     * Ign，子进程状态发送变化(退出或者暂停)
 
+### 中断系统调用
+* 程序正在执行处于阻塞状态的系统调用，此时接收到信号，
+    * 如果我们为该信号设置了信号处理函数，则当前系统调用被中断，且errno被设置为EINTR
+    * 可用`sigaction`为信号设置`SA_RESTART`标志以紫铜启动被该信号中断的系统调用
+* 对于默认行为是暂停进程的信号(SIGSTOP, SIGTTIN)，即使我们没有为它们设置处理函数，它们也可以中断某些系统调用(比如，connect, epoll_wait等)
+
+## 信号函数
+### signal系统调用
+```cpp
+#include <signal.h>
+_sighandler_t signal(int sig, _sighandler_t _handler); //设置信号处理函数
+```
+* 成功时，返回前一次调用signal函数时传入的函数指针，或者时默认处理函数指针SIG_DEF
+* 失败时，返回SIG_ERR
+
+### sigaction系统调用
+```cpp
+#include <signal.h>
+int sigaction(int sig, const struct sigaction* act, struct sigaction* oact);
+
+struct sigaction
+{
+#ifdef __USE_POSIX199309
+    union
+    {
+        _sighandler_t sa_handler;
+        void (*sa_sigaction) (int, siginfo_t*, void*);
+    }__sigaction_handler;
+    #define sa_handler __sigaction_handler.sa_handler
+    #define sa_sigaction __sigaction_handler.sa_sigaction
+#else
+    _sighandler_t sa_handler;
+#endif
+
+    _sigset_t sa_mask;
+    int sa_flags;
+    void (*sa_restorer) (void); // obsolete
+};
+```
+* `act`指定新的信号处理方式
+* `oact`输出信号先前的处理方式
+* `sigaction.sa_mask`设置进程的信号掩码，以指定哪些信号不能发送给本进程
+* `sa_flags`用于设置程序收到信号时的行为
+    * ![sa_flags](./pictures/sa_flags.png)
