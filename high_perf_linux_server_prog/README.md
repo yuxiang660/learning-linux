@@ -1260,3 +1260,52 @@ void reset_oneshot(int epollfd, int fd)
 
 ![io_multiplex_compare](./pictures/io_multiplex_compare.png)
 
+# 信号
+Linux信号可由如下条件产生：
+* 对于前台进程，用户可以通过输入特殊的终端字符来给它发送信号。比如输入Ctrl+C通常会给进程发送一个中断信号
+* 系统异常。比如浮点异常和非法内存访问
+* 系统状态变化。比如alarm定时器到期将引起SIGALRM信号
+* 运行kill命令或调用kill函数
+
+## Linux信号概述
+### 发送信号
+```cpp
+#include <sys/types.h>
+#include <signal.h>
+int kill(pid_t pid, int sig);
+```
+* 把函数信号sig发送给目标进程
+
+![kill_pid](./pictures/kill_pid.png)
+
+### 信号处理方式
+```cpp
+#include <signal.h>
+typedef void (* __sighandler_t) (int);
+#include <bits/signum.h>
+#define SIG_DFL ((__sighandler_t) 0) // 使用信号的默认处理方式
+#define SIG_IGN ((__sighandler_t) 1) // 忽略目标信号
+```
+* 信号处理函数必须是可重入的(可以被中断)
+* 信号的默认处理方式有
+    * 结束进程(Term)
+    * 忽略信号(Ign)
+    * 结束进程并生成核心转储文件(Core)
+    * 暂停进程(Stop)
+    * 继续进程(Cont)
+
+### Linux信号
+![linux_sig](./pictures/linux_sig.png)
+
+和网络编程相关的信号有：
+* SIGHUP
+    * Term，控制终端挂起
+* SIGPIPE
+    * Term，往读端被关闭的管道或者socket连接中写数据
+* SIGURG
+    * Ign，socket连接上接收到紧急数据
+* SIGALRM
+    * Term，由alarm或计时器设置的实时闹钟超时
+* SIGCHLD
+    * Ign，子进程状态发送变化(退出或者暂停)
+
