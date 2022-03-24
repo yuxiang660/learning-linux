@@ -35,7 +35,8 @@ void sig_handler(int sig)
    // 保留原来的errno，在函数最后恢复，以保证函数的可重入性
    int save_errno = errno;
    int msg = sig;
-   send(pipefd[1], reinterpret_cast<char*>(&msg), 1, 0); //将信号值写入管道，以通知循环
+   int ret = write(pipefd[1], reinterpret_cast<char*>(&msg), 1); //将信号值写入管道，以通知循环
+   assert(ret != -1);
    errno = save_errno;
 }
 
@@ -89,9 +90,9 @@ int main(int argc, char* argv[])
    assert(epollfd != -1);
    addfd(epollfd, listenfd);
 
-   // 使用socketpair创建双向管道
-   ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
-   //ret = pipe(pipefd);
+   // 也可以使用socketpair创建双向管道
+   // ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
+   ret = pipe(pipefd);
    assert(ret != -1);
    setnonblocking(pipefd[1]);
    addfd(epollfd, pipefd[0]);
@@ -125,7 +126,7 @@ int main(int argc, char* argv[])
          {
             int sig;
             char signals[1024];
-            int number_of_sigs = recv(pipefd[0], signals, sizeof(signals), 0);
+            int number_of_sigs = read(pipefd[0], signals, sizeof(signals));
             if (number_of_sigs == -1)
             {
                printf("fail to get sig\n");
