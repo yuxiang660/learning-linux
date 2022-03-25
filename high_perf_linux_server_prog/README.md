@@ -1429,3 +1429,19 @@ Linux提供了三种定时方法：
 ### 处理非活动连接
 
 参见[例子](./code/timer/container/server.cpp)
+
+## 高性能定时器
+
+### 时间轮
+![timer_wheel](./pictures/timer_wheel.png)
+* 一个滴答(tick，时间为si)，时间轮转动一格
+* 一共有N个时间槽
+* 每个槽上的定时器链表具有相同的特征：它们的定时时间相差N*si的整数被
+* 插入槽ts(time slot) = (cs + ti/si) % N, 其中，ci是当前槽，ti是要添加的定时时间ti
+
+### 时间堆
+![timer_heap](./pictures/timer_heap.png)
+![timer_heap2](./pictures/timer_heap2.png)
+* 将所有定时器中超时最小的定时器的超时值作为心搏间隔
+
+
