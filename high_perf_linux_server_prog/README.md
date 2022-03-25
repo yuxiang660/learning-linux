@@ -1444,4 +1444,24 @@ Linux提供了三种定时方法：
 ![timer_heap2](./pictures/timer_heap2.png)
 * 将所有定时器中超时最小的定时器的超时值作为心搏间隔
 
+# 高性能I/O框架库Libevent
+![reactor_components](./pictures/reactor_components.png)
 
+基于Reactor模式的I/O框架库包含：
+* 句柄
+    * I/O库要处理的对象，包括：I/O事件(文件描述符)，信号(信号值)和定时事件
+* 事件多路分发器
+    * 利用I/O复用系统分发事件，包括：select, poll, epoll_wait等函数
+    * 添加和删除事件：register_event和remove_event
+* 事件处理器
+    * 执行事件对应的业务逻辑，包含handler_event回调函数的接口
+* 具体的事件处理器
+    * 用户继承接口实现自己的事件处理器
+    * 事件多路分发器检测到有事件发生时，通过句柄来通知应用程序来处理事件，因此事件处理器和句柄需要绑定，以获取事件正确的处理器
+* Reactor
+    * `handle_events`等待事件，一次处理所有就绪事件对应的事件处理器
+    * `register_handler`往事件多路分发器中注册一个事件
+    * `remove_handler`从事件多路分发器中删除一个事件
+
+时序图：
+![io_sequ](./pictures/io_sequ.png)
