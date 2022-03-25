@@ -1469,3 +1469,45 @@ Linux提供了三种定时方法：
 ## Libevent源码分析
 * [例子](./code/libevent/hello/main.cpp)实现了`signal SIGINT`事件和一秒的定时器事件的监控和分发
     * 对于Libevent的环境配置，可参考[文档](./code/libevent/hello/README.md)
+
+# 多进程编程
+
+## fork系统调用
+```cpp
+#include <sys/types.h>
+#include <unistd.h>
+pid_t fork(void);
+```
+* 新的进程大部分属性和原进程相同，存在个别不同：如信号位图被清除，原进程设置的信号处理函数不再起作用
+* 子进程的数据复制采用写时复制，写时触发缺页中断，然后操作系统给子进程分配内存并复制父进程的数据
+* 父进程中打开的文件描述符默认在子进程中也是打开的，且文件描述符的引用计数加1
+
+## exec系列调用
+```cpp
+#include <unistd.h>
+extern char** environ;
+int execl(const char* path, const char* arg, ...); // path为全路径
+int execlp(const char* file, const char* arg, ...); // file在PATH中搜索
+```
+* `exec`函数正常情况下不返回，后面的代码都不执行，除非出错
+* `exec`函数不会关闭原程序打开的文件描述符，除非设置了SOCK_CLOEXEC属性
+
+## 处理僵尸进程
+如果父进程没有正确处理子进程的返回信息，子进程将停留在僵尸态。例如，
+* 当子进程结束运行时，内核不会立即释放该进程的进程表项，父进程读取其退出状态之前，我们称该子进程处于僵尸态。
+* 另一种子进程进入僵尸态的情况时，父进程结束或者异常终止，而子进程继续运行。此时子进程的PPID将被操作系统设置为1，即init进程。在父进程退出之后，子进程退出之前，该子进程处于僵尸态。
+
+```cpp
+#include <sys/types.h>
+#include <sys/wait.h>
+// 阻塞进程，直到该进程的某个子进程结束运行为止
+pid_t wait(int* stat_loc);
+// pid == -1, 和wait行为相同，等待任意一个子进程结束
+// options可以控制此函数是否阻塞，WNOHANG为非阻塞
+pid_t waitpid(pid_t pid, int* stat_loc, int options);
+```
+
+![proc_stat](./pictures/proc_stat.png)
+
+## 信号量
+
