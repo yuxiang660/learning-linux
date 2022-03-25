@@ -1465,3 +1465,7 @@ Linux提供了三种定时方法：
 
 时序图：
 ![io_sequ](./pictures/io_sequ.png)
+
+## Libevent源码分析
+* [例子](./code/libevent/hello/main.cpp)实现了`signal SIGINT`事件和一秒的定时器事件的监控和分发
+    * 对于Libevent的环境配置，可参考[文档](./code/libevent/hello/README.md)
