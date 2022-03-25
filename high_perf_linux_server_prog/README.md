@@ -1407,3 +1407,12 @@ int sigpending(sigset_t* set); //获得当前被挂起的信号集
 ### SIGURG
 * [例子](./code/signal/urgent/server.cpp)中用`signal SIGURG`实现了前面章节中用IO复用技术对外带数据操作的同样功能
 
+# 定时器
+Linux提供了三种定时方法：
+* socket选项SO_RCVTIMEO和SO_SNDTIMEO
+* SIGALRM信号
+* I/O复用系统调用的超时参数
+
+## socket选项SO_RCVTIMEO和SO_SNDTIMEO
+![SO_RCV_SND_TIMEO](./pictures/SO_RCV_SND_TIMEO.png)
+* connect超时例子
