@@ -1416,3 +1416,16 @@ Linux提供了三种定时方法：
 ## socket选项SO_RCVTIMEO和SO_SNDTIMEO
 ![SO_RCV_SND_TIMEO](./pictures/SO_RCV_SND_TIMEO.png)
 * connect超时例子
+
+## SIGALRM信号
+
+### 基于升序链表的定时器
+定时器至少包含两个成员：
+* 超时时间
+* 任务回调函数
+
+参见定时器链表的[例子](./code/timer/container/timer_list.h)
+
+### 处理非活动连接
+
+参见[例子](./code/timer/container/server.cpp)
