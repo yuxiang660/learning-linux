@@ -1404,9 +1404,6 @@ int sigpending(sigset_t* set); //获得当前被挂起的信号集
 
 ## 网络编程相关信号
 
-### SIGHUP
-
-### SIGPIPE
-
 ### SIGURG
+* [例子](./code/signal/urgent/server.cpp)中用`signal SIGURG`实现了前面章节中用IO复用技术对外带数据操作的同样功能
 
