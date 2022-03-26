@@ -1509,5 +1509,77 @@ pid_t waitpid(pid_t pid, int* stat_loc, int options);
 
 ![proc_stat](./pictures/proc_stat.png)
 
+## IPC (Inter-process communication)
+`System V`和`POSIX`都对IPC做了相关规定，两者之间存在一定差异，具体可参考[文档](https://www.tutorialspoint.com/inter_process_communication/inter_process_communication_system_v_posix.htm)。
+
+[文档](https://tldp.org/LDP/lpg/node7.html)介绍了System V IPC的一些基础概念。System V IPC主要规定了三种途径：
+* 信号量
+* 共享内存
+* 消息队列
+
 ## 信号量
+
+![semaphore](./pictures/semaphore.png)
+* 3个系统调用: semget, semop, semctl, 都操作的是一组信号量，而不是单个信号量
+
+### semget系统调用
+```cpp
+#include <sys/sem.h>
+int semget(key_t key, int num_sems, int sem_flags); // 创建一个新的信号量集，或获取已经存在的信号量集
+```
+* `key`是一共全局唯一的标识，用于标记当前信号量集，可通过`ftok()`系统调用生成，例如：`key_t mykey = ftok("/tmp/myapp", 'a');`，详情可参考[文档](https://tldp.org/LDP/lpg/node24.html#SECTION00741200000000000000)
+* `num_sems`指定要创建的信号量集中，信号量的数目，如果是已经存在的信号量，此参数无效，可设置为0
+* `sem_flags`指定信号量的权限
+
+`semget`会在内核中创建`semid_ds`结构体：
+```cpp
+#include <sys/sem.h>
+// 该结构体用于描述IPC对象(信号量，共享内存和消息队列)的权限
+struct ipc_perm
+{
+    key_t key; // 键值
+    uid_t uid;  // 所有者
+    gid_t gid;
+    uid_t cuid; // 创建者
+    gid_t cgid;
+    mode_t mode; // 访问权限
+};
+
+struct semid_ds
+{
+    struct ipc_perm sem_perm; // 信号量的操作权限
+    unsigned long int sem_nsems; // 该信号量集中的信号量数目
+    time_t sem_otime; // 最后一次调用semop的时间
+    time_t sem_ctime; // 最后一次调用semctl的时间
+};
+```
+
+### semop系统调用
+```cpp
+unsigned short semval;  // 信号量的值
+unsigned short semzcnt; // 等待信号量值变为0的进程数量
+unsigned short semncnt; // 等待信号量值增加的进程数量
+pid_t sempid;           // 最后一次执行semop操作的进程ID
+
+#include <sys/sem.h>
+int semop(int sem_id, struct sembuf* sem_ops, size_t num_sem_ops);
+struct sembuf
+{
+    unsigned short int sem_num; // 信号量集中的信号量的编号，0表示信号量集中的第一个信号量
+    short int sem_op; // 指定操作类型
+    short int sem_flg; // IPC_NOWAIT - 无论操作是否成功，立即返回。SEM_UNDO - 当进程退出时取消正在进程的semop操作
+};
+```
+* `sem_id`是由`semget`调用返回的信号量集标识符
+* `sem_ops`中，`sem_op`和`sem_flg`规则如下：
+    * 如果`sem_op`大于0，则`semop`将被操作的信号量的值`semval`增加`sem_op`。该操作要求调用进程对被操作信号量集拥有写权限。此时若设置了`SEM_UNDO`标志，则系统将更新进程的`semadj`变量，以跟踪进程对信号量的修改情况
+    * 如果`sem_op`等于0，则表示这是一共“等待0”(wait-for-zero)操作。该操作要求调用进程对被操作信号量拥有读权限。如果此时信号量的值时0，则调用立即成功返回。如果信号量的值不是0，则`semop`失败或者阻塞进程以等待信号量变为0。当`IPC_NOWAIT`未配置时，进程挂起，`semzcnt`加1。三种情况下，进程被唤醒：
+        * `semval`变为0
+        * 被操作信号量所在的信号量集被进程移除，调用失败，errno置为EIDRM
+        * 被信号中断，调用失败，errno置为EINTR
+    * 如果`sem_op`小于0，则表示对信号量进行减操作，即期望获得信号量。该操作要求调用进程对被操作信号集拥有写权限。如果信号量的值`semval`大于或等于`sem_op`的绝对值，则`semop`操作成功。如果信号量的值`semval`小于`sem_op`的绝对值，则`semop`失败返回或者阻塞进程以等待信号量可用。当`IPC_NOWAIT`未配置时，进程挂起，`semncnt`加1。三种情况下，进程被唤醒：
+        * `semval`变得大于或等于`sem_op`的绝对值
+        * 被操作信号量所在的信号量集被进程移除
+        * 调用被信号中断
+* `num_sem_ops`指定要执行的操作个数，即`sem_ops`数组中元素的个数
 
