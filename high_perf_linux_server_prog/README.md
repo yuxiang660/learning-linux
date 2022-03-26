@@ -1531,7 +1531,9 @@ int semget(key_t key, int num_sems, int sem_flags); // 创建一个新的信号�
 ```
 * `key`是一共全局唯一的标识，用于标记当前信号量集，可通过`ftok()`系统调用生成，例如：`key_t mykey = ftok("/tmp/myapp", 'a');`，详情可参考[文档](https://tldp.org/LDP/lpg/node24.html#SECTION00741200000000000000)
 * `num_sems`指定要创建的信号量集中，信号量的数目，如果是已经存在的信号量，此参数无效，可设置为0
-* `sem_flags`指定信号量的权限
+* `sem_flags`指定信号量的权限，除了常规的权限设置外，还可以有：
+    * IPC_CREATE - 创建新的信号量集
+    * IPC_EXCL - 类似O_EXCL，如果已经存在会报错
 
 `semget`会在内核中创建`semid_ds`结构体：
 ```cpp
@@ -1609,3 +1611,57 @@ union semun
 ### 特殊键值IPC_PRIVATE
 * `IPC_PRIVATE`(其值时0)，无论该信号量是否已经存在，semget都将创建一个新的信号量。它并不是私有的，子进程也能访问，更应该叫`IPC_NEW`
     * 参考[例子](./code/semaphore/op/main.cpp)
+
+## 共享内存
+共享内存时最高效的，因为它不涉及进程之间的任何数据传输。但是，它必须用其他辅助手段来同步进程对共享内存的访问。包括4个系统调用：
+* shmget
+* shmat
+* shmdt
+* shmctl
+
+### shmget系统调用
+```cpp
+#include <sys/shm.h>
+int shmget(key_t key, size_t size, int shmflg); //创建/获取一段新的共享内存
+```
+* `key`和`semget`一样，全局的标识
+* `size`指定内存大小(字节)，如果共享内存已经创建，size不生效，可为零
+* `shmflg`除了常规的标志外，还有
+    * SHM_HUGETLB，类似mmap的MAP_HUGETLB，系统将使用“大页面”来为共享内存分配空间
+    * SHM_NORESERVE，类似mmap的MAP_NORESERVE，不为共享内存保留交换分区，这样，当物理内存不足的时候，对该共享内存执行写操作将触发SIGSEGV信号
+* `shmget`创建的内存，所有字节都被初始化为0，与之关联的内核数据结构`shmid_ds`将被创建，和`semid_ds`类似。
+* [实例代码](./code/shm/shmget/main.cpp)创建了共享内存，并在结束的时候销毁
+
+### shmat和shmdt系统调用
+```cpp
+#include <sys/shm.h>
+void* shmat(int shm_id, const void* shm_addr, int shmflg); // 将共享内存关联到进程的地址空间中
+int shmdt(const void* shm_addr); // 将共享内存从进程地址空间分离
+```
+* `shm_addr`为NULL时，由操作系统选择被关联的地址
+* `shmflg`支持如下标志：
+    * SHM_RDONLY
+    * SHM_REMAP - 重新关联
+* `shmat`成功时返回被关联到的地址
+
+### shmctl系统调用
+```cpp
+#include <sys/shm.h>
+int shmctl(int shm_id, int command, struct shmid_ds* buf);
+```
+![shmctl](./pictures/shmctl.png)
+
+### 共享内存的POSIX方法
+Linux提供了一种利用mmap在无关进程之间共享内存的方式。这种方式无须任何文件的支持，但它需要使用如下函数创建或打开一共POSIX共享内存对象：
+```cpp
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int shm_open(const char* name, int oflg, mode_t mode);
+int shm_unlink(const char* name);
+```
+* `name`指定要创建/打开的共享内存对象
+* `shm_open`返回一个文件描述符，该文件描述符可用于后续的`mmap`调用，从而将共享内存关联到调用进程
+* `shm_unlink`将name指定的共享内存对象**标记**为等待删除。当所有使用该共享内存对象的进程都使用`ummap`将它从进程中分离之后，系统将销毁这个共享内存对象所占据的资源
+* [实例代码](./code/shm/shm_open/main.cpp)利用`shm_open`创建了一个共享内存的文件描述符，并利用`mmap`关联到了当前进程
+
