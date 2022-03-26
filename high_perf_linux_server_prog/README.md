@@ -1520,7 +1520,9 @@ pid_t waitpid(pid_t pid, int* stat_loc, int options);
 ## 信号量
 
 ![semaphore](./pictures/semaphore.png)
+
 * 3个系统调用: semget, semop, semctl, 都操作的是一组信号量，而不是单个信号量
+    * [例子](https://www.prodevelopertutorial.com/system-v-semaphores-in-c-using-semget-semctl-semop-system-v-system-calls-in-linux/)
 
 ### semget系统调用
 ```cpp
@@ -1553,6 +1555,7 @@ struct semid_ds
     time_t sem_ctime; // 最后一次调用semctl的时间
 };
 ```
+* [例子](./code/semaphore/create/main.cpp)中创建了一个信号量，然后销毁。可打断点，并通过`ipcs -s -i <semid>`查看信号量的信息
 
 ### semop系统调用
 ```cpp
@@ -1583,3 +1586,21 @@ struct sembuf
         * 调用被信号中断
 * `num_sem_ops`指定要执行的操作个数，即`sem_ops`数组中元素的个数
 
+### semctl系统调用
+```cpp
+#include <sys/sem.h>
+int semctl(int sem_id, int sem_num, int command, ...); // 对信号量进行直接控制
+
+// 参数类型推荐，需要用户自定义
+union semun
+{
+    int val; // 用于SETVAL命令
+    struct semid_ds* buf; //用于IPC_STAT和IPC_SET命令
+    unsigned short* array; //用于GETALL和SETALL命令
+    struct seminfo* __buf; //用于IPC_INFO命令
+};
+```
+* `sem_num`指定被操作的信号量在信号量集中的编号
+* `command`指定了要执行的命令，后接命令的参数，不同的命令有不同的参数，通过自定义的`union semun`类型传入
+    * ![semctl_commands](./pictures/semctl_commands.png)
+* [实例代码](./code/semaphore/control/main.cpp)实现了`SETVAL`命令，对信号量#0的值进行了设置，并利用`IPC_RMID`命令销毁了信号量集。
