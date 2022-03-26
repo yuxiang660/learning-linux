@@ -1585,6 +1585,7 @@ struct sembuf
         * 被操作信号量所在的信号量集被进程移除
         * 调用被信号中断
 * `num_sem_ops`指定要执行的操作个数，即`sem_ops`数组中元素的个数
+* [实例代码](./code/semaphore/op/main.cpp)通过`semop`实现了父进程和子进程之间的同步
 
 ### semctl系统调用
 ```cpp
@@ -1604,3 +1605,7 @@ union semun
 * `command`指定了要执行的命令，后接命令的参数，不同的命令有不同的参数，通过自定义的`union semun`类型传入
     * ![semctl_commands](./pictures/semctl_commands.png)
 * [实例代码](./code/semaphore/control/main.cpp)实现了`SETVAL`命令，对信号量#0的值进行了设置，并利用`IPC_RMID`命令销毁了信号量集。
+
+### 特殊键值IPC_PRIVATE
+* `IPC_PRIVATE`(其值时0)，无论该信号量是否已经存在，semget都将创建一个新的信号量。它并不是私有的，子进程也能访问，更应该叫`IPC_NEW`
+    * 参考[例子](./code/semaphore/op/main.cpp)
