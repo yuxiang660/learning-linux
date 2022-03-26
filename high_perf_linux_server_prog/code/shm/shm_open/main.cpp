@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #define FILE_PATH "/my_shm_test"
 #define FILE_SIZE 512
@@ -19,12 +22,22 @@ void read_data()
       return;
    }
 
+   struct stat st;
+   if (fstat(fd, &st))
+   {
+      printf("\nfstat error: [%s]\n", strerror(errno));
+      close(fd);
+      return;
+   }
+   const size_t shm_size = st.st_size;
+   printf("The size of shard memory is %zu bytes\n", shm_size);
+
    // map shared memory
-   void *addr = mmap(NULL, FILE_SIZE, PROT_READ, MAP_SHARED, fd, 0);
+   void *addr = mmap(NULL, shm_size, PROT_READ, MAP_SHARED, fd, 0);
 
    // place data into memory
-   char data[FILE_SIZE];
-   memcpy(data, addr, FILE_SIZE);
+   char data[shm_size];
+   memcpy(data, addr, shm_size);
 
    printf("Read from shared memory: \"%s\"\n", data);
 
@@ -64,8 +77,10 @@ int main(int argc, char *argv[])
    }
 
    assert(pid > 0);
+   wait(NULL);
 
    // mmap cleanup
+   printf("munmap in parent process\n");
    res = munmap(addr, FILE_SIZE);
    assert(res != -1);
 

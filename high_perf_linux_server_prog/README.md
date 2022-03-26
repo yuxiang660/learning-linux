@@ -1664,4 +1664,5 @@ int shm_unlink(const char* name);
 * `shm_open`返回一个文件描述符，该文件描述符可用于后续的`mmap`调用，从而将共享内存关联到调用进程
 * `shm_unlink`将name指定的共享内存对象**标记**为等待删除。当所有使用该共享内存对象的进程都使用`ummap`将它从进程中分离之后，系统将销毁这个共享内存对象所占据的资源
 * [实例代码](./code/shm/shm_open/main.cpp)利用`shm_open`创建了一个共享内存的文件描述符，并利用`mmap`关联到了当前进程
+    * [实例代码](./code/shm/shmget2/main.cpp)利用`shmget`完成了同样的功能
 
