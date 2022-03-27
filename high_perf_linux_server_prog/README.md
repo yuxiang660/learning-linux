@@ -1623,6 +1623,19 @@ union semun
 ```cpp
 #include <sys/shm.h>
 int shmget(key_t key, size_t size, int shmflg); //创建/获取一段新的共享内存
+
+// 创建的内核数据结构
+struct shmid_ds
+{
+    struct ipc_perm shm_perm;   // 操作权限
+    size_t shm_segsz;           // 共享内存大小
+    __time_t shm_atime;         // 最后一次调用shmat的时间
+    __time_t shm_dtime;         // 最后一次调用shmdt的时间
+    __time_t shm_ctime;         // 最后一次调用shmctl的时间
+    __pid_t shm_cpid;           // 创建者PID
+    __pid_t shm_lpid;           // 最后一次执行shmat或shmdt操作的进程的PID
+    shmatt_t shm_nattach;       // 目前关联到此共享内存的进程数量
+};
 ```
 * `key`和`semget`一样，全局的标识
 * `size`指定内存大小(字节)，如果共享内存已经创建，size不生效，可为零
@@ -1666,3 +1679,91 @@ int shm_unlink(const char* name);
 * [实例代码](./code/shm/shm_open/main.cpp)利用`shm_open`创建了一个共享内存的文件描述符，并利用`mmap`关联到了当前进程
     * [实例代码](./code/shm/shmget2/main.cpp)利用`shmget`完成了同样的功能
 
+## 消息队列
+消息队列是在两个进程之间传递二进制块数据的一种简单有效的方式，包括4个系统调用：
+* msgget
+* msgsnd
+* msgrcv
+* msgctl
+
+消息队列的系统配置：
+```bash
+$ ipcs -l
+
+------ Messages Limits --------
+max queues system wide = 32000
+max size of message (bytes) = 8192
+default max size of queue (bytes) = 16384
+```
+* /proc/sys/kernel/msgmni (32000)
+    * 系统中同时运行的最大的消息队列的个数
+* /proc/sys/kernel/msgmax (8192)
+    * 一个消息的最大字节数
+* /proc/sys/kernel/msgmnb (16384)
+    * 一个消息队列总共最大字节数
+
+### msgget系统调用
+```cpp
+#include <sys/msg.h>
+int msgget(key_t key, int msgflg); // 创建/获取消息队列
+
+struct msqid_ds
+{
+    struct ipc_perm msg_perm;   // 操作权限
+    time_t msg_stime;           // 最后一次调用msgsnd的时间
+    time_t msg_rtime;           // 最后一次调用msgrcv的时间
+    time_t msg_ctime;           // 最后一次被修改的时间
+    unsigned long __msg_cbytes; // 消息队列中已有的字节数
+    msgqnum_t msg_qnum;         // 消息队列中已有的消息数
+    msglen_t msg_qbytes;        // 消息队列允许的最大字节数
+    pid_t msg_lspid;            // 最后执行msgsnd的进程的PID
+    pit_t msg_lrpid;            // 最后执行msgrcv的进程的PID
+};
+```
+* `msgget`成功时返回一共消息队列的标识符
+* [实例代码](./code/msg_queue/msgget/main.cpp)创建了一个消息队列，并销毁
+
+### msgsnd系统调用
+```cpp
+#include <sys/msg.h>
+int msgsnd(int msqid, const void* msg_ptr, size_t msg_sz, int msgflg); // 把一条消息添加到消息队列中
+```
+* `msg_ptr`指向一个准备发送的消息，消息必须定义为如下类型：
+    ```cpp
+    struct msgbuf
+    {
+        long mtype; // 消息类型
+        char mtext[512]; // 消息数据
+    };
+    ```
+* `msg_sz`时数据部分(mtext)的长度
+* `msgflg`控制`msgsnd`行为，如果`IPC_NOWAIT`标志没有被指定，消息队列满了，则`msgsnd`将阻塞
+* `msgsnd`成功时返回0，并将修改内核数据结构`msqid_ds`的部分字段：
+    * `msg_qnum`加1
+    * `msg_lspid`设置为调用进程的PID
+    * `msg_stime`设置为当前的时间
+
+### msgrcv系统调用
+```cpp
+#include <sys/msg.h>
+int msgrcv(int msqid, void* msg_ptr, size_t msg_sz, long int msgtype, int msgflg);
+```
+* `msg_ptr`用于存储接收的消息，`msg_sz`指的是消息数据部分的长度
+* `msgtype`指定接收何种类型的消息，
+    * `msgtype`等于0，读取消息队列中的第一个消息
+    * `msgtype`大于0，读取消息队列中第一个类型为`msgtype`的消息
+    * `msgtype`小于0，读取消息队列中第一个类型值比`msgtype`的绝对值小的消息
+* `msgflg`控制函数行为
+    * `IPC_NOWAIT`，如果消息队列中没有消息，立即返回并设置errno为ENOMSG
+    * `MSG_EXCEPT`，如果msgtype大于0，则接收消息队列中第一个非msgtype类型的消息
+    * `MSG_NOERROR`，如果消息数据部分的长度超过了msg_sz，就将它截断
+* `msgrcv`成功时返回0，并将修改内核数据结构`msqid_ds`的部分字段：
+    * `msg_qnum`减1
+    * `msg_lrpid`设置为调用进程的PID
+    * `msg_rtime`设置为当前的时间
+
+### msgctl系统调用
+```cpp
+#include <sys/msg.h>
+int msgctl(int msqid, int command, struct msqid_ds* buf);
+```

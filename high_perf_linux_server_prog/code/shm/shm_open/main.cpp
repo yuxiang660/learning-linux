@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+// Refer to https://www.prodevelopertutorial.com/linux-system-programming-posix-shared-memory/
+
 #define FILE_PATH "/my_shm_test"
 #define FILE_SIZE 512
 
