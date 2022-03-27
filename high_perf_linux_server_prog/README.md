@@ -1771,3 +1771,6 @@ int msgctl(int msqid, int command, struct msqid_ds* buf);
     * ![msgctl](./pictures/msgctl.png)
 * [实例代码](./code/msg_queue/snd_rcv/main.cpp)通过消息队列在两个进程之间传递了数据
 
+## 在进程间传递文件描述符
+在Linux下，可以利用UNIX域socket在两个不相干的进程间传递特殊的辅助数据，以实现文件描述符的传递，参考[文档](https://zhuanlan.zhihu.com/p/381683155)
+* [示例代码](./code/multi_process/snd_fd/main.cpp)
