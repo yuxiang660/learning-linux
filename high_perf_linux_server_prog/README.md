@@ -1767,3 +1767,7 @@ int msgrcv(int msqid, void* msg_ptr, size_t msg_sz, long int msgtype, int msgflg
 #include <sys/msg.h>
 int msgctl(int msqid, int command, struct msqid_ds* buf);
 ```
+* `msgctl`支持的命令如下：
+    * ![msgctl](./pictures/msgctl.png)
+* [实例代码](./code/msg_queue/snd_rcv/main.cpp)通过消息队列在两个进程之间传递了数据
+
