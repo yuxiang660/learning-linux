@@ -114,6 +114,7 @@ int main(void)
    {
       close(sockfds[0]);
       int fd;
+      // Note: 只能用read only打开，不然父进程无法访问
       fd = open("test.txt", O_RDONLY);
       assert(fd > 0);
       send_fd(sockfds[1], fd);
