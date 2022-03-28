@@ -1924,6 +1924,7 @@ int pthread_mutex_unlock(pthread_mutex_t* mutex);
 * `mutexattr`指定互斥锁的属性，如果将设置为NULL，表示使用默认属性
 * 可以用宏初始化一个互斥锁：
     * `pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;`
+* 参考[例子](./code/multi_thread/mutex/main.cpp)
 
 ### 互斥锁属性
 ```cpp
@@ -1955,6 +1956,7 @@ int pthread_mutexattr_settype(const pthread_mutexattr_t* attr, int type);
         * 允许一个线程在释放锁之前多次对它加锁而不发生死锁
         * 其他线程如果想要获得这个锁，当前锁的拥有者必须执行相同次数的解锁操作
         * 对一个已经被其他线程加锁的嵌套锁解锁，或对一个已经解锁的嵌套锁再次解锁，返回EPERM
+
 ### 死锁举例
 两种死锁情况：
 * 一个线程中对一个已经加锁的普通锁再次加锁
