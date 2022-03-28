@@ -1519,7 +1519,7 @@ pid_t waitpid(pid_t pid, int* stat_loc, int options);
 
 ## 信号量
 
-![semaphore](./pictures/semaphore.png)
+![semaphore](./pictures/multi_process/semaphore.png)
 
 * 3个系统调用: semget, semop, semctl, 都操作的是一组信号量，而不是单个信号量
     * [例子](https://www.prodevelopertutorial.com/system-v-semaphores-in-c-using-semget-semctl-semop-system-v-system-calls-in-linux/)
@@ -1557,7 +1557,7 @@ struct semid_ds
     time_t sem_ctime; // 最后一次调用semctl的时间
 };
 ```
-* [例子](./code/semaphore/create/main.cpp)中创建了一个信号量，然后销毁。可打断点，并通过`ipcs -s -i <semid>`查看信号量的信息
+* [例子](./code/multi_process/semaphore/create/main.cpp)中创建了一个信号量，然后销毁。可打断点，并通过`ipcs -s -i <semid>`查看信号量的信息
 
 ### semop系统调用
 ```cpp
@@ -1587,7 +1587,7 @@ struct sembuf
         * 被操作信号量所在的信号量集被进程移除
         * 调用被信号中断
 * `num_sem_ops`指定要执行的操作个数，即`sem_ops`数组中元素的个数
-* [实例代码](./code/semaphore/op/main.cpp)通过`semop`实现了父进程和子进程之间的同步
+* [实例代码](./code/multi_process/semaphore/op/main.cpp)通过`semop`实现了父进程和子进程之间的同步
 
 ### semctl系统调用
 ```cpp
@@ -1606,11 +1606,11 @@ union semun
 * `sem_num`指定被操作的信号量在信号量集中的编号
 * `command`指定了要执行的命令，后接命令的参数，不同的命令有不同的参数，通过自定义的`union semun`类型传入
     * ![semctl_commands](./pictures/semctl_commands.png)
-* [实例代码](./code/semaphore/control/main.cpp)实现了`SETVAL`命令，对信号量#0的值进行了设置，并利用`IPC_RMID`命令销毁了信号量集。
+* [实例代码](./code/multi_process/semaphore/control/main.cpp)实现了`SETVAL`命令，对信号量#0的值进行了设置，并利用`IPC_RMID`命令销毁了信号量集。
 
 ### 特殊键值IPC_PRIVATE
 * `IPC_PRIVATE`(其值时0)，无论该信号量是否已经存在，semget都将创建一个新的信号量。它并不是私有的，子进程也能访问，更应该叫`IPC_NEW`
-    * 参考[例子](./code/semaphore/op/main.cpp)
+    * 参考[例子](./code/multi_process/semaphore/op/main.cpp)
 
 ## 共享内存
 共享内存时最高效的，因为它不涉及进程之间的任何数据传输。但是，它必须用其他辅助手段来同步进程对共享内存的访问。包括4个系统调用：
@@ -1643,7 +1643,7 @@ struct shmid_ds
     * SHM_HUGETLB，类似mmap的MAP_HUGETLB，系统将使用“大页面”来为共享内存分配空间
     * SHM_NORESERVE，类似mmap的MAP_NORESERVE，不为共享内存保留交换分区，这样，当物理内存不足的时候，对该共享内存执行写操作将触发SIGSEGV信号
 * `shmget`创建的内存，所有字节都被初始化为0，与之关联的内核数据结构`shmid_ds`将被创建，和`semid_ds`类似。
-* [实例代码](./code/shm/shmget/main.cpp)创建了共享内存，并在结束的时候销毁
+* [实例代码](./code/multi_process/shm/shmget/main.cpp)创建了共享内存，并在结束的时候销毁
 
 ### shmat和shmdt系统调用
 ```cpp
@@ -1676,8 +1676,8 @@ int shm_unlink(const char* name);
 * `name`指定要创建/打开的共享内存对象
 * `shm_open`返回一个文件描述符，该文件描述符可用于后续的`mmap`调用，从而将共享内存关联到调用进程
 * `shm_unlink`将name指定的共享内存对象**标记**为等待删除。当所有使用该共享内存对象的进程都使用`ummap`将它从进程中分离之后，系统将销毁这个共享内存对象所占据的资源
-* [实例代码](./code/shm/shm_open/main.cpp)利用`shm_open`创建了一个共享内存的文件描述符，并利用`mmap`关联到了当前进程
-    * [实例代码](./code/shm/shmget2/main.cpp)利用`shmget`完成了同样的功能
+* [实例代码](./code/multi_process/shm/shm_open/main.cpp)利用`shm_open`创建了一个共享内存的文件描述符，并利用`mmap`关联到了当前进程
+    * [实例代码](./code/multi_process/shm/shmget2/main.cpp)利用`shmget`完成了同样的功能
 
 ## 消息队列
 消息队列是在两个进程之间传递二进制块数据的一种简单有效的方式，包括4个系统调用：
@@ -1721,7 +1721,7 @@ struct msqid_ds
 };
 ```
 * `msgget`成功时返回一共消息队列的标识符
-* [实例代码](./code/msg_queue/msgget/main.cpp)创建了一个消息队列，并销毁
+* [实例代码](./code/multi_process/msg_queue/msgget/main.cpp)创建了一个消息队列，并销毁
 
 ### msgsnd系统调用
 ```cpp
@@ -1769,8 +1769,78 @@ int msgctl(int msqid, int command, struct msqid_ds* buf);
 ```
 * `msgctl`支持的命令如下：
     * ![msgctl](./pictures/msgctl.png)
-* [实例代码](./code/msg_queue/snd_rcv/main.cpp)通过消息队列在两个进程之间传递了数据
+* [实例代码](./code/multi_process/msg_queue/snd_rcv/main.cpp)通过消息队列在两个进程之间传递了数据
 
 ## 在进程间传递文件描述符
 在Linux下，可以利用UNIX域socket在两个不相干的进程间传递特殊的辅助数据，以实现文件描述符的传递，参考[文档](https://zhuanlan.zhihu.com/p/381683155)
 * [示例代码](./code/multi_process/snd_fd/main.cpp)
+
+# 多线程编程
+Linux早期并不支持线程，经历了LinuxThreads -> NGPT(Next Generation POSIX Threads) -> NPTL(Native POSIX Thread Library)的发展，NPTL已经称为了glibc的一部分。
+
+## Linux线程概述
+### 线程模型
+线程是程序中完成一个独立任务的完整执行序列，即一个可调度的实体。分为：
+* 内核线程
+    * 也称为LWP(Light Weight Process, 轻量级进程)
+    * 运行在内核空间，由内核来调度
+* 用户线程
+    * 运行在用户空间，由线程库来调度
+    * 当进程的一个内核线程获得CPU的使用权时，它就加载并运行一个用户线程
+
+一个进程可以拥有M个内核线程和N个用户线程，其中，M<=N。在一个系统的所有进程中，M和N的比值都是固定的。按照M:N的取值，线程的实现方式分为三种模式：
+* 完全在用户空间实现
+    * 实现的线程由线程库利用`longjmp`来切换线程的执行，内核仍然把整个进程作为最小单位来调度。
+    * 优点：创建和调度线程都无须内核干预，速度快，不会对系统性能造成明显的影响
+    * 缺点：对于多处理器系统，一个进程的多个线程无法运行在不同的CPU上。线程的优先级只对同一个进程中的线程有效，比较不同进程中的线程的优先级时没有意义的
+* 完全由内核调度
+    * 现代Linux内核已经大大增强了对线程的支持，满足M:N=1:1
+    * 优缺点和完全在用户空间实现的方式相反
+* 双层调度(two level scheduler)
+
+### Linux线程库
+可通过`getconf GNU_LIBPTHREAD_VERSION`查看当前系统上所使用的线程库。
+* LinuxThreads线程库
+    * `clone`系统调用，用进程来模拟内核线程，存在以下问题：
+        * 每个线程拥有不同的PID，不符合POSIX规范
+        * Linux信号处理本来时基于进程的，但现在一个进程内部的所有线程都能而且必须处理信号
+        * 用户ID，组ID对一个进程中的不同线程来说可能是不一样的
+        * 程序产生的核心转储文件不会包含所有线程的信息，而只包含产生该核心转储文件的线程的信息
+        * 由于每个线程都是一个进程，因此系统允许的最大进程数也就是最大线程数
+* NPTL线程库
+    * 内核线程不再是一个进程，因此避免了很多用进程模拟内核线程导致的语义问题
+    * 摒弃了管理线程，终止线程、回收线程堆栈等工作都可以由内核来完成
+    * 由于不存在管理线程，所以一个进程的线程可以运行在不同的CPU上，从而充分利用了多处理器系统的优势
+    * 线程的同步由内核来完成。隶属于不同进程的线程也能共享互斥锁，因此可实现跨进程的线程同步
+
+## 创建线程和结束线程
+### pthread_create
+```cpp
+#include <pthread.h>
+int pthread_create(pthread_t* thread, const pthread_attr_t* attr, void*(*stat_routine)(void*), void* arg);
+
+#include <bits/pthreadtypes.h>
+typedef unsigned long int pthread_t;
+```
+* `thread`是新线程的标识符，后续"pthread_*"函数通过它来引用新线程
+* `attr`用于设置新线程的属性，NULL表示使用默认线程属性
+* `start_routine`和`arg`指定新线程将运行的函数及其参数
+* `pthread_create`成功时返回0，一个用户打开的线程数量不能超过`RLIMIT_NPROC`(可通过`cat /proc/sys/kernel/threads-max`查看，最大进程数量可通过`prlimit --nproc`查看)
+
+### pthread_exit
+```cpp
+#include <pthread.h>
+void pthread_exit(void* retval);
+```
+* **线程函数**在结束时最好调用`pthread_exit`以确保安全、干净地退出
+* `retval`参数像线程的调用者传递其退出信息，线程调用者可通过`pthread_join`拿到此值
+
+### pthread_join
+```cpp
+#include <pthread.h>
+int pthread_join(pthread_t thread, void** retval);
+```
+* `retval`是目标线程返回的退出信息
+* 该函数会一直阻塞，直到线程结束
+
+![pthread_join_err](./pictures/pthread_join_err.png)
