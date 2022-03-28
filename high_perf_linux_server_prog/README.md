@@ -1842,5 +1842,8 @@ int pthread_join(pthread_t thread, void** retval);
 ```
 * `retval`是目标线程返回的退出信息
 * 该函数会一直阻塞，直到线程结束
+* 参考[例子](./code/multi_thread/exit/main.cpp)
 
 ![pthread_join_err](./pictures/pthread_join_err.png)
+
+
