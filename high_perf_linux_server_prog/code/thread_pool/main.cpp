@@ -1,3 +1,5 @@
+// Refer to: https://zhuanlan.zhihu.com/p/44971598
+
 #include "./tpool.h"
 
 #include <stdio.h>
