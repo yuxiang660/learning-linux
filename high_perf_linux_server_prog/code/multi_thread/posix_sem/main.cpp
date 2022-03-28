@@ -9,13 +9,14 @@ void *thread(void *arg)
 {
    // wait
    sem_wait(&mutex);
-   printf("\nEntered..\n");
+   pthread_t id = pthread_self();
+   printf("[Thread %ld] Entered..\n", id);
 
    // critical section
    sleep(4);
 
    // signal
-   printf("\nJust Exiting...\n");
+   printf("[Thread %ld] Just Exiting...\n", id);
    sem_post(&mutex);
 
    return NULL;

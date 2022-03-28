@@ -1907,6 +1907,6 @@ int sem_trywait(sem_t* sem);
 int sem_post(sem_t* sem);
 ```
 * `pshared`参数指定信号量的类型
-    * 0表示这个信号量是当前进程的局部信号量，否则该信号量就可以在多个进程之间共享
+    * 0表示这个信号量是当前进程的局部信号量，否则该信号量就可以在多个进程之间共享。但是不建议在进程间使用`sem_init`，如果需要进程间同步，应该使用`System V IPC`方式。如果只是将`pshared`设置为1，是不能正常工作的，需要结合共享内存使用，参考[例子](./code/multi_thread/posix_sem_proc/main.cpp)
 * 参考[例子](./code/multi_thread/posix_sem/main.cpp)
 
