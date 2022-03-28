@@ -1842,7 +1842,7 @@ int pthread_join(pthread_t thread, void** retval);
 ```
 * `retval`是目标线程返回的退出信息
 * 该函数会一直阻塞，直到线程结束
-* 参考[例子](./code/multi_thread/exit/main.cpp)
+* 参考[例子](./code/multi_thread/thread_exit/main.cpp)
 
 ![pthread_join_err](./pictures/pthread_join_err.png)
 
@@ -1909,4 +1909,54 @@ int sem_post(sem_t* sem);
 * `pshared`参数指定信号量的类型
     * 0表示这个信号量是当前进程的局部信号量，否则该信号量就可以在多个进程之间共享。但是不建议在进程间使用`sem_init`，如果需要进程间同步，应该使用`System V IPC`方式。如果只是将`pshared`设置为1，是不能正常工作的，需要结合共享内存使用，参考[例子](./code/multi_thread/posix_sem_proc/main.cpp)
 * 参考[例子](./code/multi_thread/posix_sem/main.cpp)
+
+
+## 互斥锁
+POSIX互斥锁相关函数：
+```cpp
+#include <pthread.h>
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* mutexattr);
+int pthread_mutex_destroy(pthread_mutex_t* mutex);
+int pthread_mutex_lock(pthread_mutex_t* mutex);
+int pthread_mutex_trylock(pthread_mutex_t* mutex);
+int pthread_mutex_unlock(pthread_mutex_t* mutex);
+```
+* `mutexattr`指定互斥锁的属性，如果将设置为NULL，表示使用默认属性
+* 可以用宏初始化一个互斥锁：
+    * `pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;`
+
+### 互斥锁属性
+```cpp
+#include <pthread.h>
+// 初始化互斥锁属性对象
+int pthread_mutexattr_init(pthread_mutexattr_t* attr);
+// 销毁互斥锁属性
+int pthread_mutexattr_destroy(pthread_mutexattr_t* attr);
+// 获取和设置互斥锁的pshared/type属性
+int pthread_mutexattr_getpshared(const pthread_mutexattr_t* attr, int *pshared);
+int pthread_mutexattr_setpshared(const pthread_mutexattr_t* attr, int pshared);
+int pthread_mutexattr_gettype(const pthread_mutexattr_t* attr, int *type);
+int pthread_mutexattr_settype(const pthread_mutexattr_t* attr, int type);
+```
+* `pshared`指定是否允许跨进程共享互斥锁，可设置为
+    * PTHREAD_PROCESS_SHARED - 可被跨进程共享
+    * PTHREAD_PROCESS_PRIVATE - 只能在同一个进程的线程共享
+* `type`指定互斥锁的类型，包括：
+    * PTHREAD_MUTEX_NORMAL - 互斥锁的默认类型
+        * 普通锁，会发生死锁
+        * 当一个线程对一个普通锁加锁以后，其余请求该锁的线程将形成一个等待队列，并在该锁解锁后按优先级获得它
+        * 优点：公平
+        * 缺点：一个线程如果对一个已经加锁的普通锁再次加锁，将引发**死锁**。或者对一个已经解锁的普通锁再次解锁，将导致不可预期的后果
+    * PTHREAD_MUTEX_ERRORCHECK
+        * 检错锁，只会报错而不引发死锁
+        * 一个线程如果对一个已经加锁的检错锁再次加锁，则加锁操作返回EDEADLK；对一个已经被其他线程加锁的检错锁解锁，或者对一个已经解锁的检测锁再次解锁，则返回EPERM
+    * PTHREAD_MUTEX_RECURSIVE
+        * 嵌套锁，减少了死锁的场景
+        * 允许一个线程在释放锁之前多次对它加锁而不发生死锁
+        * 其他线程如果想要获得这个锁，当前锁的拥有者必须执行相同次数的解锁操作
+        * 对一个已经被其他线程加锁的嵌套锁解锁，或对一个已经解锁的嵌套锁再次解锁，返回EPERM
+### 死锁举例
+两种死锁情况：
+* 一个线程中对一个已经加锁的普通锁再次加锁
+* 两个线程按照不同的顺序来申请两个互斥锁
 
