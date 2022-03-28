@@ -1964,3 +1964,24 @@ int pthread_mutexattr_settype(const pthread_mutexattr_t* attr, int type);
 
 [示例代码](./code/multi_thread/dead_lock/main.cpp)发生了死锁，并通过GDB发现各互斥锁的拥有线程。
 
+## 条件变量
+如果说互斥锁是用于同步线程对共享数据的访问的话，那么条件变量则是用于在线程之间同步共享数据的值。条件变量提供了一种线程间的通知机制：
+* 当某个共享数据达到某个值的时候，唤醒等待这个共享数据的线程
+
+```cpp
+#include <pthread.h>
+int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* cond_attr);
+int pthread_cond_destroy(pthread_cond_t* cond);
+// 以广播的方式唤醒所有的等待目标条件变量的线程
+int pthread_cond_broadcast(pthread_cond_t* cond);
+// 用于唤醒一个等待目标条件变量的线程，至于哪个线程被唤醒，取决于线程的优先级和调度策略
+int pthread_cond_signal(pthread_cond_t* cond);
+// 用于等待目标条件变量，mutex用于保护条件变量的互斥锁
+// 在调用前，必须确保互斥锁mutex已经加锁。在函数执行时，限把调用线程翻入条件变量的等待队列中，然后将互斥锁解锁
+// 当函数成功返回时，互斥锁将再次被上锁
+int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
+```
+* `cond_attr`指定条件变量的属性，和互斥锁的属性类型相似
+* 我们还可以用宏来初始化一个条件变量：`pthread_cond_t cond = PTHREAD_COND_INITIALIZER;`
+* 参见[例子](./code/multi_thread/cond/main.cpp)
+
