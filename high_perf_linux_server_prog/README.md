@@ -1985,3 +1985,47 @@ int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
 * 我们还可以用宏来初始化一个条件变量：`pthread_cond_t cond = PTHREAD_COND_INITIALIZER;`
 * 参见[例子](./code/multi_thread/cond/main.cpp)
 
+## 多线程环境
+### 可重入函数
+一个可重入的函数简单来说就是可以被中断的函数。例如，程序执行到某个函数foo()时，收到信号，于是暂停目前正在执行的函数，转到信号处理 函数，而这个信号处理函数的执行过程中，又恰恰也会进入到刚刚执行的函数foo()，这样便发生了所谓的重入。
+
+Linux下常见可重入函数：
+* ![Reentrant_functions](./pictures/Reentrant_functions.png)
+
+线程安全域可重入函数的区别:
+* ![thread_safe_reentrancy](./pictures/thread_safe_reentrancy.jpg)
+    * 可重入函数一定线程安全
+    * 但线程安全的函数不一定可重入，例如，一个线程中，带锁的函数自我调用会产生死锁，就不可能是可重入的
+
+### 线程和进程
+如果一个多线程程序的某个线程调用了`fork`函数，子进程只拥有一个执行线程，并继承父进程中的互斥锁状态。如果想确保子进程中锁状态的明确性，可用`pthread_atfork`函数代替`fork`函数，创建子进程。
+```cpp
+void prepare()
+{
+    pthread_mutex_lock(&mutex);
+}
+void infork()
+{
+    pthread_mutex_unlock(&mutex);
+}
+pthread_atfork(prepare/* fork前被调用 */, infork/* 父进程中fork之后被调用 */, infork/* 子进程中fork之后被调用 */);
+```
+
+### 线程和信号
+```cpp
+#include <pthread.h>
+#include <signal.h>
+int pthread_sigmask(int how, const sigset_t* newmask, sigset_t* oldmask);
+```
+进程中的所有线程共享该进程的信号，线程库根据线程掩码决定把信号发送给哪个具体的线程。所有线程共享信号处理函数。我们应该定义一个专门的线程来处理所有的信号，以避免造成混乱。
+可通过如下两个步骤实现：
+* 在主线程创建出其他子线程之前就调用`pthread_sigmask`来设置号信号掩码，所有新创建的子线程都将自动继承这个信号掩码。这样做之后，实际上所有线程都不会响应被屏蔽的信号了。
+* 在某个线程中调用如下函数来等待信号并处理之：
+    * `set`指定为第1步中创建的信号掩码，表示在该线程中等待所有被屏蔽的信号
+    * `sigwait`用于等待所有**被屏蔽**的信号
+```cpp
+#include <signal.h>
+int sigwait(const sigset_t* set, int* sig);
+```
+* 参考[例子](./code/multi_thread/thread_signal/main.cpp)
+
