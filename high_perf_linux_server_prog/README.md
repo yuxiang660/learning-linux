@@ -1846,4 +1846,67 @@ int pthread_join(pthread_t thread, void** retval);
 
 ![pthread_join_err](./pictures/pthread_join_err.png)
 
+### pthread_cancel
+```cpp
+#include <pthread.h>
+int pthread_cancel(pthread_t thread);
+int pthread_setcancelstate(int state, int *oldstate);
+int pthread_setcanceltype(int type, int *oldtype);
+```
+* state参数可为：
+    * PTHREAD_CANCEL_ENABLE
+    * PTHREAD_CANCEL_DISABLE
+* type参数可为：
+    * PTHREAD_CANCEL_ASYNCHRONOUS，随时都可被取消
+    * PTHREAD_CANCEL_DEFERRED，线程推迟行动
+
+## 线程属性
+```cpp
+#include <bits/pthreadtypes.h>
+#define __SIZEOF_PTHREAD_ATTR_T 36
+typedef union
+{
+    char __size[__SIZEOF_PTHREAD_ATTR_T];
+    long int __align;
+} pthread_attr_t;
+```
+* 各种线程属性全部包含在一个字符数组中
+* 线程库定义了一系列函数来操作`pthread_attr_t`类型的变量，包括：
+```cpp
+#include <pthread.h>
+// 初始化线程属性对象
+int pthread_attr_init(pthread_attr_t* attr);
+// 销毁线程属性对象
+int pthread_attr_destroy(pthread_attr_t* attr);
+// 获取和设置属性对象的某个属性
+int pthread_attr_getdetachstate(const pthread_attr_t* attr, int* detachstate);
+int pthread_attr_getstackaddr(const pthread_attr_t* attr, void** stackaddr);
+int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize);
+int pthread_attr_getstack(const pthread_attr_t* attr, void** stackaddr, size_t* stacksize);
+...
+```
+
+## POSIX信号量
+三种专门用于线程同步的机制：
+* POSIX信号量
+* 互斥量
+* 条件变量
+
+Linux上，信号量API由两组，一组是前面讨论过的`System V IPC`，另一组是POSIX信号量，包括：
+```cpp
+#include <semaphore.h>
+// 初始化一个未命名的信号量
+int sem_init(sem_t* sem, int pshared, unsigned int value);
+// 销毁信号量
+int sem_destroy(sem_t* sem);
+// 以原子操作的方式将信号量的值减1，如果信号量的值为0，则阻塞
+int sem_wait(sem_t* sem);
+// 不阻塞，如果信号量为0，返回-1，并设置errno为EAGAIN
+int sem_trywait(sem_t* sem);
+// 以原子操作的方式将信号量的值加1
+int sem_post(sem_t* sem);
+```
+* `pshared`参数指定信号量的类型
+    * 0表示这个信号量是当前进程的局部信号量，否则该信号量就可以在多个进程之间共享
+* 参考[例子](./code/multi_thread/posix_sem/main.cpp)
 
