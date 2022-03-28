@@ -1962,3 +1962,5 @@ int pthread_mutexattr_settype(const pthread_mutexattr_t* attr, int type);
 * 一个线程中对一个已经加锁的普通锁再次加锁
 * 两个线程按照不同的顺序来申请两个互斥锁
 
+[示例代码](./code/multi_thread/dead_lock/main.cpp)发生了死锁，并通过GDB发现各互斥锁的拥有线程。
+
