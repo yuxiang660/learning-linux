@@ -190,6 +190,9 @@
         - [可重入函数](#可重入函数)
         - [线程和进程](#线程和进程)
         - [线程和信号](#线程和信号)
+- [线程池](#线程池)
+    - [线程池的工作原理](#线程池的工作原理)
+    - [代码实现](#代码实现)
 
 <!-- /TOC -->
 
@@ -2256,3 +2259,14 @@ int pthread_sigmask(int how, const sigset_t* newmask, sigset_t* oldmask);
 int sigwait(const sigset_t* set, int* sig);
 ```
 * 参考[例子](./code/multi_thread/thread_signal/main.cpp)
+
+# 线程池
+> 参考[文档](https://zhuanlan.zhihu.com/p/44971598)
+
+## 线程池的工作原理
+在最开始就创建包含一定数量线程(`pthread_create`)的线程组，并为其分配一个工作队列。
+* 当工作队列为空时，此时所有线程挂起(利用条件变量`pthread_cond_wait`)
+* 当新的工作被加入工作队列时，唤醒线程队列头(`pthread_cond_broadcast`)，开始执行这个任务
+
+## 代码实现
+参考[例子](./code/thread_pool)

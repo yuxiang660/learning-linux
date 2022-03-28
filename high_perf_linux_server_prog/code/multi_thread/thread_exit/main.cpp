@@ -9,20 +9,21 @@ int ret1, ret2;
 
 void *doSomeThing(void *arg)
 {
+   int thread_id = *((int*)(&arg));
    unsigned long i = 0;
    pthread_t id = pthread_self();
 
-   for (i = 0; i < (0xFFFFFFFF); i++) {}
+   sleep(2);
 
    if (pthread_equal(id, tid[0]))
    {
-      printf("\n First thread processing done\n");
+      printf("[Thread %d] First thread processing done\n", thread_id);
       ret1 = 100;
       pthread_exit(&ret1);
    }
    else
    {
-      printf("\n Second thread processing done\n");
+      printf("[Thread %d] Second thread processing done\n", thread_id);
       ret2 = 200;
       pthread_exit(&ret2);
    }
@@ -38,11 +39,11 @@ int main(void)
 
    while (i < 2)
    {
-      err = pthread_create(&(tid[i]), NULL, &doSomeThing, NULL);
+      err = pthread_create(&(tid[i]), NULL, &doSomeThing, reinterpret_cast<void *>(i));
       if (err != 0)
-         printf("\ncan't create thread :[%s]", strerror(err));
+         printf("can't create thread %d:[%s]", i, strerror(err));
       else
-         printf("\n Thread created successfully\n");
+         printf("Thread %d created successfully\n", i);
 
       i++;
    }
