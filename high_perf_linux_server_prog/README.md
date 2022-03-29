@@ -193,6 +193,13 @@
 - [线程池](#线程池)
     - [线程池的工作原理](#线程池的工作原理)
     - [代码实现](#代码实现)
+- [系统监测工具](#系统监测工具)
+    - [tcpdump](#tcpdump)
+    - [lsof](#lsof)
+    - [nc](#nc)
+    - [strace](#strace)
+    - [netstat](#netstat)
+    - [vmstat](#vmstat)
 
 <!-- /TOC -->
 
@@ -2270,3 +2277,75 @@ int sigwait(const sigset_t* set, int* sig);
 
 ## 代码实现
 参考[例子](./code/thread_pool)
+
+# 系统监测工具
+
+## tcpdump
+* 网路抓包工具
+* tcpdump <类型> <方向> <协议>
+    * tcpdump net 12.3.0 - 抓取整个1.2.3.0/255.255.255.0网路上的数据包
+    * tcpdump dst port 13579 - 抓取目标端口13579的数据包
+    * tcpdump icmp - 抓取所有ICMP数据包
+    * tcpdump 'src 10.0.2.4 and (dst port 3389 or 22)' - 抓取来自主机10.0.2.4，目标端口是3389或22的数据包
+
+## lsof
+* 列出当前系统打开的文件描述符的工具，可得到
+    * 某进程打开了哪些文件描述符
+    * 某文件描述符被哪些进程打开了
+* 查看连接到主机192.168.179.132的ssh服务的socket文件描述符，需要`sudo`权限：
+    * `sudo lsof -i @192.168.179.132:22`
+    ```bash
+    COMMAND   PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+    sshd     2854     root    4u  IPv4  59452      0t0  TCP cadence-vm:ssh->192.168.179.1:55240 (ESTABLISHED)
+    sshd     2989 yuxiangw    4u  IPv4  59452      0t0  TCP cadence-vm:ssh->192.168.179.1:55240 (ESTABLISHED)
+    ```
+* `-p` - 显示指定进程打开的所有文件描述符
+* `-t` - 仅显示打开了目标文件描述符的进程的PID
+
+## nc
+* 用来快速构建网络连接
+* `-C` - 将CR和LF两个字符作为行结束符
+* `-u` - 使用UDP协议
+* 连接到ernest-laptop上的squid代理服务器，并通过它来访问www.baidu.com的Web服务
+    * `nc -x ernest-laptop:1080 -X connect www.baidu.com 80`
+
+## strace
+* 跟踪程序运行过程中执行的系统调用和接收到的信号，并将系统调用名、参数、返回值及信号名输出到标准输出或指定的文件
+* 常用选项
+    * `-c` - 统计每个系统调用执行时间、执行次数和出错次数
+    * `-f` - 跟踪由`fork`调用生成的子进程
+    * `-t` - 在输出的每一行信息前加上时间信息
+    * `-e` - 指定一个表达式，用来控制如何跟踪系统调用
+        * `-e signal=!SIGIO` - 跟踪除SIGIO之外的所有信号
+        * `-e read=3,5` - 表示输出所有从文件描述符3和5读入的数据
+
+## netstat
+* 可以打印本地网卡接口上的全部连接、路由表信息、网卡接口信息等
+* 常用选项
+    * `-t` - 仅显示TCP连接
+    * `-p` - 显示socket所属的进程的PID和名字
+
+## vmstat
+`vmstat`是virtual memory statistics的缩写，实时输出系统的各种资源的使用情况，比如进程信息、内存使用、CPU使用率以及I/O使用情况
+
+```bash
+yuxiangw@cadence-vm:learning-linux$ vmstat -S M
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0   3813    242   2005    0    0     7     8  103   71  3  1 97  0  0
+```
+
+* `r` - 等待运行的进程数目
+* `b` - 不可中断睡眠状态的进程数目
+* `swpd` - 虚拟内存的使用数量
+* `free` - 空闲内存的数量
+* `buff` - 作为“buffer cache”的内存数量，从磁盘读入的数据可能被保存在“buffer cache”中，以便下一次快速访问
+* `cache` - 作为“page cache”的内存数量，待写入磁盘的数据首先被放到“page cache”中，然后由磁盘中断程序写入磁盘
+* `si/so` - 数据在磁盘和内存之间交换的速率
+* `bi/bo` - 从块设备读/写的速率
+* `in` - 每秒发生中断的次数
+* `cs` - 每秒发生上下文的切换次数
+* `us` - 用户空间的时间/CPU总运行时间
+* `sy` - 内核空间的时间/CPU总运行时间
+* `id` - CPU空闲时间比例
+* `wa` - CPU I/O时间比例
