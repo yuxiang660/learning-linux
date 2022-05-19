@@ -138,6 +138,10 @@ C++内存模型需要保证以下操作：
 
 ![thread_atomic](./images/thread_atomic.png)
 
+顺序一致下，两个线程交错运行的方式有六种：
+
+![thread_atomic_res](./images/thread_atomic_res.png)
+
 
 
 
