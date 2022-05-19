@@ -185,6 +185,25 @@ res = x.load(std::memory_order_seq_cst);
 
 #### 用`std::atomic<bool>`实现条件变量
 
+[例子"cv_atomic"](./code/cv_atomic/main.cpp)用`std::atomic<bool>`实现了类似条件变量的功能。两者的区别在于：条件变量会让线程等待通知`condVar.notify()`。而原子布尔值利用“拉原则pull principle”，采用轮询的方式实现。
+
+* `compare_exchange_strong`
+    * `atomicValue.compare_exchange_strong(expected, desired)`
+        * 如果`atomicValue`和`expected`一致，返回`true`，`atomicValue`设为`desired`
+        * 如果`atomicValue`和`expected`不一致，返回false，将`expected`设置为`atomicValue`
+* `compare_exchange_weak`
+    * `while (!atomicValue.compare_exchange_weak(expected, desired))`
+        * 即使`atomicValue`和`expected`一致，也可能返回`false`，表明没有设置成功
+        * 原因是一些处理器不支持原子比较交换指令
+
+#### 用户自定义类型的原子操作
+
+限制：
+
+* 不能定义复制赋值操作符
+* 不能有虚方法
+* 必须可按位比较
+
 
 
 
