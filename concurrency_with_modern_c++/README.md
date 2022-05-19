@@ -206,7 +206,43 @@ res = x.load(std::memory_order_seq_cst);
 
 #### `std::shared_ptr`的原子操作
 
+查看[例子"shared_ptr_atomic"](./code/shared_ptr_atomic/main.cpp)
 
+## 同步和顺序
+虽然不能配置原子数据，但是可以调整原子操作的同步和顺序。
+
+### C++的六种内存序
+
+```cpp
+
+enum memory_order
+{
+    memory_order_relaxed, // 无同步和操作顺序
+    memory_order_consume, // 读操作
+    memory_order_acquire, // 读操作
+    memory_order_release, // 写操作
+    memory_order_acq_rel, // 读改写操作
+    memory_order_seq_cst  // 读改写操作
+}
+```
+下表根据原子操作的读写特性对它们进行排序。
+
+|        操作名称         | read | write | read-modify-write |
+| :---------------------: | :--: | :---: | :---------------: |
+|      test_and_set       |      |       |        yes        |
+|          clear          |      |  yes  |                   |
+|      is_lock_free       | yes  |       |                   |
+|          load           | yes  |       |                   |
+|          store          |      |  yes  |                   |
+|        exchange         |      |       |        yes        |
+| compare_exchange_strong |      |       |        yes        |
+|  compare_exchange_weak  |      |       |                   |
+|      fetch_add, +=      |      |       |        yes        |
+|      fetch_sub, -=      |      |       |                   |
+|      fetch_or, \|=      |      |       |        yes        |
+|      fetch_and, &=      |      |       |                   |
+|      fetch_xor, ^=      |      |       |                   |
+|         ++, --          |      |       |        yes        |
 
 
 
