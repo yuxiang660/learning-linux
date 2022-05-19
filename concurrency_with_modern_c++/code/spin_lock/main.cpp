@@ -22,7 +22,7 @@ SpinLock spin;
 void workOnResource()
 {
    spin.lock();
-   // shared resource
+   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
    spin.unlock();
 }
 

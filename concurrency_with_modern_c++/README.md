@@ -162,7 +162,29 @@ res = x.load(std::memory_order_seq_cst);
 
 ### 原子标志
 
-`std::atomic_flag`是原子布尔类型，可设置为true或者false，但不能获取当前值。通过`std::atomic_flag flag = ATOMIC_FLAG_INIT`初始化。
+`std::atomic_flag`是原子布尔类型，可设置为true或者false，但不能获取当前值。通过`std::atomic_flag flag = ATOMIC_FLAG_INIT`初始化。利用`std::atomic_flag`的`test_and_set`函数，可以实现自旋锁。
+
+#### 自旋锁和互斥锁
+
+对比两个例子["spin_lock"](./code/spin_lock)和["mutex"](./code/mutex)，两者CPU的使用率完全不同：
+![spinlock_mutex](./images/spinlock_mutex.png)
+
+不应该在单处理器系统上使用自旋锁，有可能出现死锁的情况。
+
+### `std::atomic`模板
+
+* 布尔原子类型：`std::atomic<bool>`
+* 用户自定义原子类型：`std::atomic<user-defined type>`
+* 原子指针类型：`std::atomic<T*>`
+* 整数原子类型：`std::atomic<integral type>`
+
+`volatile`和`std::atomic`的区别：
+
+* volatile： 表示不允许对特定的对象进行读写优化
+* std::atomic： 用来定义线程安全的原子变量
+
+#### 用`std::atomic<bool>`实现条件变量
+
 
 
 
