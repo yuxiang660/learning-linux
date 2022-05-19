@@ -138,10 +138,31 @@ C++内存模型需要保证以下操作：
 
 ![thread_atomic](./images/thread_atomic.png)
 
+C++默认情况下，是固体不过“顺序一致语义”，以下代码等价：
+```cpp
+x.store(1);
+res = x.load();
+```
+```cpp
+x.store(1, std::memory_order_seq_cst);
+res = x.load(std::memory_order_seq_cst);
+```
+
 顺序一致下，两个线程交错运行的方式有六种：
 
 ![thread_atomic_res](./images/thread_atomic_res.png)
 
+* 顺序一致模型下，`res1`和`res2`不可能同时为零
+
+### 弱内存模型
+
+使用自由语义(也称为弱内存模型)，线程1可以以不同的顺序查看线程2的操作，全局顺序不再存在。以上面的例子为例，从线程1的角度来看，操作`res=x.load()`可能在`y.store(1)`之前执行。甚至是，线程2可以先执行`res2=x.load()`，再执行`y.store(1)`。
+
+“序列一致语义”和“自由语义”之间还有存在其他内存模型，其中最重要的是“获取-释放语义”。“获取-释放语义”中，开发人员需要遵守比“顺序一致语义”弱的规则。这样，系统有了更多优化空间。
+
+### 原子标志
+
+`std::atomic_flag`是原子布尔类型，可设置为true或者false，但不能获取当前值。通过`std::atomic_flag flag = ATOMIC_FLAG_INIT`初始化。
 
 
 
