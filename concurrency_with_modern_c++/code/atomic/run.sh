@@ -7,8 +7,8 @@ if [ ! -z "$1" ]; then
 fi
 
 for ((i = 1; i <= $n; i++)); do
-   #echo "--- Test $i ---"
-   ./main > run.log
+   echo "--- Test $i ---" > run.log
+   ./main >> run.log
    match_num=`grep -e '= 1' run.log | wc -l`
    if [[ $match_num == 2 ]]; then
       echo "Find two one values after $i run";
