@@ -204,6 +204,9 @@ res = x.load(std::memory_order_seq_cst);
 * 不能有虚方法
 * 必须可按位比较
 
+#### `std::shared_ptr`的原子操作
+
+
 
 
 
