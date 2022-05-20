@@ -291,3 +291,11 @@ C++中有三种以线程安全初始化变量的方法：
 
 * `promise`可以将值、异常或通知放入数据通道，一个`promise`可以对应多个`std::shared_future`对象
 
+### `std::shared_future`
+
+创建`std::shared_future`的两种方法：
+
+* `std::shared_future<int> fut = prom.get_future()`
+* `auto s_fut = fut.shared()`，执行了`fut.shared()`后，`fut.valid()`会返回`false`，以后都通过`s_fut.get()`拿出结果
+
+

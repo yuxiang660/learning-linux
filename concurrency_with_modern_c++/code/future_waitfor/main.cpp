@@ -4,7 +4,7 @@
 
 using namespace std::literals::chrono_literals;
 
-void getAnswer(std::promise<int> intPromise)
+void getAnswer(std::promise<int> &&intPromise)
 {
    std::this_thread::sleep_for(3s);
    intPromise.set_value(42);
