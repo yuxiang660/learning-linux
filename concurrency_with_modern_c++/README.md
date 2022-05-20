@@ -376,3 +376,28 @@ std::for_each(std::execution::par, vec.begin(), vec.end(),
     }
 );
 ```
+
+# C++20/23的特性
+
+## 可协作中断的线程
+
+`std::jthread`可以自动汇入启动线程，下面的代码不会崩溃。如果是`std::thread`会因为主线程先于子线程退出，而崩溃。
+
+```cpp
+#include <iostream>
+#include <thread>
+
+int main()
+{
+   std::jthread thr([]()
+                   { std::cout << "Joinable std::thread" << std::endl; });
+
+   std::cout << "thr.joinable():" << thr.joinable() << std::endl;
+   //thr.join();
+
+   return 0;
+}
+
+```
+
+
