@@ -281,4 +281,6 @@ C++中有三种以线程安全初始化变量的方法：
 
 没有用变量接住的`std::async`返回的`future`叫发后即忘的`future`，会在原地等待执行完成。
 
+### `std::packaged_task`
 
+与`std::async`或`std::promise`相比，`std::packaged_task`可以复位并重复使用。
