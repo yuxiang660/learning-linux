@@ -304,4 +304,16 @@ C++中有三种以线程安全初始化变量的方法：
 
 `std::promise`有一个成员函数`prom.set_value(std::current_exception())`将异常设置为共享状态。
 
+### 通知
+
+`promise`和`future`可实现条件变量的功能，对比
+
+对比标准 | 条件变量 | 任务
+--- | --- | ---
+多重同步 | Yes | No
+临界区保护 | Yes | No
+接收错误处理机制 | No | Yes
+伪唤醒 | Yes | No
+
+条件变量可以多次同步线程，而promise只能发送一次通知。
 
