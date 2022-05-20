@@ -284,3 +284,10 @@ C++中有三种以线程安全初始化变量的方法：
 ### `std::packaged_task`
 
 与`std::async`或`std::promise`相比，`std::packaged_task`可以复位并重复使用。
+
+### `std::promise`和`std::future`
+
+`std::promise`和`std::future`可以完全控制任务：
+
+* `promise`可以将值、异常或通知放入数据通道，一个`promise`可以对应多个`std::shared_future`对象
+
