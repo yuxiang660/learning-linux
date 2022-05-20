@@ -298,4 +298,10 @@ C++中有三种以线程安全初始化变量的方法：
 * `std::shared_future<int> fut = prom.get_future()`
 * `auto s_fut = fut.shared()`，执行了`fut.shared()`后，`fut.valid()`会返回`false`，以后都通过`s_fut.get()`拿出结果
 
+### 异常
+
+如果`std::async`或`std::packaged_task`的工作包抛出错误，则异常会存储在共享状态中。当`future fut`调用`fut.get()`时，异常将重新抛出。
+
+`std::promise`有一个成员函数`prom.set_value(std::current_exception())`将异常设置为共享状态。
+
 
