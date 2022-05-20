@@ -319,5 +319,60 @@ C++中有三种以线程安全初始化变量的方法：
 
 # 标准库的并行算法
 
+## 执行策略
 
+```cpp
+#include <vector>
+#include <algorithm>
+#include <execution>
 
+int main()
+{
+    std::vector<int> coll;
+    coll.reserve(10000);
+    for (int i = 0; i < 10000; ++i) {
+        coll.push_back(i);
+    }
+
+    // 并行执行每次循环
+    std::for_each(std::execution::par,
+        coll.begin(), coll.end(),
+        [](auto& val) {
+            val *= val;
+        }
+    );
+}
+```
+
+除使用多线程外，还可以通过CPU或GPU的向量指令集进行加速，参考[文档](https://ermao.live/C++17%E8%AF%A6%E8%A7%A324-%E5%B9%B6%E8%A1%8CSTL%E7%AE%97%E6%B3%95.html)。
+
+CPU 中此类方法统称`SIMD — Single Instruction Multiple Data`，即单指令多数据。常见的实现有 AVX256、AVX512、NEON。
+
+三种并行策略：
+
+* std::execution::sequenced_policy - 顺序执行
+* std::execution::parallel_policy - 并行执行算法，如果采用多线程方式的话，每个线程内的执行是顺序的
+* std::execution::parallel_unsequenced_policy - 多线程 + 向量指令集，线程内、线程间均是无序的
+
+标准库预定义了三类策略的全局对象：
+
+* std::execution::seq - 串行
+* std::execution::par - 使用并行策略，由STL实现来决定选择最好的并行方案，通常都是利用线程池
+    * 不是线程安全的，如果有用到共享数据要自己同步
+* std::execution::par_unseq - 该策略不能保证一个线程执行完改元素的所有步骤而不被中断
+    * 同样不是线程安全的，而且同一线程内的执行是交错的（interleaved），如果像下面一样加锁的话，会造成死锁。
+
+```cpp
+std::vector<int> vec(1000);
+std::iota(vec.begin(), vec.end(), 0);
+std::vector<int> output;
+std::mutex m;
+std::for_each(std::execution::par, vec.begin(), vec.end(),
+    [&output, &m, &x](int& elem) {
+        if (elem % 2 == 0) {
+            std::lock_guard guard(m);
+            output.push_back(elem);
+        }
+    }
+);
+```
