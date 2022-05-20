@@ -30,6 +30,7 @@ int main()
    Div div;
    std::thread divThread(div, std::move(divPromise), a, b);
 
+   // `future` can only get once, if want to get in serveral times, use `shared_future`
    std::cout << "20 * 10 = " << prodResult.get() << std::endl;
    std::cout << "20 / 10 = " << divResult.get() << std::endl;
 
