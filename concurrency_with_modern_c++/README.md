@@ -477,6 +477,21 @@ atomic
 * 当重写虚接口函数时，即使重写的函数是私有的，也应该有锁，因为继承类的私有函数也能通过多态的方法被外部调用
 
 
+# 伪共享
 
+如果两个线程，同时读取位于同一高速缓存行上的不同变量a和b，会发生伪共享，造成硬件同步，从而影响并发效率。
+
+```cpp
+struct Sum
+{
+#ifdef NOFALSE
+   alignas(64) long long a = 0;
+   alignas(64) long long b = 0;
+#else
+   long long a = 0;
+   long long b = 0;
+#endif
+};
+```
 
 
