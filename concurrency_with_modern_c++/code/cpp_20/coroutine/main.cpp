@@ -1,4 +1,6 @@
 // https://www.scs.stanford.edu/~dm/blog/c++-coroutines.html
+// https://itnext.io/c-20-coroutines-complete-guide-7c3fc08db89d
+// https://itnext.io/c-20-coroutines-complete-guide-7c3fc08db89d
 
 #include <concepts>
 #include <coroutine>
@@ -41,7 +43,7 @@ int main()
    for (int i = 0; i < 3; ++i)
    {
       std::cout << "In main function\n";
-      h();
+      h.resume();
    }
    h.destroy();
 
