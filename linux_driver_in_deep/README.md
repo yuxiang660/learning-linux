@@ -3,6 +3,8 @@
 * 《Linux设备驱动程序》- 1
 * 《深入Linux设备驱动程序内核机制》(陈学松) - 2
 * 《Linux设备驱动开发详解：基于最新的Linux 4.0内核》(宋宝华) - 3
+* 《深入Linux内核架构》(Wolfgang Mauerer) - 4
+* 《深入理解Linux内核》(MARCO) - 5
 
 # 编译运行Linux驱动
 目的：在ubuntu20上基于[Makefile](./code/hello/Makefile)编译驱动[hello.c](./code/hello/hello.c)
