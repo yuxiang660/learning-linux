@@ -232,4 +232,60 @@ struct sample {
     struct kobject kobj;
     ...
 };
+
+<kref.h>
+struct kref {
+    atomic_t refcount;  // 给出了内核中当前使用某个对象的计数，计数器为0时，就不需要该对象了，可以从内存中删除
+};
 ```
+
+![kobject_methods](./images/kobject_methods.png)
+
+#### 对象集合
+* 目的
+    * 将不同的内核对象归类到集合中
+        * 例如所有字符设备集合，所有基于PCI的设备集合
+
+```cpp
+<kobject.h>
+
+struct kset {
+    struct kobj_type *ktype;    // 指向kset中各个内核对象公用的kobj_type结构
+    struct list_head list;      // 所有属于当前集合的内核对象的链表
+    ...
+    struct kobject kobj;
+    struct kset_uevent_ops *uevent_ops; // 用于将集合的状态信息传递给用户层
+};
+
+// 该结构提供了与sysfs文件系统的接口
+struct kobj_type {
+    ...
+    struct sysfs_ops *sysfs_ops;
+    struct attribute ** default_attrs;
+};
+```
+
+#### 引用计数
+* 目的
+    * 用于检测内核中有多少地方使用了某个对象
+
+```cpp
+<kref.h>
+struct kref {
+    atomic_t refcount;  // 给出了内核中当前使用某个对象的计数，计数器为0时，就不需要该对象了，可以从内存中删除
+};
+```
+
+### 数据类型
+#### 类型定义
+#### 字节序
+
+* `cpu_to_le64` - 将64位数据类型转换位小端格式
+
+#### per-cpu变量
+* 通过`define_per_cpu(name, type)`声明。在有若干CPU的SMP系统上，会为每个CPU分别创建变量的一个实例
+* 通过`get_cpu(name, cpu)`返回某个特定CPU的实例，`smp_processor_id()`可得到当前CPU的ID
+
+#### 访问用户空间
+
+* 内核通过`__user`标记，来标识指向用户地址空间中区域的指针
