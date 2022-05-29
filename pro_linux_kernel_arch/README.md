@@ -114,3 +114,122 @@
     * `kmalloc`和`kfree`
 
 ![slab](./images/slab.png)
+
+#### 页面交换和页面回收
+* 目的
+    * 利用磁盘空间增大可用内存
+
+### 计时
+* 目的
+    * 提供时间信息
+* 实现
+    * `jiffies`时间坐标，是一个全局变量，每秒递增一定的值
+
+### 系统调用
+* 分类
+    * 进程管理：创建新进程，查询信息，调试。
+    * 信号：发送信号，定时器以及相关处理机制。
+    * 文件：创建、打开和关闭文件，从文件读取和向文件写入，查询信息和状态。
+    * 目录和文件系统：创建、删除和重命名目录，查询信息，链接，变更目录。
+    * 保护机制：读取和变更UID/GID，命名空间的处理。
+    * 定时器函数：定时器函数和统计信息
+* 执行系统调用方式，从用户态到内核态
+    * Linux使用了一个专用软件中断
+
+### 设备驱动程序、块设备和字符设备
+
+### 网络
+
+* 套接字可用看作应用程序、文件接口、内核的网络实现之间的代理
+
+### 文件系统
+
+* 文件系统使用目录结构组织存储的数据，并将其他元信息与实际数据关联起来
+
+* 实现
+    * Ext2基于inode，对每个文件都构造了一个单独的管理结构`inode`
+        * `inode`包含了文件所有的元信息，以及指向相关数据块的指针
+        * 目录的可以表示为普通文件，他的数据包括了指向目录下所有文件的`inode`指针
+
+#### VFS(Virtual Filesystem)
+* 目的
+    * 将底层文件系统与应用层(和内核自身)隔离
+* 实现
+    * 既是向下的接口(所有文件系统都必须实现其接口)
+    * 也是向上的接口(用户能通过系统调用访问文件系统)
+
+![vfs_fs](./images/vfs_fs.png)
+
+### 模块和热插拔
+* 目的
+    * 模块用于在运行时动态地向内核添加功能
+
+### 缓存
+* 目的
+    * 改进系统性能
+* 实现
+    * 从低速的块设备读取的数据会暂时保存在内存中
+
+### 链表处理
+![kernel_list](./images/kernel_list.png)
+
+```cpp
+// 内核提供的标准链表
+struct list_head {
+    struct list_head *next, *prev;
+};
+
+// 放置到任意数据结构中，将此数据结构彼此连接
+struct task_struct {
+    ...
+    struct list_head run_list;
+    ...
+};
+
+// 对链表的操作
+
+// 查找链表元素：list_entry(ptr, type, member)
+//  ptr - 指向数据结构中list_head成员实例
+//  type - 数据结构类型
+//  member - 数据结构中表示链表元素的成员名，如上面定义的`run_list`
+struct task_struct = list_entry(ptr, struct task_struct, run_list)
+
+// 遍历链表所有元素：list_for_each(pos, head)
+//  pos表示链表中的当前位置
+//  head指定了表头
+struct list_head *p;
+list_for_each(p, &list)
+    if (condition)
+        return list_entry(p, struct task_struct, run_list);
+return NULL;
+```
+
+### 对象管理和引用计数
+* 目的
+    * 为内核不同部分管理的对象提供一致的视图
+* 内核对象机制有下列对象操作
+    * 引用计数
+    * 管理对象链表
+    * 集合加锁
+    * 将对象属性导出到用户空间(通过sysfs文件系统)
+
+#### 一般性的内核对象
+```cpp
+<kobject.h>
+struct kobject {
+    const char *k_name;     // 对象名，利用sysfs导出到用户空间
+    struct kref kref;       // 用于简化引用计数的管理
+    struct list_head entry; // 用于将若干kobject放置到一个链表中
+    struct kobject *parent; // 用于在kobject之间建立层次结构
+    struct kset *kset;      // 将多个对象放置到一个集合中
+    struct kobj_type *ktype;// 用于释放改数据结构资源的析构器函数
+    struct sysfs_dirent *sd;// 用于支持内核对象与sysfs之间的关联
+};
+
+// 和链表一样，将kobject嵌入到其他结构，实现对象的管理
+struct sample {
+    ...
+    struct kobject kobj;
+    ...
+};
+```
