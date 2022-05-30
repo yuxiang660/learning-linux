@@ -289,3 +289,93 @@ struct kref {
 #### 访问用户空间
 
 * 内核通过`__user`标记，来标识指向用户地址空间中区域的指针
+
+# 进程管理和调度
+
+* 进程调度要解决的问题：
+    * 各应用程序不能彼此干扰
+    * CPU时间必须在各种应用程序之间尽可能公平地共享
+
+## 进程优先级
+
+### 抢占式多任务处理(preemptive multitasking)
+* 定义
+    * 各进程在一定时间之后，都会被收回控制权，按照时间片轮转运行
+    * 优先级/重要性高的进程，分配的时间片多
+    * ![preemptive_multitasking](./images/preemptive_multitasking.png)
+
+* 缺点
+    * 进程在某些时间可能无事可做而无法立即执行
+        * 通过进程状态进行分类
+    * 无法让重要进程马上执行，以抢占当前的进程
+        * 内核抢占(kernel preemption)可解决
+
+## 进程生命周期
+
+* 分类进程状态的目的
+    * 防止CPU时间被分配到无法立即运行的进程，例如，进程等待在键盘输入上
+
+* 进程可能有以下几种状态
+    * 运行
+    * 等待
+        * 进程能够运行，但没有得到许可
+    * 睡眠
+        * 进程无法运行，因为在等待一个外部事件
+    * 其他状态
+        * 僵尸进程
+            * 进程表中存留进程信息，但是其进程资源已经被释放
+            * 原因是父进程没有通过`wait for`确认子进程的终结
+        * 用户状态(受限)/核心态
+            * 从用户态切到核心态的方法
+                * 系统调用
+                * 中断
+
+## 进程表示
+
+```cpp
+<sched.h>
+struct task_struct {
+    volatile long state;
+    ...
+};
+```
+
+### 进程类型
+* 进程
+    * `fork`
+    * `exec`
+* 线程
+    * `clone`
+    * 线程库NGPT
+
+### 命名空间
+
+* 概念
+    * 命名空间只使用一个内核在一台物理机上运作，将全局资源通过命名空间抽象起来
+
+![namespace](./images/namespace.png)
+
+* 创建命名空间
+    * 方法一
+        * `chroot`系统调用
+    * 方法二
+        * `fork`/`clone`创建新进程，并通过选项控制建立新的命名空间
+        * `unshare`系统调用将进程的某些部分从父进程分离，包括命名空间
+
+#### 实现
+
+![task_namespace](./images/task_namespace.png)
+
+```cpp
+<nsproxy.h>
+
+// 用于汇集指向特定于子系统的命名空间包装器的指针
+struct nsproxy {
+    struct uts_namespace *uts_ns; // UNIX Timesharing System 命名空间包含了内核信息
+    struct ipc_namespace *ipc_ns; // 所有与IPC有关的信息
+    struct mnt_namespace *mnt_ns; // 已经装载的文件系统视图
+    struct pid_namespace *pid_ns; // 进程ID
+    struct user_namespace *user_ns; // 保存用于限制每个用户资源使用的信息
+    struct net *net_ns; // 包含所有网络相关的命名空间参数
+};
+```
