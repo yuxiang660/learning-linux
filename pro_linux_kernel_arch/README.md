@@ -440,6 +440,15 @@ struct task_struct {
     struct list_head sibling;  // 兄弟进程链表
 ...
 };
-
 ```
+
+## 进程管理相关的系统调用
+
+* 三种方法
+    * `fork`
+    * `vfork`
+        * 不创建父进程数据副本，父子进程之间共享数据
+        * `vfork`不再有优势，应该避免
+    * `clone`
+
 
