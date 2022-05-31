@@ -401,4 +401,32 @@ struct new_utsname {
 
 ### 进程ID号
 
+
+```cpp
+<sched.h>
+struct task_struct {
+    ...
+    pid_t pid;  // LWP id, return by gettid()
+    pid_t tgid; // thread group id, return by getpid()
+    ...
+};
+
+// SID
+task_struct->signal->__session
+
+// PGID
+task_struct->signal->__pgrp
+
+// PID枚举类型不包括TGID，因为线程组ID无非是线程组组长的PID而已
+<pid.h>
+enum pid_type
+{
+    PIDTYPE_PID,
+    PIDTYPE_PGID,
+    PIDTYPE_SID,
+    PIDTYPE_MAX
+};
+
+```
+
 ### 进程关系
