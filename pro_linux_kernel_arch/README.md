@@ -430,3 +430,16 @@ enum pid_type
 ```
 
 ### 进程关系
+![proc_parent_child](./images/proc_parent_child.png)
+
+```cpp
+<sched.h>
+struct task_struct {
+...
+    struct list_head children; // 子进程链表
+    struct list_head sibling;  // 兄弟进程链表
+...
+};
+
+```
+
