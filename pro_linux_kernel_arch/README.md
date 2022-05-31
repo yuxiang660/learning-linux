@@ -379,3 +379,22 @@ struct nsproxy {
     struct net *net_ns; // 包含所有网络相关的命名空间参数
 };
 ```
+
+UTS命名空间，没有层次组织，`cat /proc/sys/kernel/ostype`等命令，就是查看UTS的数据结构。
+```cpp
+<utsname.h>
+
+struct uts_namespace {
+    struct kref kerf;
+    struct new_utsname name;
+};
+
+struct new_utsname {
+    char sysname[65];
+    char nodename[65];
+    char release[65];
+    char version[65];
+    char machine[65];
+    char domainname[65];
+};
+```
