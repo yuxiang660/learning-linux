@@ -43,7 +43,6 @@ install2:
 
 uninstall:
 	sudo ./scull_unload
-	cat /proc/devices | grep scull
 
 init:
 	sudo ./scull.init $(option)

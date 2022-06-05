@@ -44,3 +44,9 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
 ```
 
 * 上面的函数只是分配了设备编号，接下来要告诉内核这些编号要做什么，将设备编号和内部函数连接起来
+
+### 重要的数据结构
+
+* `file_operations`
+* `file`
+* `inode`
