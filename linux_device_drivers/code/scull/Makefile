@@ -31,3 +31,19 @@ endif
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions *.mod modules.order *.symvers
 
+# auto-select major device number
+install:
+	sudo ./scull_load
+	cat /proc/devices | grep scull
+
+# specify major device number 111
+install2:
+	sudo ./scull_load scull_major=111
+	cat /proc/devices | grep scull
+
+uninstall:
+	sudo ./scull_unload
+	cat /proc/devices | grep scull
+
+init:
+	sudo ./scull.init $(option)
