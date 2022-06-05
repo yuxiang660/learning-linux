@@ -16,7 +16,7 @@ fi
 insmod ./$module.ko $* || exit 1
 
 # retrieve major number
-#awk "$2 == "scull" {print $1}" /proc/devices
+# awk '$2 == "scull" {print $1}' /proc/devices
 major=$(awk "\$2==\"$module\" {print \$1}" /proc/devices)
 
 # Remove stale nodes and replace them, then give gid and perms
