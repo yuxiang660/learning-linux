@@ -1,6 +1,5 @@
 # Comment/uncomment the following line to disable/enable debugging
-#DEBUG = y
-
+# DEBUG = y
 
 # Add your debugging flag (or not) to CFLAGS
 ifeq ($(DEBUG),y)
@@ -9,10 +8,8 @@ else
   DEBFLAGS = -O2
 endif
 
-LDDINC=$(PWD)/../include
-
+# Linux kernel build-in option: https://www.kernel.org/doc/Documentation/kbuild/makefiles.txt
 EXTRA_CFLAGS += $(DEBFLAGS)
-EXTRA_CFLAGS += -I$(LDDINC)
 
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
@@ -31,14 +28,6 @@ modules:
 
 endif
 
-
 clean:
 	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions *.mod modules.order *.symvers
 
-depend .depend dep:
-	$(CC) $(EXTRA_CFLAGS) -M *.c > .depend
-
-
-ifeq (.depend,$(wildcard .depend))
-include .depend
-endif
