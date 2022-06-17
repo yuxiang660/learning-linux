@@ -27,13 +27,13 @@ MKDEV(int major, int minor);
 
 ### 分配和释放设备编号
 ```cpp
-// 静态分配设备编号
+// 静态分配设备编号，用于已知起始设备号的情况
 //  first - 要分配的设备编号范围的起始值，常设置为0
 //  count - 所请求的连续设备编号的个数
 //  name - 是和该编号范围关联的设备名称，将出现在`/proc/devices`和`sysfs`中
 int register_chrdev_region(dev_t first, unsigned int count, char *name);
 
-// 动态分配设备编号
+// 动态分配设备编号，用于设备号未知，向系统动态申请未被占用的设备号的情况
 //  dev - 输出参数，保存调用完成后分配的第一个编号
 //  firstminor - 应该要使用的被请求的第一个次设备号，通常是0
 //  count和name - 和上面的函数一致
