@@ -57,6 +57,7 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
     * `void cdev_init(struct cdev *cdev, struct file_operations *fops)`
 * 添加`cdev`到内核
     * `int cdev_add(struct cdev *dev, dev_t num, unsigned int count)`
+        * `count`是应该和该设备关联的设备编号的数量，常取值1。但是某些情况下，会有多个设备编号对应于一个特定的设备。例如，SCSI磁带驱动程序，它通过每个物理设备的多个次设备号来允许用户空间选择不同的操作模式
 * 从内核中移除`cdev`
     * `void cdev_del(struct cdev *dev)`
 
