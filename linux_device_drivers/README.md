@@ -73,4 +73,4 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
         DRIVER==""
         ATTR{active}=="tty2"
     ```
-
+* `udev`利用内核通过`netlink`套接字发出`uevent`信息，动态创建设备文件节点
