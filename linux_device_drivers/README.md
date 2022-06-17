@@ -50,3 +50,27 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
 * `file_operations`
 * `file`
 * `inode`
+
+## udev和devfs
+> 《Linux设备驱动开发详解》第5.4节
+
+### udevadm工具
+* 寻找`/dev/`下节点对应的`/sys`节点
+    * `udevadm info -q path -n /dev/tty0`
+* 打印udev的规则文件
+    * `udevadm info -a -p /sys/devices/virtual/tty/tty0`
+    ```bash
+    > udevadm info -a -p /sys/devices/virtual/tty/tty0
+    Udevadm info starts with the device specified by the devpath and then
+    walks up the chain of parent devices. It prints for every device
+    found, all possible attributes in the udev rules key format.
+    A rule to match, can be composed by the attributes of the device
+    and the attributes from one single parent device.
+
+    looking at device '/devices/virtual/tty/tty0':
+        KERNEL=="tty0"
+        SUBSYSTEM=="tty"
+        DRIVER==""
+        ATTR{active}=="tty2"
+    ```
+
