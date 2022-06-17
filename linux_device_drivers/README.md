@@ -48,8 +48,27 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
 ### 重要的数据结构
 
 * `file_operations`
+    * 提供了文件操作方法，如`open`，`read`，`mmap`等
+    * 例如，`scull`设备提供了如下操作：
+    ```cpp
+    struct file_operations scull_fops = {
+        .owner =    THIS_MODULE,
+        .llseek =   scull_llseek,
+        .read =     scull_read,
+        .write =    scull_write,
+        .unlocked_ioctl = scull_ioctl,
+        .open =     scull_open,
+        .release =  scull_release,
+    };
+    ```
+
 * `file`
+    * 系统中每个打开的文件在内核空间中都有一个对应的`file`结构
+    * 包括文件模式`f_mode`，读写位置`f_pos`等
+
 * `inode`
+    * 对于单个文件，可能会有许多个表示打开的文件描述符的`file`结构，但是它们都指向单个`inode`结构
+    * 包括`dev_t i_rdev`(真正的设备编号)，`cdev *i_cdev`(字符设备的内部结构)等
 
 ## udev和devfs
 > 《Linux设备驱动开发详解》第5.4节
