@@ -45,30 +45,45 @@ void unregister_chrdev_region(dev_t first, unsigned int count);
 
 * 上面的函数只是分配了设备编号，接下来要告诉内核这些编号要做什么，将设备编号和内部函数连接起来
 
-### 重要的数据结构
+## 注册字符设备
+在获取了主/次设备号后，需要通过`c_dev`结构向内核注册设备(关联相关操作)，步骤如下：
 
-* `file_operations`
-    * 提供了文件操作方法，如`open`，`read`，`mmap`等
-    * 例如，`scull`设备提供了如下操作：
-    ```cpp
-    struct file_operations scull_fops = {
-        .owner =    THIS_MODULE,
-        .llseek =   scull_llseek,
-        .read =     scull_read,
-        .write =    scull_write,
-        .unlocked_ioctl = scull_ioctl,
-        .open =     scull_open,
-        .release =  scull_release,
-    };
-    ```
+* 向内核申请`cdev`空间，两种方法
+    * `cdev_alloc`
+        * `struct cdev *my_cdev = cdev_alloc()`
+    * `kmalloc`
+        * `scull_devices = kmalloc(scull_nr_devs * sizeof(struct scull_dev), GFP_KERNEL);`
+* 配置`cdev`的`file_operations`
+    * `void cdev_init(struct cdev *cdev, struct file_operations *fops)`
+* 添加`cdev`到内核
+    * `int cdev_add(struct cdev *dev, dev_t num, unsigned int count)`
+* 从内核中移除`cdev`
+    * `void cdev_del(struct cdev *dev)`
 
-* `file`
-    * 系统中每个打开的文件在内核空间中都有一个对应的`file`结构
-    * 包括文件模式`f_mode`，读写位置`f_pos`等
+## 重要的数据结构
 
-* `inode`
-    * 对于单个文件，可能会有许多个表示打开的文件描述符的`file`结构，但是它们都指向单个`inode`结构
-    * 包括`dev_t i_rdev`(真正的设备编号)，`cdev *i_cdev`(字符设备的内部结构)等
+### `file_operations`
+* 提供了文件操作方法，如`open`，`read`，`mmap`等
+* 例如，`scull`设备提供了如下操作：
+```cpp
+struct file_operations scull_fops = {
+    .owner =    THIS_MODULE,
+    .llseek =   scull_llseek,
+    .read =     scull_read,
+    .write =    scull_write,
+    .unlocked_ioctl = scull_ioctl,
+    .open =     scull_open,
+    .release =  scull_release,
+};
+```
+
+### `file`
+* 系统中每个打开的文件在内核空间中都有一个对应的`file`结构
+* 包括文件模式`f_mode`，读写位置`f_pos`等
+
+### `inode`
+* 对于单个文件，可能会有许多个表示打开的文件描述符的`file`结构，但是它们都指向单个`inode`结构
+* 包括`dev_t i_rdev`(真正的设备编号)，`cdev *i_cdev`(字符设备的内部结构)等
 
 ## udev和devfs
 > 《Linux设备驱动开发详解》第5.4节
