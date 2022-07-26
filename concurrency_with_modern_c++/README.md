@@ -85,7 +85,7 @@ struct S
 * 相邻的位字段(b和c)具有相同的内存位置
 * 变量至少占用一个内存位置，`std::string`就占用了多个内存位置
 
-![mem_position](concurrency_with_modern_c++/images/mem_position.png)
+![mem_position](./images/mem_position.png)
 
 两个线程访问相同的内存位置，会发生什么？
 
