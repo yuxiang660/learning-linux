@@ -116,3 +116,6 @@ fb3-1.lex.c
 hello
 !hello/
 .vscode/
+
+#python
+__pycache__
