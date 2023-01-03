@@ -4,7 +4,6 @@ Logistic Regression Working Module
 @author: Peter
 '''
 from numpy import *
-import math
 
 def loadDataSet():
     dataMat = []; labelMat = []
@@ -16,10 +15,7 @@ def loadDataSet():
     return dataMat,labelMat
 
 def sigmoid(inX):
-    try:
-        return 1.0/(1+math.exp(-inX))
-    except:
-        return 1 if inX > 0 else 0
+    return 1.0/(1.0+exp(-inX))
 
 def gradAscent(dataMatIn, classLabels):
     dataMatrix = mat(dataMatIn)             #convert to NumPy matrix
@@ -114,3 +110,11 @@ def multiTest():
     for k in range(numTests):
         errorSum += colicTest()
     print("after %d iterations the average error rate is: %f" % (numTests, errorSum/float(numTests)))
+
+if __name__ == "__main__":
+    colicTest()
+    dataMat,labelMat=loadDataSet()
+    weightMat = gradAscent(dataMat, labelMat)
+    weights = array(weightMat).flatten()
+    print(f'weigths: {weights}')
+    plotBestFit(weights)
