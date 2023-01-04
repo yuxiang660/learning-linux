@@ -190,7 +190,7 @@ def crossValidation(xArr,yArr,numVal=10):
     print("with constant term: ",-1*sum(multiply(meanX,unReg)) + mean(yMat))
 
 
-if __name__ == "__main__":
+def test1(ax):
     xArr,yArr = loadDataSet("ex0.txt")
     ws = standRegres(xArr, yArr)
     xMat = mat(xArr)
@@ -199,11 +199,28 @@ if __name__ == "__main__":
     co = corrcoef(yHat.T, yMat)
     print(co) # 打印相关系数，接近1表示相关
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
     ax.scatter(xMat[:,1].flatten().A[0], yMat.T[:,0].flatten().A[0])
     xCopy = xMat.copy()
     xCopy.sort(0)
     yCopyHat = xCopy*ws
     ax.plot(xCopy[:, 1], yCopyHat)
+
+
+def test2(ax):
+    xArr,yArr = loadDataSet("ex0.txt")
+    yHat = lwlrTest(xArr, xArr, yArr, 0.003)
+    xMat = mat(xArr)
+    srtInd = xMat[:,1].argsort(0)
+    xSort = xMat[srtInd][:,0,:]
+
+    ax.plot(xSort[:,1], yHat[srtInd])
+    ax.scatter(xMat[:,1].flatten().A[0], mat(yArr).T.flatten().A[0], s=2, c='red')
+
+
+if __name__ == "__main__":
+    fig = plt.figure()
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    test1(ax1)
+    test2(ax2)
     plt.show()
