@@ -195,12 +195,15 @@ if __name__ == "__main__":
     ws = standRegres(xArr, yArr)
     xMat = mat(xArr)
     yMat = mat(yArr)
+    yHat = xMat*ws
+    co = corrcoef(yHat.T, yMat)
+    print(co) # 打印相关系数，接近1表示相关
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.scatter(xMat[:,1].flatten().A[0], yMat.T[:,0].flatten().A[0])
     xCopy = xMat.copy()
     xCopy.sort(0)
-    yHat = xCopy*ws
-    ax.plot(xCopy[:, 1], yHat)
+    yCopyHat = xCopy*ws
+    ax.plot(xCopy[:, 1], yCopyHat)
     plt.show()
