@@ -112,7 +112,7 @@ def multiTest():
     print("after %d iterations the average error rate is: %f" % (numTests, errorSum/float(numTests)))
 
 if __name__ == "__main__":
-    colicTest()
+    #colicTest()
     dataMat,labelMat=loadDataSet()
     weightMat = gradAscent(dataMat, labelMat)
     weights = array(weightMat).flatten()
