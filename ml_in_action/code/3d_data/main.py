@@ -20,13 +20,12 @@ def main():
     y = np.array(df["Y"])
     z = np.array(df["Z"])
     X,Y = np.meshgrid(x, y)
-    print(z)
-    fig = go.Figure(data=[go.Surface(
-        x=x,
-        y=y,
-        z=X + 2*Y
-    )])
-    fig.write_html("./data.html")
+    fig1 = go.Figure(data=[
+        go.Surface(x=x, y=y, z=X+2*Y),
+    ])
+    fig2 = px.scatter_3d(df, x='X', y='Y', z='Z')
+    fig3 = go.Figure(data=fig1.data + fig2.data)
+    fig3.write_html("./data.html")
 
 
 if __name__ == "__main__":
