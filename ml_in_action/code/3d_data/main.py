@@ -1,22 +1,32 @@
 import pandas as pd
 import logging
 import plotly.express as px
+import plotly.graph_objects as go
+import numpy as np
 
 logging.basicConfig(level=logging.INFO,
                     format='[%(levelname)7s] | %(message)s')
 
-
+# Z = X + 2*Y
 data = {
-    "X1": [1, 2, 3, 2.5, 4, 5],
-    "X2": [1, 1, 2, 2.1, 3, 6],
-    "Y": [3.1, 3.9, 8.2, 6.3, 10.2, 16.8],
+    "X": [1, 2, 3, 2.5, 4, 5],
+    "Y": [1, 1, 2, 2, 3, 6],
+    "Z": [3, 4, 7, 6.5, 10, 17],
 }
 
 def main():
     df = pd.DataFrame(data)
-    logging.info(f'Data:\n{df}')
-    fig = px.scatter_3d(df, x='X1', y='X2', z='Y')
-    fig.show()
+    x = np.array(df["X"])
+    y = np.array(df["Y"])
+    z = np.array(df["Z"])
+    X,Y = np.meshgrid(x, y)
+    print(z)
+    fig = go.Figure(data=[go.Surface(
+        x=x,
+        y=y,
+        z=X + 2*Y
+    )])
+    fig.write_html("./data.html")
 
 
 if __name__ == "__main__":
