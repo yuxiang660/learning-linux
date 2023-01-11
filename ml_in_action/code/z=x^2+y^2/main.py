@@ -16,12 +16,12 @@ def main():
         go.Surface(x=x, y=y, z=Z),
     ])
 
-    fig.update_layout(title='z=x^2+y^2',
-                       scene=dict(
-                           xaxis=dict(range=[-6, 6],),
-                           yaxis=dict(range=[-6, 6],),
-                           zaxis=dict(range=[-6, 6],),),
-                       margin=dict(l=50, r=50, b=100, t=50))
+    # fig.update_layout(title='z=x^2+y^2',
+    #                    scene=dict(
+    #                        xaxis=dict(range=[-6, 6],),
+    #                        yaxis=dict(range=[-6, 6],),
+    #                        zaxis=dict(range=[-6, 6],),),
+    #                    margin=dict(l=50, r=50, b=100, t=50))
     fig.write_html("./data.html")
 
 def main2():
